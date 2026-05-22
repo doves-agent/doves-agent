@@ -78,6 +78,12 @@ curl -fsSL https://raw.githubusercontent.com/doves-agent/doves-agent/main/instal
 - `OSS_*` — 对象存储配置（可选）
 - LLM API Key — 百炼 / DeepSeek / GLM 等
 
+## 合作联系
+
+欢迎技术合作、投资洽谈、场景共建、生态共创等各类合作意向。
+
+📮 **200866850@qq.com**
+
 ## 许可证
 
 MIT
