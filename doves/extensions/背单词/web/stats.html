@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>学习统计</title>
+<link rel="stylesheet" href="/css/style.css">
+<style>
+  .page-nav { display: flex; gap: 4px; margin-bottom: 16px; background: var(--bg-card); border-radius: var(--radius); padding: 6px; border: 1px solid var(--border); }
+  .page-nav a { padding: 6px 16px; border-radius: var(--radius-sm); font-size: 13px; color: var(--text-secondary); text-decoration: none; transition: all 0.15s; }
+  .page-nav a:hover { background: var(--bg-input); color: var(--text); }
+  .page-nav a.active { background: var(--primary); color: #fff; }
+
+  .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 12px; margin-bottom: 20px; }
+  .stat-card { background: var(--bg-card); border-radius: var(--radius); padding: 16px; text-align: center; border: 1px solid var(--border); transition: transform 0.15s; }
+  .stat-card:hover { transform: translateY(-2px); }
+  .stat-card .value { font-size: 28px; font-weight: 700; color: var(--primary); }
+  .stat-card .label { font-size: 12px; color: var(--text-secondary); margin-top: 4px; }
+
+  .section-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+  .profile-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; }
+  .profile-item { padding: 10px; background: var(--bg-input); border-radius: var(--radius-sm); }
+  .profile-item .key { font-size: 12px; color: var(--text-secondary); margin-bottom: 4px; }
+  .profile-item .val { font-size: 14px; font-weight: 600; color: var(--text); }
+
+  .recommend-list { list-style: none; padding: 0; margin: 0; }
+  .recommend-list li { padding: 12px 0; border-bottom: 1px solid var(--border); display: flex; align-items: baseline; gap: 10px; animation: fadeIn 0.3s ease; }
+  .recommend-list li:last-child { border-bottom: none; }
+  @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+  .recommend-list .word { font-size: 20px; font-weight: 700; letter-spacing: 0.5px; }
+  .recommend-list .meta { flex: 1; }
+  .recommend-list .reason { font-size: 12px; color: var(--text-secondary); display: block; margin-top: 2px; }
+  .recommend-list .meaning-hint { font-size: 13px; color: var(--text-secondary); margin-top: 2px; }
+  .recommend-list .difficulty { font-size: 11px; padding: 2px 8px; border-radius: 10px; background: var(--bg-input); color: var(--text-secondary); }
+  .btn-learn { padding: 4px 12px; background: var(--primary); color: #fff; border: none; border-radius: var(--radius-sm); cursor: pointer; font-size: 12px; text-decoration: none; }
+  .btn-learn:hover { background: var(--primary-hover); }
+
+  /* vocab-common.js compatibility */
+  .legend { display: flex; gap: 8px; flex-wrap: wrap; }
+  .legend-item { display: flex; align-items: center; gap: 3px; font-size: 11px; color: var(--text-secondary); }
+  .legend-dot { width: 8px; height: 8px; border-radius: 50%; }
+  .color-dot { width: 14px; height: 14px; border-radius: 50%; border: 1px solid rgba(0,0,0,0.1); }
+  .color-preview { display: flex; gap: 3px; align-items: center; }
+</style>
+</head>
+<body>
+  <div class="page-header">
+    <h1 class="page-title">学习统计</h1>
+  </div>
+
+  <div class="page-nav">
+    <a href="#" onclick="DoveSDK.navigateTo('vocabulary-learn');return false">学习</a>
+    <a href="#" onclick="DoveSDK.navigateTo('vocabulary-review');return false">复习</a>
+    <a href="#" onclick="DoveSDK.navigateTo('vocabulary-import');return false">录入</a>
+    <a href="#" class="active" onclick="return false">统计</a>
+  </div>
+
+  <div class="stats-grid" id="statsGrid">
+    <div class="stat-card"><div class="value">-</div><div class="label">总学词数</div></div>
+    <div class="stat-card"><div class="value">-</div><div class="label">已掌握</div></div>
+    <div class="stat-card"><div class="value">-</div><div class="label">今日新学</div></div>
+    <div class="stat-card"><div class="value">-</div><div class="label">今日复习</div></div>
+    <div class="stat-card"><div class="value">-</div><div class="label">连续天数</div></div>
+    <div class="stat-card"><div class="value">-</div><div class="label">正确率</div></div>
+  </div>
+
+  <!-- 学习画像 -->
+  <div class="card" id="profileSection" style="display:none">
+    <h3 style="margin-bottom: 12px;">学习画像</h3>
+    <div class="profile-grid" id="profileGrid"></div>
+  </div>
+
+  <!-- 智能推荐 -->
+  <div class="card">
+    <div class="section-header">
+      <h3>智能推荐</h3>
+      <button class="btn btn-sm" id="btnRecommend" onclick="loadRecommendations()">刷新推荐</button>
+    </div>
+    <ul class="recommend-list" id="recommendList">
+      <li class="empty-state">点击"刷新推荐"获取</li>
+    </ul>
+  </div>
+
+<script src="/js/sdk.js"></script>
+<script src="vocab-common.js"></script>
+<script>
+DoveSDK.init('背单词');
+
+// ==================== 状态 ====================
+let recommendData = [];
+let recommendDetailCache = {};
+
+// ==================== 初始化 ====================
+loadStats();
+
+// ==================== 数据加载 ====================
+
+async function loadStats() {
+  try {
+    const data = await VocAPI.learningStats();
+
+    if (data) {
+      const cards = document.querySelectorAll('.stat-card .value');
+      if (cards.length >= 6) {
+        cards[0].textContent = data.total_words || 0;
+        cards[1].textContent = data.mastered_words || 0;
+        cards[2].textContent = data.today_new || 0;
+        cards[3].textContent = data.today_review || 0;
+        cards[4].textContent = data.streak_days || 0;
+        cards[5].textContent = data.accuracy_rate != null
+          ? Math.round(data.accuracy_rate * 100) + '%'
+          : '-';
+      }
+
+      // 学习画像
+      if (data.level || data.strengths || data.knownRoots) {
+        const profileSection = document.getElementById('profileSection');
+        const profileGrid = document.getElementById('profileGrid');
+        profileSection.style.display = '';
+
+        let html = '';
+        if (data.level) html += '<div class="profile-item"><div class="key">等级</div><div class="val">Lv.' + data.level + '</div></div>';
+        if (data.accuracy_rate != null) html += '<div class="profile-item"><div class="key">正确率</div><div class="val">' + Math.round(data.accuracy_rate * 100) + '%</div></div>';
+        if (data.max_streak_days) html += '<div class="profile-item"><div class="key">最长连续</div><div class="val">' + data.max_streak_days + ' 天</div></div>';
+        if (data.knownRoots?.length > 0) html += '<div class="profile-item"><div class="key">已掌握词根</div><div class="val">' + data.knownRoots.join(', ') + '</div></div>';
+        if (data.strengths?.length > 0) html += '<div class="profile-item"><div class="key">优势</div><div class="val">' + data.strengths.join(', ') + '</div></div>';
+        if (data.suggestions?.length > 0) html += '<div class="profile-item"><div class="key">建议</div><div class="val">' + data.suggestions.join('; ') + '</div></div>';
+        profileGrid.innerHTML = html;
+      }
+    }
+  } catch (e) {
+    console.error('加载统计失败', e);
+  }
+}
+
+async function loadRecommendations() {
+  const list = document.getElementById('recommendList');
+  const btn = document.getElementById('btnRecommend');
+  list.innerHTML = '<li class="loading">加载中...</li>';
+  btn.disabled = true;
+
+  try {
+    const data = await VocAPI.smartRecommend(8);
+
+    if (data?.recommendations && data.recommendations.length > 0) {
+      recommendData = data.recommendations;
+      await preloadRecommendDetails();
+      renderRecommendations();
+    } else {
+      recommendData = [];
+      list.innerHTML = '<li class="empty-state">暂无推荐</li>';
+    }
+  } catch (e) {
+    list.innerHTML = '<li class="empty-state">获取失败: ' + e.message + '</li>';
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+async function preloadRecommendDetails() {
+  const words = recommendData.map(r => r.word).filter(Boolean);
+  const batchSize = 5;
+  for (let i = 0; i < words.length; i += batchSize) {
+    const batch = words.slice(i, i + batchSize);
+    await Promise.all(batch.map(async word => {
+      if (recommendDetailCache[word]) return;
+      try {
+        const data = await VocAPI.queryWord(word);
+        if (data?.found) recommendDetailCache[word] = data;
+      } catch (e) { /* skip */ }
+    }));
+  }
+}
+
+function renderRecommendations() {
+  const list = document.getElementById('recommendList');
+  if (recommendData.length === 0) {
+    list.innerHTML = '<li class="empty-state">暂无推荐</li>';
+    return;
+  }
+
+  const c = VocTemplates.getColors();
+  list.innerHTML = recommendData.map(r => {
+    const word = r.word || '?';
+    const reason = r.reason || '难度适合';
+    const difficulty = r.difficulty || r.difficulty_level || '';
+    const strategy = r.strategy || '';
+
+    const detail = recommendDetailCache[word] || { word };
+    const coloredWord = VocRender.coloredWord(detail, 'syllable', c);
+
+    const defs = r.definitions || detail.definitions || [];
+    const meaningHint = defs.length > 0
+      ? defs.slice(0, 2).map(d => (d.pos || '') + ' ' + (d.meaning_cn || d.meaning || d.definition || '')).join('; ')
+      : '';
+
+    return '<li>' +
+      '<span class="word">' + coloredWord + '</span>' +
+      '<div class="meta">' +
+        '<span class="reason">' + reason + (strategy ? ' (' + strategy + ')' : '') + '</span>' +
+        (meaningHint ? '<span class="meaning-hint">' + meaningHint + '</span>' : '') +
+      '</div>' +
+      (difficulty ? '<span class="difficulty">Lv.' + difficulty + '</span>' : '') +
+      '<a class="btn-learn" href="#" onclick="localStorage.setItem(\'vocab_query\',\'' + word + '\');DoveSDK.navigateTo(\'vocabulary-learn\');return false">学习</a>' +
+    '</li>';
+  }).join('');
+}
+</script>
+</body>
+</html>

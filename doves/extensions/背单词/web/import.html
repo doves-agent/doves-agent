@@ -1,0 +1,501 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>词汇录入</title>
+<link rel="stylesheet" href="/css/style.css">
+<style>
+  .page-nav { display: flex; gap: 4px; margin-bottom: 16px; background: var(--bg-card); border-radius: var(--radius); padding: 6px; border: 1px solid var(--border); }
+  .page-nav a { padding: 6px 16px; border-radius: var(--radius-sm); font-size: 13px; color: var(--text-secondary); text-decoration: none; transition: all 0.15s; }
+  .page-nav a:hover { background: var(--bg-input); color: var(--text); }
+  .page-nav a.active { background: var(--primary); color: #fff; }
+
+  .tab-bar { display: flex; gap: 0; margin-bottom: 16px; background: var(--bg-card); border-radius: var(--radius); overflow: hidden; border: 1px solid var(--border); }
+  .tab-btn { flex: 1; padding: 10px; border: none; background: var(--bg-card); cursor: pointer; font-size: 14px; color: var(--text-secondary); transition: all 0.2s; }
+  .tab-btn.active { background: var(--primary); color: #fff; }
+  .tab-btn:hover:not(.active) { background: var(--bg-input); }
+  .tab-content { display: none; }
+  .tab-content.active { display: block; }
+
+  .form-group { margin-bottom: 12px; }
+  .form-group label { display: block; font-size: 13px; color: var(--text-secondary); margin-bottom: 4px; font-weight: 600; }
+  .form-group input, .form-group select, .form-group textarea { width: 100%; padding: 8px 12px; border: 1px solid var(--border); border-radius: var(--radius-sm); font-size: 14px; outline: none; transition: border-color 0.2s; background: var(--bg-input); color: var(--text); }
+  .form-group input:focus, .form-group select:focus, .form-group textarea:focus { border-color: var(--primary); }
+  .form-group textarea { resize: vertical; min-height: 80px; }
+
+  .upload-area { border: 2px dashed var(--border); border-radius: var(--radius); padding: 30px; text-align: center; cursor: pointer; transition: border-color 0.2s; }
+  .upload-area:hover { border-color: var(--primary); }
+  .upload-area.dragging { border-color: var(--primary); background: var(--bg-input); }
+  .upload-icon { font-size: 36px; margin-bottom: 8px; }
+  .upload-hint { font-size: 13px; color: var(--text-secondary); }
+  #imagePreview { max-width: 100%; max-height: 200px; border-radius: var(--radius-sm); margin-top: 8px; display: none; }
+
+  .result-list { list-style: none; padding: 0; }
+  .result-item { display: flex; align-items: center; gap: 8px; padding: 6px 0; border-bottom: 1px solid var(--border); }
+  .result-item:last-child { border-bottom: none; }
+  .result-word { font-weight: 600; min-width: 100px; }
+  .result-context { font-size: 12px; color: var(--text-secondary); flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+  .my-word-item { display: flex; align-items: center; gap: 10px; padding: 8px 0; border-bottom: 1px solid var(--border); }
+  .my-word-item:last-child { border-bottom: none; }
+  .my-word-text { font-weight: 600; min-width: 80px; }
+  .my-word-meta { font-size: 12px; color: var(--text-secondary); flex: 1; }
+  .my-word-status { font-size: 11px; padding: 2px 8px; border-radius: 10px; color: #fff; }
+  .status-private { background: #95a5a6; }
+  .status-pending { background: var(--warning); }
+  .status-public { background: var(--success); }
+  .category-tag { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 11px; background: var(--bg-input); color: var(--primary); }
+
+  .pagination { display: flex; justify-content: center; gap: 8px; margin-top: 12px; }
+  .msg-success { color: var(--success); padding: 12px; background: rgba(40,167,69,0.1); border-radius: var(--radius-sm); font-size: 13px; }
+  .msg-error { color: var(--error); padding: 12px; background: rgba(220,53,69,0.1); border-radius: var(--radius-sm); font-size: 13px; }
+  .msg-info { color: var(--text); padding: 12px; background: rgba(255,193,7,0.1); border-radius: var(--radius-sm); font-size: 13px; }
+</style>
+</head>
+<body>
+  <div class="page-header">
+    <h1 class="page-title">词汇录入</h1>
+  </div>
+
+  <div class="page-nav">
+    <a href="#" onclick="DoveSDK.navigateTo('vocabulary-learn');return false">学习</a>
+    <a href="#" onclick="DoveSDK.navigateTo('vocabulary-review');return false">复习</a>
+    <a href="#" class="active" onclick="return false">录入</a>
+    <a href="#" onclick="DoveSDK.navigateTo('vocabulary-stats');return false">统计</a>
+  </div>
+
+  <div class="tab-bar">
+    <button class="tab-btn active" data-tab="manual" onclick="switchTab('manual')">手动录入</button>
+    <button class="tab-btn" data-tab="ocr" onclick="switchTab('ocr')">图片识别</button>
+    <button class="tab-btn" data-tab="video" onclick="switchTab('video')">视频识别</button>
+    <button class="tab-btn" data-tab="mine" onclick="switchTab('mine')">我的词库</button>
+  </div>
+
+  <!-- 手动录入 -->
+  <div id="tab-manual" class="tab-content active">
+    <div class="card">
+      <h3 style="margin-bottom: 12px;">手动录入 + AI辅助</h3>
+      <div class="form-group">
+        <label>单词 *</label>
+        <input type="text" id="manualWord" placeholder="输入英文单词">
+      </div>
+      <div class="form-group">
+        <label>分类 *</label>
+        <select id="manualCategory">
+          <option value="">请选择分类</option>
+          <option value="小学">小学</option>
+          <option value="初中">初中</option>
+          <option value="高中">高中</option>
+          <option value="四级">四级</option>
+          <option value="六级">六级</option>
+          <option value="日常用语">日常用语</option>
+          <option value="科技">科技</option>
+          <option value="商务">商务</option>
+          <option value="医学">医学</option>
+          <option value="custom">自定义...</option>
+        </select>
+      </div>
+      <div class="form-group" id="customCategoryGroup" style="display:none">
+        <label>自定义分类名</label>
+        <input type="text" id="manualCategoryCustom" placeholder="输入自定义分类名">
+      </div>
+      <div class="form-group">
+        <label>音标（可选，留空AI自动填充）</label>
+        <input type="text" id="manualPhonetic" placeholder="/fəˈnetɪk/">
+      </div>
+      <div class="form-group">
+        <label>释义（可选，留空AI自动填充）</label>
+        <textarea id="manualDefinitions" placeholder="每行一个释义，如：n. 书"></textarea>
+      </div>
+      <div style="display:flex;gap:8px;margin-top:12px;">
+        <button class="btn btn-outline" id="aiFillBtn" onclick="aiFillManual()">AI辅助填充</button>
+        <button class="btn" id="submitBtn" onclick="submitManual()">录入</button>
+      </div>
+      <div id="manualResult" style="margin-top:12px;"></div>
+    </div>
+  </div>
+
+  <!-- 图片识别 -->
+  <div id="tab-ocr" class="tab-content">
+    <div class="card">
+      <h3 style="margin-bottom: 12px;">图片OCR识别</h3>
+      <div class="form-group">
+        <label>分类</label>
+        <select id="ocrCategory">
+          <option value="">不分类</option>
+          <option value="小学">小学</option>
+          <option value="初中">初中</option>
+          <option value="高中">高中</option>
+          <option value="四级">四级</option>
+          <option value="六级">六级</option>
+          <option value="日常用语">日常用语</option>
+          <option value="科技">科技</option>
+          <option value="商务">商务</option>
+          <option value="医学">医学</option>
+          <option value="custom">自定义...</option>
+        </select>
+      </div>
+      <div class="form-group" id="ocrCustomCategoryGroup" style="display:none">
+        <label>自定义分类名</label>
+        <input type="text" id="ocrCategoryCustom" placeholder="输入自定义分类名">
+      </div>
+      <div class="upload-area" id="uploadArea" onclick="document.getElementById('imageInput').click()">
+        <div class="upload-icon">&#128247;</div>
+        <div>点击或拖拽图片到此处</div>
+        <div class="upload-hint">支持 JPG/PNG，建议课本/单词表照片</div>
+      </div>
+      <input type="file" id="imageInput" accept="image/*" style="display:none" onchange="handleImageSelect(event)">
+      <img id="imagePreview">
+      <div style="margin-top:12px;">
+        <button class="btn" id="ocrBtn" onclick="submitOCR()" disabled>识别并导入</button>
+      </div>
+      <div id="ocrResult" style="margin-top:12px;"></div>
+    </div>
+  </div>
+
+  <!-- 视频识别 -->
+  <div id="tab-video" class="tab-content">
+    <div class="card">
+      <h3 style="margin-bottom: 12px;">视频文本识别</h3>
+      <div class="form-group">
+        <label>分类</label>
+        <select id="videoCategory">
+          <option value="">不分类</option>
+          <option value="小学">小学</option>
+          <option value="初中">初中</option>
+          <option value="高中">高中</option>
+          <option value="四级">四级</option>
+          <option value="六级">六级</option>
+          <option value="日常用语">日常用语</option>
+          <option value="科技">科技</option>
+          <option value="商务">商务</option>
+          <option value="医学">医学</option>
+          <option value="custom">自定义...</option>
+        </select>
+      </div>
+      <div class="form-group" id="videoCustomCategoryGroup" style="display:none">
+        <label>自定义分类名</label>
+        <input type="text" id="videoCategoryCustom" placeholder="输入自定义分类名">
+      </div>
+      <div class="form-group">
+        <label>视频中的英文文本</label>
+        <textarea id="videoText" rows="6" placeholder="粘贴从视频中提取的英文字幕、对话或文本内容..."></textarea>
+      </div>
+      <div class="msg-info" style="margin-bottom:12px;">提示：请先通过对话让白鸽帮你提取视频中的英文文本，然后粘贴到上方输入框中。</div>
+      <button class="btn" id="videoBtn" onclick="submitVideo()">识别并导入</button>
+      <div id="videoResult" style="margin-top:12px;"></div>
+    </div>
+  </div>
+
+  <!-- 我的词库 -->
+  <div id="tab-mine" class="tab-content">
+    <div class="card">
+      <h3 style="margin-bottom: 12px;">我的词库</h3>
+      <div class="form-group">
+        <select id="mineCategory" onchange="loadMyWords()">
+          <option value="">全部分类</option>
+          <option value="小学">小学</option>
+          <option value="初中">初中</option>
+          <option value="高中">高中</option>
+          <option value="四级">四级</option>
+          <option value="六级">六级</option>
+          <option value="日常用语">日常用语</option>
+          <option value="科技">科技</option>
+          <option value="商务">商务</option>
+          <option value="医学">医学</option>
+        </select>
+      </div>
+      <div id="myWordsList"></div>
+      <div id="myWordsPagination" class="pagination"></div>
+    </div>
+  </div>
+
+<script src="/js/sdk.js"></script>
+<script src="vocab-common.js"></script>
+<script>
+DoveSDK.init('背单词');
+
+// ==================== Tab 切换 ====================
+function switchTab(tab) {
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.toggle('active', b.dataset.tab === tab));
+  document.querySelectorAll('.tab-content').forEach(c => c.classList.toggle('active', c.id === 'tab-' + tab));
+  if (tab === 'mine') loadMyWords();
+}
+
+// ==================== 分类下拉联动 ====================
+document.getElementById('manualCategory').addEventListener('change', function() {
+  document.getElementById('customCategoryGroup').style.display = this.value === 'custom' ? '' : 'none';
+});
+document.getElementById('ocrCategory').addEventListener('change', function() {
+  document.getElementById('ocrCustomCategoryGroup').style.display = this.value === 'custom' ? '' : 'none';
+});
+document.getElementById('videoCategory').addEventListener('change', function() {
+  document.getElementById('videoCustomCategoryGroup').style.display = this.value === 'custom' ? '' : 'none';
+});
+
+// ==================== 手动录入 ====================
+async function aiFillManual() {
+  const word = document.getElementById('manualWord').value.trim();
+  if (!word) { DoveSDK.notify('error', '请先输入单词'); return; }
+
+  const btn = document.getElementById('aiFillBtn');
+  btn.disabled = true;
+  btn.textContent = 'AI填充中...';
+  const resultDiv = document.getElementById('manualResult');
+  resultDiv.innerHTML = '<div class="loading">AI正在生成数据...</div>';
+
+  try {
+    const data = await VocAPI.call('word_import_manual', {
+      word,
+      category: document.getElementById('manualCategory').value || '日常用语',
+      category_custom: document.getElementById('manualCategoryCustom').value,
+      phonetic: document.getElementById('manualPhonetic').value,
+    });
+
+    if (data.auto_filled?.length) {
+      if (data.data?.phonetic) document.getElementById('manualPhonetic').value = data.data.phonetic;
+      if (data.data?.definitions?.length) {
+        document.getElementById('manualDefinitions').value = data.data.definitions
+          .map(d => (d.pos || '') + ' ' + (d.meaning_cn || d.definition || '')).join('\n');
+      }
+      resultDiv.innerHTML = '<div class="msg-success">AI已自动填充: ' + data.auto_filled.join(', ') + '</div>';
+    } else {
+      resultDiv.innerHTML = '<div class="msg-info">AI未能填充更多数据，请手动补充</div>';
+    }
+  } catch (e) {
+    resultDiv.innerHTML = '<div class="msg-error">AI填充失败: ' + e.message + '</div>';
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'AI辅助填充';
+  }
+}
+
+async function submitManual() {
+  const word = document.getElementById('manualWord').value.trim();
+  const category = document.getElementById('manualCategory').value;
+  if (!word) { DoveSDK.notify('error', '请输入单词'); return; }
+  if (!category) { DoveSDK.notify('error', '请选择分类'); return; }
+
+  const btn = document.getElementById('submitBtn');
+  btn.disabled = true;
+  const resultDiv = document.getElementById('manualResult');
+  resultDiv.innerHTML = '<div class="loading">录入中...</div>';
+
+  try {
+    const args = {
+      word,
+      category,
+      category_custom: document.getElementById('manualCategoryCustom').value,
+      phonetic: document.getElementById('manualPhonetic').value,
+    };
+
+    const defs = document.getElementById('manualDefinitions').value.trim();
+    if (defs) {
+      args.definitions = defs.split('\n').filter(l => l.trim()).map(l => {
+        const match = l.match(/^(\w+\.)\s*(.+)/);
+        return match ? { pos: match[1], definition: match[2] } : { pos: '', definition: l };
+      });
+    }
+
+    const data = await VocAPI.call('word_import_manual', args);
+
+    if (data.success) {
+      resultDiv.innerHTML = '<div class="msg-success">录入成功！' + (data.auto_filled?.length ? ' AI自动填充了: ' + data.auto_filled.join(', ') : '') + '</div>';
+      document.getElementById('manualWord').value = '';
+      document.getElementById('manualPhonetic').value = '';
+      document.getElementById('manualDefinitions').value = '';
+    } else {
+      resultDiv.innerHTML = '<div class="msg-error">' + (data.message || data.error || '录入失败') + '</div>';
+    }
+  } catch (e) {
+    resultDiv.innerHTML = '<div class="msg-error">录入失败: ' + e.message + '</div>';
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+// ==================== 图片OCR ====================
+let selectedImageData = null;
+
+function handleImageSelect(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    selectedImageData = e.target.result;
+    const preview = document.getElementById('imagePreview');
+    preview.src = selectedImageData;
+    preview.style.display = 'block';
+    document.getElementById('ocrBtn').disabled = false;
+  };
+  reader.readAsDataURL(file);
+}
+
+// 拖拽支持
+const uploadArea = document.getElementById('uploadArea');
+uploadArea.addEventListener('dragover', (e) => { e.preventDefault(); uploadArea.classList.add('dragging'); });
+uploadArea.addEventListener('dragleave', () => { uploadArea.classList.remove('dragging'); });
+uploadArea.addEventListener('drop', (e) => {
+  e.preventDefault();
+  uploadArea.classList.remove('dragging');
+  const file = e.dataTransfer.files[0];
+  if (file && file.type.startsWith('image/')) {
+    const input = document.getElementById('imageInput');
+    const dt = new DataTransfer();
+    dt.items.add(file);
+    input.files = dt.files;
+    handleImageSelect({ target: input });
+  }
+});
+
+async function submitOCR() {
+  if (!selectedImageData) { DoveSDK.notify('error', '请先选择图片'); return; }
+
+  const btn = document.getElementById('ocrBtn');
+  btn.disabled = true;
+  const resultDiv = document.getElementById('ocrResult');
+  resultDiv.innerHTML = '<div class="loading">正在识别图片中的单词...</div>';
+
+  try {
+    const data = await VocAPI.call('word_import_ocr', {
+      image_url: selectedImageData,
+      category: document.getElementById('ocrCategory').value,
+      category_custom: document.getElementById('ocrCategoryCustom').value,
+    });
+
+    if (data.success) {
+      const imported = data.imported || [];
+      const skipped = data.skipped || [];
+      let html = '<div class="msg-success">识别完成！导入 ' + imported.length + ' 个，跳过 ' + skipped.length + ' 个</div>';
+      if (imported.length) {
+        html += '<ul class="result-list">';
+        imported.forEach(w => html += '<li class="result-item"><span class="result-word">' + w.word + '</span><span class="result-context">已导入</span></li>');
+        html += '</ul>';
+      }
+      if (skipped.length) {
+        html += '<div style="margin-top:8px;font-size:12px;color:var(--text-secondary);">跳过: ' + skipped.map(w => w.word + '(' + w.reason + ')').join(', ') + '</div>';
+      }
+      resultDiv.innerHTML = html;
+    } else {
+      resultDiv.innerHTML = '<div class="msg-error">' + (data.message || data.error || '识别失败') + '</div>';
+    }
+  } catch (e) {
+    resultDiv.innerHTML = '<div class="msg-error">OCR识别失败: ' + e.message + '</div>';
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+// ==================== 视频识别 ====================
+async function submitVideo() {
+  const videoText = document.getElementById('videoText').value.trim();
+  if (!videoText) { DoveSDK.notify('error', '请输入视频中的英文文本'); return; }
+
+  const btn = document.getElementById('videoBtn');
+  btn.disabled = true;
+  const resultDiv = document.getElementById('videoResult');
+  resultDiv.innerHTML = '<div class="loading">正在从文本中提取单词...</div>';
+
+  try {
+    const data = await VocAPI.call('word_import_video', {
+      video_url: videoText,
+      category: document.getElementById('videoCategory').value,
+      category_custom: document.getElementById('videoCategoryCustom').value,
+    });
+
+    if (data.success) {
+      const imported = data.imported || [];
+      const skipped = data.skipped || [];
+      let html = '<div class="msg-success">识别完成！导入 ' + imported.length + ' 个，跳过 ' + skipped.length + ' 个</div>';
+      if (imported.length) {
+        html += '<ul class="result-list">';
+        imported.forEach(w => html += '<li class="result-item"><span class="result-word">' + w.word + '</span><span class="result-context">已导入</span></li>');
+        html += '</ul>';
+      }
+      resultDiv.innerHTML = html;
+    } else {
+      resultDiv.innerHTML = '<div class="msg-info">' + (data.message || '请先将视频文本粘贴到输入框中') + '</div>';
+    }
+  } catch (e) {
+    resultDiv.innerHTML = '<div class="msg-error">识别失败: ' + e.message + '</div>';
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+// ==================== 我的词库 ====================
+let minePage = 1;
+
+async function loadMyWords(page) {
+  minePage = page || minePage;
+  const listDiv = document.getElementById('myWordsList');
+  listDiv.innerHTML = '<div class="loading">加载中...</div>';
+
+  try {
+    const data = await VocAPI.call('word_list_mine', {
+      category: document.getElementById('mineCategory').value,
+      page: minePage,
+      limit: 20,
+    });
+
+    if (!data.words?.length) {
+      listDiv.innerHTML = '<div class="empty-state">暂无私有词库，去录入一些单词吧</div>';
+      document.getElementById('myWordsPagination').innerHTML = '';
+      return;
+    }
+
+    let html = '';
+    data.words.forEach(w => {
+      const statusClass = w.status === 'public' ? 'status-public' : w.status === 'pending_review' ? 'status-pending' : 'status-private';
+      const statusText = w.status === 'public' ? '已公开' : w.status === 'pending_review' ? '待审核' : '私有';
+      html += '<div class="my-word-item">' +
+        '<span class="my-word-text">' + w.word + '</span>' +
+        '<span class="my-word-meta">' + (w.phonetic || '') + ' ' + (w.category ? '<span class="category-tag">' + w.category + '</span>' : '') + '</span>' +
+        '<span class="my-word-status ' + statusClass + '">' + statusText + '</span>' +
+        (w.status === 'private' ? '<button class="btn btn-sm btn-outline" onclick="requestPublishWord(\'' + w._id + '\')">申请公开</button>' : '') +
+        '</div>';
+    });
+    listDiv.innerHTML = html;
+
+    // 分页
+    const totalPages = Math.ceil(data.total / data.limit);
+    if (totalPages > 1) {
+      let pgHtml = '';
+      for (let i = 1; i <= totalPages && i <= 10; i++) {
+        pgHtml += '<button class="btn btn-sm ' + (i === minePage ? '' : 'btn-outline') + '" onclick="loadMyWords(' + i + ')">' + i + '</button>';
+      }
+      document.getElementById('myWordsPagination').innerHTML = pgHtml;
+    } else {
+      document.getElementById('myWordsPagination').innerHTML = '';
+    }
+
+    // 分类统计
+    if (data.by_category?.length) {
+      const statsHtml = '<div style="margin-bottom:12px;font-size:12px;color:var(--text-secondary);">' +
+        data.by_category.map(c => (c.category || '未分类') + ': ' + c.count).join(' | ') +
+        ' | 共 ' + data.total + ' 词</div>';
+      listDiv.insertAdjacentHTML('beforebegin', statsHtml);
+    }
+  } catch (e) {
+    listDiv.innerHTML = '<div class="msg-error">加载失败: ' + e.message + '</div>';
+  }
+}
+
+async function requestPublishWord(wordId) {
+  try {
+    const data = await VocAPI.call('word_publish', { word_id: wordId });
+    if (data.success) {
+      DoveSDK.notify('success', '已提交公开申请');
+      loadMyWords();
+    } else {
+      DoveSDK.notify('error', data.error || '操作失败');
+    }
+  } catch (e) {
+    DoveSDK.notify('error', '操作失败: ' + e.message);
+  }
+}
+</script>
+</body>
+</html>

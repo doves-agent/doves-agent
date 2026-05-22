@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>安全体系 - 白鸽文档</title>
+  <link rel="stylesheet" href="../css/style.css">
+</head>
+<body>
+  <div id="app">
+    <header id="site-header"></header>
+    <div class="layout">
+      <aside id="sidebar"></aside>
+      <main class="content">
+        <article>
+          <h1>安全体系</h1>
+          <p>白鸽系统从设计之初就将安全作为第一优先级。全链路加密、零信任通信、多层认证、数据隔离构成完整的安全纵深。</p>
+
+          <h2>全链路加密</h2>
+
+          <div class="card-grid">
+            <div class="card">
+              <h3>Noise NX 协议</h3>
+              <p>所有组件间通信（CLI↔Server、Doves↔Server、CLI↔Doves）统一使用 Noise NX 加密 TCP。</p>
+            </div>
+            <div class="card">
+              <h3>零明文原则</h3>
+              <p>系统不存在任何明文 HTTP 端口。不支持协议降级，无 TLS fallback。</p>
+            </div>
+            <div class="card">
+              <h3>单端口暴露</h3>
+              <p>Server 仅暴露 3003 端口。内部 Express 绑定 localhost 随机端口，外部不可达。</p>
+            </div>
+          </div>
+
+<pre><code>加密通信拓扑：
+
+CLI ═══[Noise NX]═══▶ Server:3003 ◀═══[Noise NX]═══ Doves
+ │                         │
+ │   [Noise NX]            │ (内部 Express: 127.0.0.1:random)
+ │                         │ (外部不可访问)
+ └─────────────────────────┼──▶ Doves（同账号直连）
+                           │
+                    无明文端口暴露</code></pre>
+
+          <div class="warning">
+            <p><strong>硬性约束：</strong>无明文 HTTP 端口、无协议降级、无例外。违反此规则的代码不得合入。</p>
+          </div>
+
+          <h2>双模认证</h2>
+
+          <h3>JWT 认证（用户）</h3>
+          <div class="table-wrapper">
+            <table>
+              <thead>
+                <tr>
+                  <th>项目</th>
+                  <th>说明</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>获取方式</td>
+                  <td>登录接口返回</td>
+                </tr>
+                <tr>
+                  <td>有效期</td>
+                  <td>7 天</td>
+                </tr>
+                <tr>
+                  <td>存储位置</td>
+                  <td>~/.dove/config.json</td>
+                </tr>
+                <tr>
+                  <td>携带方式</td>
+                  <td>请求头中传递</td>
+                </tr>
+                <tr>
+                  <td>签名算法</td>
+                  <td>HMAC-SHA256（JWT_SECRET）</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <h3>API Key 认证（Doves）</h3>
+          <div class="table-wrapper">
+            <table>
+              <thead>
+                <tr>
+                  <th>项目</th>
+                  <th>说明</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>格式</td>
+                  <td><code>sk_{keyId}_{secret}</code></td>
+                </tr>
+                <tr>
+                  <td>存储</td>
+                  <td>数据库中存 bcrypt 哈希，明文不落盘</td>
+                </tr>
+                <tr>
+                  <td>验证</td>
+                  <td>keyId 查询记录 → bcrypt.compare(secret, hash)</td>
+                </tr>
+                <tr>
+                  <td>生命周期</td>
+                  <td>手动创建/吊销，无自动过期</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <h2>启动密钥验证</h2>
+          <p>Server 启动时强制检查以下密钥，不满足要求进程直接退出：</p>
+<pre><code>启动检查：
+  JWT_SECRET          >= 32 字符  │ 用于 JWT 签名
+  HASH_SECRET         >= 32 字符  │ 用于数据哈希
+  OFFICIAL_DEV_SIGNING_KEY >= 40 字符  │ 用于官方扩展签名验证
+
+  任一不满足 → console.error → process.exit(1)
+  绝不降级运行</code></pre>
+
+          <div class="warning">
+            <p><strong>Fail Fast：</strong>密钥不合格时进程立即退出，不存在"弱密钥也能运行"的降级模式。</p>
+          </div>
+
+          <h2>密码策略</h2>
+          <div class="table-wrapper">
+            <table>
+              <thead>
+                <tr>
+                  <th>规则</th>
+                  <th>要求</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>最小长度</td>
+                  <td>>= 8 个字符</td>
+                </tr>
+                <tr>
+                  <td>字符要求</td>
+                  <td>必须包含字母 + 数字</td>
+                </tr>
+                <tr>
+                  <td>弱密码检测</td>
+                  <td>拒绝常见弱密码（如 12345678、password 等）</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <h2>登录保护</h2>
+<pre><code>暴力破解防护：
+
+连续失败计数器（按 IP + 用户名）：
+  第 1~4 次失败：返回错误，计数 +1
+  第 5 次失败：
+    → 锁定该账号 30 分钟
+    → 后续请求直接拒绝（不验证密码）
+    → 30 分钟后自动解锁，计数器归零</code></pre>
+
+          <h2>速率限制</h2>
+          <div class="table-wrapper">
+            <table>
+              <thead>
+                <tr>
+                  <th>接口类别</th>
+                  <th>限制</th>
+                  <th>粒度</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>通用 API</td>
+                  <td>100 次/分钟</td>
+                  <td>IP</td>
+                </tr>
+                <tr>
+                  <td>登录接口</td>
+                  <td>更严格的独立限制</td>
+                  <td>IP + 用户名</td>
+                </tr>
+                <tr>
+                  <td>注册接口</td>
+                  <td>更严格的独立限制</td>
+                  <td>IP</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <h2>多租户数据隔离</h2>
+<pre><code>数据隔离机制：
+
+用户请求 → JWT 解析出 userId
+         → Server 中间件自动注入 userId 到查询条件
+         → MongoDB 查询: { ...userQuery, userId: extractedUserId }
+         → 结果: 用户只能看到自己的数据
+
+┌────────────┐     ┌──────────────┐     ┌──────────────┐
+│ 用户 A 请求 │────▶│ 自动注入     │────▶│ 查询条件:    │
+│            │     │ userId: "A"  │     │ { userId: A }│
+└────────────┘     └──────────────┘     └──────────────┘
+
+┌────────────┐     ┌──────────────┐     ┌──────────────┐
+│ 用户 B 请求 │────▶│ 自动注入     │────▶│ 查询条件:    │
+│            │     │ userId: "B"  │     │ { userId: B }│
+└────────────┘     └──────────────┘     └──────────────┘
+
+用户 A 永远看不到用户 B 的数据，无论前端传什么查询条件。</code></pre>
+
+          <h2>扩展权限沙箱</h2>
+          <p>扩展（Extensions）运行在受限环境中，只能通过 <code>DoveAppContext</code> 访问系统资源：</p>
+
+          <div class="card-grid">
+            <div class="card">
+              <h3>DoveAppContext</h3>
+              <p>扩展唯一的系统访问入口。通过它获取文件访问、网络请求、数据存储等能力，每项需显式授权。</p>
+            </div>
+            <div class="card">
+              <h3>权限声明</h3>
+              <p>扩展在 manifest 中声明所需权限，安装时用户确认。未声明的能力调用会被拒绝。</p>
+            </div>
+          </div>
+
+          <h2>Admin IP 白名单</h2>
+          <div class="info">
+            <p>管理员路由（<code>/api/admin/*</code>）除需要 admin 角色的 JWT 外，还检查请求来源 IP 是否在白名单中。双重验证，防止 Token 泄露后的越权操作。</p>
+          </div>
+
+          <h2>审计日志</h2>
+          <div class="table-wrapper">
+            <table>
+              <thead>
+                <tr>
+                  <th>字段</th>
+                  <th>说明</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>时间戳</td>
+                  <td>操作发生的精确时间</td>
+                </tr>
+                <tr>
+                  <td>用户ID</td>
+                  <td>操作发起者</td>
+                </tr>
+                <tr>
+                  <td>操作类型</td>
+                  <td>如 login、create_task、delete_key 等</td>
+                </tr>
+                <tr>
+                  <td>操作目标</td>
+                  <td>被操作的资源标识</td>
+                </tr>
+                <tr>
+                  <td>请求来源 IP</td>
+                  <td>发起请求的 IP 地址</td>
+                </tr>
+                <tr>
+                  <td>操作结果</td>
+                  <td>成功/失败</td>
+                </tr>
+                <tr>
+                  <td>详情</td>
+                  <td>额外上下文信息</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div class="tip">
+            <p>审计日志设置 MongoDB TTL 索引，90 天后自动清理。确保存储不会无限增长。</p>
+          </div>
+
+          <h2>安全层次总结</h2>
+<pre><code>安全纵深（由外到内）：
+
+Layer 1: 传输加密（Noise NX）
+  └─ 防窃听、防篡改、防重放
+
+Layer 2: 认证（JWT / API Key）
+  └─ 身份验证、权限区分
+
+Layer 3: 访问控制（角色 + IP 白名单）
+  └─ admin 路由双重验证
+
+Layer 4: 数据隔离（userId 自动注入）
+  └─ 多租户隔离
+
+Layer 5: 速率限制 + 登录保护
+  └─ 防暴力破解
+
+Layer 6: 扩展沙箱（DoveAppContext）
+  └─ 第三方代码权限控制
+
+Layer 7: 审计追踪（90天日志）
+  └─ 事后追溯</code></pre>
+
+        </article>
+      </main>
+    </div>
+  </div>
+  <script src="../js/components.js"></script>
+  <script src="../js/nav.js"></script>
+  <script src="../js/search.js"></script>
+</body>
+</html>

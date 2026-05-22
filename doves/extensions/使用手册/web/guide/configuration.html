@@ -1,0 +1,381 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>配置指南 - 白鸽文档</title>
+  <link rel="stylesheet" href="../css/style.css">
+</head>
+<body>
+  <div id="app">
+    <header id="site-header"></header>
+    <div class="layout">
+      <aside id="sidebar"></aside>
+      <main class="content">
+        <article>
+          <h1>配置指南</h1>
+          <p>白鸽系统的配置分为 CLI 客户端配置和 Server 环境变量两部分。本文档涵盖所有可调选项。</p>
+
+          <h2>CLI 配置文件</h2>
+          <p>CLI 配置文件位于用户主目录下：</p>
+          <pre><code>~/.dove/config.json</code></pre>
+          <div class="warning">
+            <p><strong>权限要求：</strong>该文件包含敏感信息（网关地址、Token），权限必须设置为 <code>600</code>（仅所有者可读写）。</p>
+          </div>
+
+          <h3>默认配置结构</h3>
+          <pre><code>{
+  "gateway": "http://localhost:3003",
+  "gateways": [],
+  "timeout": 30000,
+  "chat": {
+    "continuousMode": true
+  }
+}</code></pre>
+
+          <div class="table-wrapper">
+            <table>
+              <thead>
+                <tr>
+                  <th>字段</th>
+                  <th>类型</th>
+                  <th>说明</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><code>gateway</code></td>
+                  <td>string</td>
+                  <td>当前活跃的 Server 网关地址</td>
+                </tr>
+                <tr>
+                  <td><code>gateways</code></td>
+                  <td>string[]</td>
+                  <td>多网关列表（Fan-out 模式）</td>
+                </tr>
+                <tr>
+                  <td><code>timeout</code></td>
+                  <td>number</td>
+                  <td>请求超时时间（毫秒）</td>
+                </tr>
+                <tr>
+                  <td><code>chat.continuousMode</code></td>
+                  <td>boolean</td>
+                  <td>是否默认开启连续对话模式</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <h2>dove config 命令</h2>
+          <p>通过 CLI 管理配置项，无需手动编辑文件：</p>
+          <div class="table-wrapper">
+            <table>
+              <thead>
+                <tr>
+                  <th>命令</th>
+                  <th>说明</th>
+                  <th>示例</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><code>dove config list</code></td>
+                  <td>列出所有配置项</td>
+                  <td>-</td>
+                </tr>
+                <tr>
+                  <td><code>dove config get &lt;key&gt;</code></td>
+                  <td>获取指定配置值</td>
+                  <td><code>dove config get gateway</code></td>
+                </tr>
+                <tr>
+                  <td><code>dove config set &lt;key&gt; &lt;value&gt;</code></td>
+                  <td>设置配置项</td>
+                  <td><code>dove config set timeout 60000</code></td>
+                </tr>
+                <tr>
+                  <td><code>dove config reset</code></td>
+                  <td>重置为默认配置</td>
+                  <td>-</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <h2>网关管理</h2>
+          <p>配置 CLI 连接的 Server 网关地址：</p>
+          <pre><code># 设置主网关
+dove config gateway http://my-server:3003
+
+# 添加备用网关（Fan-out 模式）
+dove config gateways add http://backup-server:3003
+
+# 移除备用网关
+dove config gateways remove http://backup-server:3003
+
+# 查看所有已配置网关
+dove config gateways list</code></pre>
+
+          <div class="info">
+            <p><strong>Fan-out 模式：</strong>配置多网关后，CLI 可将任务同时分发到多个 Server 实例，适用于多区域部署或负载分散场景。</p>
+          </div>
+
+          <h2>API Key 管理</h2>
+          <p>白鸽支持多个 LLM 提供商，每个用户可独立配置自己的 API Key：</p>
+
+          <h3>支持的提供商</h3>
+          <div class="table-wrapper">
+            <table>
+              <thead>
+                <tr>
+                  <th>提供商</th>
+                  <th>标识符</th>
+                  <th>说明</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>百炼</td>
+                  <td><code>BAILIAN</code></td>
+                  <td>阿里云百炼平台</td>
+                </tr>
+                <tr>
+                  <td>DeepSeek</td>
+                  <td><code>DEEPSEEK</code></td>
+                  <td>DeepSeek API</td>
+                </tr>
+                <tr>
+                  <td>智谱</td>
+                  <td><code>GLM</code></td>
+                  <td>智谱 GLM 系列模型</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <h3>Key 操作命令</h3>
+          <pre><code># 设置 API Key
+dove config set-key DEEPSEEK sk-xxxxxxxxxxxxxxxxxxxxxxxx
+
+# 查看已配置的 Key（脱敏显示）
+dove config list-keys
+
+# 测试 Key 连通性
+dove config test-key DEEPSEEK</code></pre>
+
+          <div class="tip">
+            <p><strong>提示：</strong><code>test-key</code> 命令会向对应提供商发送一个最小化请求以验证 Key 的有效性和网络连通性。</p>
+          </div>
+
+          <h2>模型配置</h2>
+          <p>白鸽系统定义了 5 种模型角色，每种角色负责不同类型的任务：</p>
+
+          <div class="table-wrapper">
+            <table>
+              <thead>
+                <tr>
+                  <th>角色</th>
+                  <th>用途</th>
+                  <th>配置命令</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>推理模型</td>
+                  <td>核心推理与复杂任务执行</td>
+                  <td><code>dove config reasoning-model</code></td>
+                </tr>
+                <tr>
+                  <td>Flash模型</td>
+                  <td>快速响应、简单任务</td>
+                  <td><code>dove config flash-model</code></td>
+                </tr>
+                <tr>
+                  <td>视觉模型</td>
+                  <td>图像理解与视觉任务</td>
+                  <td><code>dove config vision-model</code></td>
+                </tr>
+                <tr>
+                  <td>意图模型</td>
+                  <td>用户意图识别与路由</td>
+                  <td><code>dove config intent-model</code></td>
+                </tr>
+                <tr>
+                  <td>规划模型</td>
+                  <td>任务分解与执行规划</td>
+                  <td><code>dove config planning-model</code></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <h3>配置模型示例</h3>
+          <pre><code># 设置意图模型为 DeepSeek 的 deepseek-chat
+dove config intent-model -p DEEPSEEK -m deepseek-chat
+
+# 设置推理模型为百炼的 qwen-max
+dove config reasoning-model -p BAILIAN -m qwen-max
+
+# 设置视觉模型为智谱的 glm-4v
+dove config vision-model -p GLM -m glm-4v</code></pre>
+
+          <h3>模型列表管理</h3>
+          <pre><code># 列出所有可用模型
+dove model list
+
+# 从提供商刷新模型列表
+dove model refresh
+
+# 按提供商筛选
+dove model list --provider DEEPSEEK</code></pre>
+
+          <h2>环境变量</h2>
+          <p>以下环境变量通过 <code>.env</code> 文件或系统环境配置，作用于 Server 和 Doves 进程：</p>
+
+          <div class="table-wrapper">
+            <table>
+              <thead>
+                <tr>
+                  <th>变量名</th>
+                  <th>用途</th>
+                  <th>默认值</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><code>SERVER_URL</code></td>
+                  <td>Server 监听地址</td>
+                  <td><code>http://0.0.0.0:3003</code></td>
+                </tr>
+                <tr>
+                  <td><code>MONGODB_URI</code></td>
+                  <td>MongoDB 连接字符串</td>
+                  <td>-</td>
+                </tr>
+                <tr>
+                  <td><code>JWT_SECRET</code></td>
+                  <td>Token 签名密钥（&gt;=32 字符）</td>
+                  <td>-</td>
+                </tr>
+                <tr>
+                  <td><code>HASH_SECRET</code></td>
+                  <td>密码哈希盐值（&gt;=32 字符）</td>
+                  <td>-</td>
+                </tr>
+                <tr>
+                  <td><code>DEFAULT_MODEL</code></td>
+                  <td>默认推理模型</td>
+                  <td>-</td>
+                </tr>
+                <tr>
+                  <td><code>FAST_MODEL</code></td>
+                  <td>Flash 模型</td>
+                  <td>-</td>
+                </tr>
+                <tr>
+                  <td><code>VISION_MODEL</code></td>
+                  <td>视觉模型</td>
+                  <td>-</td>
+                </tr>
+                <tr>
+                  <td><code>MAX_CONCURRENCY</code></td>
+                  <td>最大子任务并发数</td>
+                  <td><code>3</code></td>
+                </tr>
+                <tr>
+                  <td><code>DOVE_MAX_TOOL_ROUNDS</code></td>
+                  <td>单任务最大工具调用轮数</td>
+                  <td><code>20</code></td>
+                </tr>
+                <tr>
+                  <td><code>DOVE_DIRECT_PORT</code></td>
+                  <td>CLI 直连 Doves 端口</td>
+                  <td>-</td>
+                </tr>
+                <tr>
+                  <td><code>MACHINE_ID</code></td>
+                  <td>机器唯一标识符</td>
+                  <td>-</td>
+                </tr>
+                <tr>
+                  <td><code>OSS_PREFIX</code></td>
+                  <td>OSS 存储路径前缀</td>
+                  <td><code>dove</code></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div class="warning">
+            <p><strong>必填项：</strong><code>MONGODB_URI</code>、<code>JWT_SECRET</code>、<code>HASH_SECRET</code> 为必填配置，缺少任一项服务将无法启动。</p>
+          </div>
+
+          <h2>执行档案 (Profile)</h2>
+          <p>执行档案允许为不同场景预设一组参数配置（模型选择、并发度、超时等）：</p>
+
+          <pre><code># 列出所有档案
+dove profile list
+
+# 查看档案详情
+dove profile show 高质量写作
+
+# 创建新档案
+dove profile create
+
+# 使用指定档案执行任务
+dove chat --profile 高质量写作 "写一篇关于AI的深度文章"</code></pre>
+
+          <p>创建档案时，向导将引导你配置：</p>
+          <ul>
+            <li>模型角色绑定（推理/Flash/视觉等使用哪个模型）</li>
+            <li>并发度与超时设置</li>
+            <li>工具调用轮数上限</li>
+            <li>默认系统提示词</li>
+          </ul>
+
+          <h2>多网关 Fan-out 配置</h2>
+          <p>在多区域部署或需要负载分散时，可配置多个网关实现 Fan-out：</p>
+
+          <pre><code># 添加多个网关
+dove config gateways add http://server-beijing:3003
+dove config gateways add http://server-shanghai:3003
+dove config gateways add http://server-guangzhou:3003
+
+# 查看网关列表
+dove config gateways list</code></pre>
+
+          <p>Fan-out 模式下的行为：</p>
+          <ul>
+            <li><strong>任务提交</strong> — 自动选择延迟最低的网关</li>
+            <li><strong>故障转移</strong> — 主网关不可用时自动切换到备用</li>
+            <li><strong>状态聚合</strong> — <code>dove status</code> 汇总所有网关的状态</li>
+          </ul>
+
+          <div class="info">
+            <p><strong>注意：</strong>多网关模式要求所有 Server 实例连接到同一 MongoDB 集群（或配置 MongoDB 副本集），以保证任务状态一致性。</p>
+          </div>
+
+          <h2>配置优先级</h2>
+          <p>配置项的生效优先级从高到低：</p>
+          <ol>
+            <li>命令行参数（<code>--timeout 60000</code>）</li>
+            <li>环境变量（<code>DOVE_TIMEOUT=60000</code>）</li>
+            <li>CLI 配置文件（<code>~/.dove/config.json</code>）</li>
+            <li>内置默认值</li>
+          </ol>
+
+          <h2>下一步</h2>
+          <ul>
+            <li><a href="./quick-start.html">快速开始</a> — 完成首次对话</li>
+            <li><a href="./installation.html">安装部署</a> — 部署方案详解</li>
+          </ul>
+        </article>
+      </main>
+    </div>
+  </div>
+  <script src="../js/components.js"></script>
+  <script src="../js/nav.js"></script>
+  <script src="../js/search.js"></script>
+</body>
+</html>

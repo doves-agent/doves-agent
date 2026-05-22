@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>快速开始 - 白鸽文档</title>
+  <link rel="stylesheet" href="../css/style.css">
+</head>
+<body>
+  <div id="app">
+    <header id="site-header"></header>
+    <div class="layout">
+      <aside id="sidebar"></aside>
+      <main class="content">
+        <article>
+          <h1>快速开始</h1>
+          <p>本指南帮助你在 5 分钟内完成白鸽系统的安装与首次对话。</p>
+
+          <h2>前置条件</h2>
+          <div class="table-wrapper">
+            <table>
+              <thead>
+                <tr>
+                  <th>依赖</th>
+                  <th>要求</th>
+                  <th>说明</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>Node.js</td>
+                  <td>&gt;= 18</td>
+                  <td>推荐 20 LTS</td>
+                </tr>
+                <tr>
+                  <td>MongoDB</td>
+                  <td>&gt;= 6.0</td>
+                  <td>Docker 部署可自动拉起</td>
+                </tr>
+                <tr>
+                  <td>LLM API Key</td>
+                  <td>至少一个</td>
+                  <td>支持百炼 / DeepSeek / 智谱GLM</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <h2>安装</h2>
+          <p>提供两种部署方式，Docker 为推荐方式。</p>
+
+          <h3>方式一：Docker 部署（推荐）</h3>
+          <p>一行命令完成安装，自动拉起 Server、Doves 和 MongoDB：</p>
+          <pre><code>curl -fsSL https://get.dove.ai/install.sh | bash
+./install.sh --docker --with-mongo</code></pre>
+          <div class="tip">
+            <p><strong>提示：</strong>如果已有外部 MongoDB 实例，可使用 <code>--skip-mongo</code> 跳过内置数据库部署。</p>
+          </div>
+
+          <h3>方式二：裸机部署</h3>
+          <pre><code>git clone https://github.com/anthropic/doves.git
+cd 白鸽系统
+npm run 安装依赖</code></pre>
+
+          <h2>首次配置</h2>
+          <p>运行初始化向导，只需 3 步即可完成基础配置：</p>
+          <div class="synopsis">
+            <span class="cmd">dove init</span>
+          </div>
+          <p>向导将引导你完成以下配置：</p>
+          <ol>
+            <li><strong>Server 地址</strong> — 填写服务端连接地址（本地默认 <code>http://localhost:3003</code>）</li>
+            <li><strong>账号信息</strong> — 创建管理员账号或登录已有账号</li>
+            <li><strong>LLM 密钥</strong> — 配置至少一个模型提供商的 API Key</li>
+          </ol>
+
+          <h2>启动服务</h2>
+          <p>通过 PM2 一键启动 Server 和 Doves：</p>
+          <div class="synopsis">
+            <span class="cmd">dove service start</span>
+          </div>
+          <p>服务启动后，Server 监听 3003 端口，Doves 自动轮询任务队列。</p>
+
+          <h2>首次对话</h2>
+          <p>一切就绪，发送你的第一条消息：</p>
+          <pre><code>dove chat "你好，帮我写一首关于春天的诗"</code></pre>
+          <p>Doves 将通过 LLM 生成回复并输出到终端。</p>
+
+          <h2>验证系统状态</h2>
+          <p>使用以下命令检查各组件健康状态：</p>
+          <div class="synopsis">
+            <span class="cmd">dove status</span>
+          </div>
+          <p>正常输出示例：</p>
+          <pre><code>┌──────────┬────────┬─────────┐
+│ 组件     │ 状态   │ 版本    │
+├──────────┼────────┼─────────┤
+│ Server   │ 运行中 │ 1.2.0   │
+│ Doves    │ 运行中 │ 1.2.0   │
+│ MongoDB  │ 已连接 │ 7.0.4   │
+│ LLM      │ 可用   │ -       │
+└──────────┴────────┴─────────┘</code></pre>
+
+          <div class="tip">
+            <p><strong>交互模式：</strong>直接运行 <code>dove</code>（不带参数）即可进入交互式对话模式，支持多轮连续对话、上下文记忆和历史回溯。</p>
+          </div>
+
+          <h2>下一步</h2>
+          <ul>
+            <li><a href="./installation.html">安装部署</a> — 详细的部署方案与环境配置</li>
+            <li><a href="./configuration.html">配置指南</a> — 模型、网关、执行策略等高级配置</li>
+          </ul>
+        </article>
+      </main>
+    </div>
+  </div>
+  <script src="../js/components.js"></script>
+  <script src="../js/nav.js"></script>
+  <script src="../js/search.js"></script>
+</body>
+</html>

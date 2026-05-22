@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>词汇学习</title>
+<link rel="stylesheet" href="/css/style.css">
+<style>
+  .page-nav { display: flex; gap: 4px; margin-bottom: 16px; background: var(--bg-card); border-radius: var(--radius); padding: 6px; border: 1px solid var(--border); }
+  .page-nav a { padding: 6px 16px; border-radius: var(--radius-sm); font-size: 13px; color: var(--text-secondary); text-decoration: none; transition: all 0.15s; }
+  .page-nav a:hover { background: var(--bg-input); color: var(--text); }
+  .page-nav a.active { background: var(--primary); color: #fff; }
+
+  .toolbar { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; flex-wrap: wrap; padding: 12px 16px; background: var(--bg-card); border-radius: var(--radius); border: 1px solid var(--border); }
+  .toolbar label { font-size: 13px; color: var(--text-secondary); font-weight: 600; }
+  .mode-btns { display: flex; gap: 4px; }
+  .mode-btns button { padding: 5px 14px; border: 1px solid var(--border); background: var(--bg-card); border-radius: var(--radius-sm); cursor: pointer; font-size: 13px; color: var(--text-secondary); transition: all 0.2s; }
+  .mode-btns button.active { background: var(--primary); color: #fff; border-color: var(--primary); }
+  .mode-btns button:hover:not(.active) { border-color: var(--primary); color: var(--primary); }
+  .template-select { padding: 5px 10px; border: 1px solid var(--border); border-radius: var(--radius-sm); font-size: 13px; outline: none; cursor: pointer; background: var(--bg-input); color: var(--text); }
+  .color-preview { display: flex; gap: 3px; align-items: center; }
+  .color-dot { width: 14px; height: 14px; border-radius: 50%; border: 1px solid rgba(0,0,0,0.1); }
+
+  .search-box { display: flex; gap: 8px; margin-bottom: 16px; }
+  .search-box input { flex: 1; }
+  .search-box button { white-space: nowrap; }
+
+  .word-card { background: var(--bg-card); border-radius: var(--radius); padding: 24px; border: 1px solid var(--border); animation: fadeIn 0.3s ease; }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+  .colored-display { font-size: 48px; font-weight: 700; text-align: center; padding: 20px 0; letter-spacing: 2px; line-height: 1.3; }
+  .legend { display: flex; gap: 12px; justify-content: center; margin-bottom: 16px; flex-wrap: wrap; }
+  .legend-item { display: flex; align-items: center; gap: 4px; font-size: 12px; color: var(--text-secondary); }
+  .legend-dot { width: 10px; height: 10px; border-radius: 50%; }
+
+  .roots-section { background: var(--bg-input); padding: 12px 16px; border-radius: var(--radius); margin-bottom: 14px; }
+  .roots-section .roots-title { font-size: 13px; color: var(--primary); font-weight: 600; margin-bottom: 6px; }
+  .roots-parts { display: flex; gap: 6px; flex-wrap: wrap; }
+  .roots-part { padding: 4px 12px; border-radius: var(--radius-sm); font-size: 15px; font-weight: 600; }
+  .roots-explanation { font-size: 13px; color: var(--text-secondary); margin-top: 6px; }
+
+  .definitions { margin-top: 14px; }
+  .definition { margin-bottom: 8px; padding-left: 12px; border-left: 3px solid var(--primary); }
+  .definition .pos { font-weight: 600; color: var(--error); margin-right: 6px; font-size: 13px; }
+  .definition .meaning { font-size: 15px; }
+  .definition .example { font-size: 13px; color: var(--text-secondary); margin-top: 2px; font-style: italic; }
+
+  .related-section { margin-top: 14px; }
+  .related-title { font-size: 13px; font-weight: 600; color: var(--text-secondary); margin-bottom: 6px; }
+  .related-tags { display: flex; gap: 6px; flex-wrap: wrap; }
+  .related-tag { padding: 3px 10px; background: var(--bg-input); border-radius: 12px; font-size: 13px; color: var(--text-secondary); cursor: pointer; transition: background 0.15s; }
+  .related-tag:hover { background: var(--border); }
+  .phrase { font-size: 13px; color: var(--text-secondary); margin: 4px 0; }
+  .phrase em { font-style: italic; color: var(--primary); }
+
+  .learn-actions { display: flex; gap: 8px; margin-top: 16px; justify-content: center; }
+  .learn-btn { padding: 8px 20px; border: none; border-radius: var(--radius-sm); cursor: pointer; font-size: 14px; color: #fff; transition: transform 0.15s; }
+  .learn-btn:active { transform: scale(0.96); }
+  .btn-know { background: var(--success); }
+  .btn-know:hover { opacity: 0.9; }
+  .btn-unsure { background: var(--warning); }
+  .btn-unsure:hover { opacity: 0.9; }
+  .btn-dunno { background: var(--error); }
+  .btn-dunno:hover { opacity: 0.9; }
+  .btn-generate { background: #9b59b6; margin-top: 8px; }
+  .btn-generate:hover { opacity: 0.9; }
+</style>
+</head>
+<body>
+  <div class="page-header">
+    <h1 class="page-title">词汇学习</h1>
+  </div>
+
+  <div class="page-nav">
+    <a href="#" class="active" onclick="return false">学习</a>
+    <a href="#" onclick="DoveSDK.navigateTo('vocabulary-review');return false">复习</a>
+    <a href="#" onclick="DoveSDK.navigateTo('vocabulary-import');return false">录入</a>
+    <a href="#" onclick="DoveSDK.navigateTo('vocabulary-stats');return false">统计</a>
+  </div>
+
+  <div class="search-box">
+    <input type="text" class="input" id="wordInput" placeholder="输入英文单词..." autofocus>
+    <button class="btn" id="queryBtn" onclick="queryWord()">查询</button>
+  </div>
+
+  <div class="toolbar">
+    <label>着色:</label>
+    <div class="mode-btns">
+      <button class="mode-btn active" data-mode="syllable" onclick="switchMode('syllable')">音节</button>
+      <button class="mode-btn" data-mode="root" onclick="switchMode('root')">词根</button>
+      <button class="mode-btn" data-mode="vowel" onclick="switchMode('vowel')">元音</button>
+    </div>
+    <label>配色:</label>
+    <select class="template-select" id="templateSelect"></select>
+    <div class="color-preview" id="colorPreview"></div>
+  </div>
+
+  <div id="result">
+    <div class="empty-state">输入单词开始学习</div>
+  </div>
+
+<script src="/js/sdk.js"></script>
+<script src="vocab-common.js"></script>
+<script>
+DoveSDK.init('背单词');
+
+// ==================== 状态 ====================
+let currentMode = 'syllable';
+let currentWordData = null;
+let isQuerying = false;
+
+// ==================== 初始化 ====================
+
+VocTemplates.load('templateSelect', 'colorPreview', () => {
+  if (currentWordData) renderWord(currentWordData);
+});
+
+document.getElementById('wordInput').addEventListener('keydown', e => {
+  if (e.key === 'Enter') queryWord();
+});
+
+const preQuery = localStorage.getItem('vocab_query');
+if (preQuery) {
+  localStorage.removeItem('vocab_query');
+  document.getElementById('wordInput').value = preQuery;
+  queryWord();
+}
+
+// ==================== 模式切换 ====================
+
+function switchMode(mode) {
+  currentMode = mode;
+  document.querySelectorAll('.mode-btn').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.mode === mode);
+  });
+  if (currentWordData) renderWord(currentWordData);
+}
+
+// ==================== 查词 ====================
+
+async function queryWord() {
+  const word = document.getElementById('wordInput').value.trim();
+  if (!word || isQuerying) return;
+
+  const resultDiv = document.getElementById('result');
+  const queryBtn = document.getElementById('queryBtn');
+  resultDiv.innerHTML = '<div class="loading">查询中...</div>';
+  isQuerying = true;
+  queryBtn.disabled = true;
+
+  try {
+    const data = await VocAPI.queryWord(word);
+
+    if (data.found) {
+      currentWordData = data;
+      renderWord(currentWordData);
+    } else {
+      currentWordData = null;
+      resultDiv.innerHTML =
+        '<div class="word-card">' +
+          '<div class="empty-state">词库中未找到 "' + word + '"</div>' +
+          '<div style="text-align:center"><button class="learn-btn btn-generate" onclick="generateWord(\'' + word + '\')">让白鸽帮你生成</button></div>' +
+        '</div>';
+    }
+  } catch (e) {
+    currentWordData = null;
+    resultDiv.innerHTML = '<div style="color:var(--error);padding:12px;background:rgba(220,53,69,0.1);border-radius:var(--radius);">查询失败: ' + e.message + '</div>';
+  } finally {
+    isQuerying = false;
+    queryBtn.disabled = false;
+  }
+}
+
+// ==================== 生成单词 ====================
+
+async function generateWord(word) {
+  const resultDiv = document.getElementById('result');
+  resultDiv.innerHTML = '<div class="loading">正在生成...</div>';
+
+  try {
+    const data = await VocAPI.generateWord(word);
+
+    if (data.existed && data.word) {
+      currentWordData = data.word;
+      renderWord(currentWordData);
+    } else if (data.word) {
+      currentWordData = data.word;
+      renderWord(currentWordData);
+    } else if (data.word_generation_template) {
+      const tpl = data.word_generation_template;
+      currentWordData = {
+        word: tpl.word || word,
+        phonetic: tpl.phonetic || '',
+        syllables: tpl.syllables || [],
+        vowel_segments: tpl.vowel_segments || [],
+        roots: tpl.roots || null,
+        definitions: tpl.definitions || [],
+        related_words: tpl.related_words || [],
+        synonyms: tpl.synonyms || [],
+        antonyms: tpl.antonyms || [],
+        phrases: tpl.phrases || [],
+        tags: tpl.tags || [],
+        difficulty_level: tpl.difficulty_level || 3,
+      };
+      renderWord(currentWordData);
+      const hint = document.createElement('div');
+      hint.style.cssText = 'text-align:center;margin-top:12px;padding:10px;background:rgba(255,193,7,0.1);border-radius:var(--radius-sm);color:var(--text-secondary);font-size:13px;';
+      hint.textContent = '"' + word + '" 尚未入库，以上为模板数据。请通过对话让白鸽补充详细信息并录入词库。';
+      resultDiv.querySelector('.word-card')?.appendChild(hint);
+    } else {
+      resultDiv.innerHTML = '<div class="empty-state">暂无法自动生成 "' + word + '"，请通过对话让白鸽帮你生成</div>';
+    }
+  } catch (e) {
+    resultDiv.innerHTML = '<div style="color:var(--error);padding:12px;">生成失败: ' + e.message + '</div>';
+  }
+}
+
+// ==================== 渲染 ====================
+
+function renderWord(w) {
+  const resultDiv = document.getElementById('result');
+  const c = VocTemplates.getColors();
+
+  let html = '<div class="word-card">';
+  html += '<div class="colored-display">' + VocRender.coloredWord(w, currentMode, c) + '</div>';
+  html += VocRender.legend(w, currentMode);
+
+  if (w.phonetic) {
+    html += '<div style="text-align:center;margin-bottom:12px;font-size:17px;color:var(--text-secondary);">' + VocRender.coloredPhonetic(w.phonetic, w, currentMode, c) + '</div>';
+  }
+
+  html += VocRender.rootsSection(w);
+  html += VocRender.definitions(w.definitions);
+  html += VocRender.relatedTags('同义词', w.synonyms, 'queryTag');
+  html += VocRender.relatedTags('反义词', w.antonyms, 'queryTag');
+
+  if (w.phrases && w.phrases.length > 0) {
+    html += '<div style="margin-top:12px;font-weight:600;font-size:14px;">例句 / 短语</div>';
+    for (const p of w.phrases.slice(0, 5)) {
+      if (typeof p === 'object') {
+        html += '<div class="phrase">' + (p.english || '') + ' ' + (p.chinese ? '— ' + p.chinese : '') + '</div>';
+      } else {
+        html += '<div class="phrase">' + p + '</div>';
+      }
+    }
+  }
+
+  html += VocRender.relatedTags('关联词', w.related_words, 'queryTag');
+
+  if (w._id) {
+    html += '<div class="learn-actions">';
+    html += '<button class="learn-btn btn-dunno" onclick="recordLearn(\'unknown\')">不认识</button>';
+    html += '<button class="learn-btn btn-unsure" onclick="recordLearn(\'vague\')">模糊</button>';
+    html += '<button class="learn-btn btn-know" onclick="recordLearn(\'known\')">熟悉</button>';
+    html += '</div>';
+  } else {
+    html += '<div class="learn-actions" style="color:var(--text-secondary);font-size:12px;">单词未入库，无法记录学习</div>';
+  }
+
+  html += '</div>';
+  resultDiv.innerHTML = html;
+}
+
+function queryTag(word) {
+  document.getElementById('wordInput').value = word;
+  queryWord();
+}
+
+// ==================== 学习记录 ====================
+
+async function recordLearn(feedback) {
+  if (!currentWordData?._id) { console.warn('无法记录学习：缺少 word_id'); return; }
+
+  const correctMap = { unknown: false, vague: false, known: true };
+  const labelMap = { unknown: '已记录，继续加油', vague: '已记录，多复习', known: '已记录' };
+  const colorMap = { unknown: 'var(--warning)', vague: 'var(--warning)', known: 'var(--success)' };
+
+  const correct = correctMap[feedback] || false;
+  try {
+    await VocAPI.learnWord(currentWordData._id, correct);
+    const actions = document.querySelector('.learn-actions');
+    if (actions) {
+      actions.innerHTML = '<span style="color:' + (colorMap[feedback] || 'var(--text-secondary)') + ';font-weight:600;">' + (labelMap[feedback] || '已记录') + '</span>';
+    }
+  } catch (e) {
+    console.error('学习记录失败', e);
+  }
+}
+</script>
+</body>
+</html>

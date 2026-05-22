@@ -1,0 +1,103 @@
+<div class="page-header">
+  <h1 class="page-title">设置</h1>
+</div>
+
+<div class="card" style="margin-bottom:16px">
+  <h3 style="margin-bottom:12px;font-size:14px">认证</h3>
+  <div id="auth-status" style="margin-bottom:12px;font-size:13px;color:var(--text-secondary)">检查中...</div>
+  <div style="display:flex;gap:8px;flex-wrap:wrap">
+    <button class="btn btn-sm btn-outline" id="login-anon-btn">匿名登录</button>
+    <button class="btn btn-sm" id="login-btn">账号登录</button>
+    <button class="btn btn-sm btn-danger" id="logout-btn">退出</button>
+  </div>
+  <div id="login-form" class="hidden" style="margin-top:12px;display:flex;gap:8px;align-items:center">
+    <input class="input" id="login-user" placeholder="用户名" style="width:140px">
+    <input class="input" id="login-pass" type="password" placeholder="密码" style="width:140px">
+    <button class="btn btn-sm" id="login-submit">登录</button>
+  </div>
+</div>
+
+<div class="card" style="margin-bottom:16px">
+  <h3 style="margin-bottom:12px;font-size:14px">网关配置</h3>
+  <div style="display:flex;gap:8px;align-items:center">
+    <input class="input" id="gateway-input" placeholder="http://localhost:3003" style="flex:1;max-width:300px">
+    <button class="btn btn-sm btn-outline" id="gateway-save">保存</button>
+  </div>
+</div>
+
+<div class="card">
+  <h3 style="margin-bottom:12px;font-size:14px">关于</h3>
+  <div style="font-size:13px;color:var(--text-secondary)">
+    白鸽 Web 平台 v2.0<br>
+    SDK 版本: <span id="sdk-version"></span>
+  </div>
+</div>
+
+<script>
+(function() {
+  document.getElementById('sdk-version').textContent = DoveSDK.version;
+
+  checkAuth();
+  loadGateway();
+
+  document.getElementById('login-anon-btn').addEventListener('click', async () => {
+    const resp = await fetch('/api/auth/anonymous', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' });
+    const data = await resp.json();
+    if (data.success) { DoveSDK.notify('success', '匿名登录成功'); checkAuth(); }
+    else DoveSDK.notify('error', data.error || '登录失败');
+  });
+
+  document.getElementById('login-btn').addEventListener('click', () => {
+    document.getElementById('login-form').classList.toggle('hidden');
+  });
+
+  document.getElementById('login-submit').addEventListener('click', async () => {
+    const username = document.getElementById('login-user').value;
+    const password = document.getElementById('login-pass').value;
+    if (!username || !password) return;
+
+    const resp = await fetch('/api/auth/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username, password })
+    });
+    const data = await resp.json();
+    if (data.success) {
+      DoveSDK.notify('success', '登录成功');
+      document.getElementById('login-form').classList.add('hidden');
+      checkAuth();
+    } else {
+      DoveSDK.notify('error', data.error || '登录失败');
+    }
+  });
+
+  document.getElementById('logout-btn').addEventListener('click', async () => {
+    await fetch('/api/auth/logout', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' });
+    DoveSDK.notify('info', '已退出');
+    checkAuth();
+  });
+
+  document.getElementById('gateway-save').addEventListener('click', async () => {
+    const gateway = document.getElementById('gateway-input').value.trim();
+    if (!gateway) return;
+    await DoveSDK.cmd('config set', { body: { gateway } });
+    DoveSDK.notify('success', '网关已更新（重启 Web 服务生效）');
+  });
+
+  async function checkAuth() {
+    const config = await DoveSDK.getConfig();
+    const status = document.getElementById('auth-status');
+    if (config.isLoggedIn) {
+      status.innerHTML = `已登录: <strong>${config.username}</strong> (${config.userId})`;
+      DoveApp.state = { ...DoveApp.state, ...config };
+    } else {
+      status.textContent = '未登录';
+    }
+  }
+
+  async function loadGateway() {
+    const config = await DoveSDK.getConfig();
+    document.getElementById('gateway-input').value = config.gateway || '';
+  }
+})();
+</script>

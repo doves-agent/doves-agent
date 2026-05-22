@@ -1,0 +1,613 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>集成命令 - 白鸽文档</title>
+  <link rel="stylesheet" href="../css/style.css">
+</head>
+<body>
+  <div id="app">
+    <header id="site-header"></header>
+    <div class="layout">
+      <aside id="sidebar"></aside>
+      <main class="content">
+        <article>
+          <h1>集成命令</h1>
+          <p>集成命令管理白鸽系统与外部服务的对接，包括微信、事件调度、通知、团队和扩展应用。</p>
+
+          <!-- dove wechat -->
+          <h2 id="dove-wechat">dove wechat</h2>
+          <p>微信集成管理命令（别名：<code>wx</code>）。绑定微信账号，启用消息监听和自动回复。</p>
+
+          <div class="synopsis">
+            <span class="cmd">dove</span> <span class="arg">wechat</span> <span class="opt">[action]</span> <span class="opt">[options]</span>
+          </div>
+
+          <h3>Actions</h3>
+          <div class="table-wrapper">
+            <table>
+              <thead>
+                <tr>
+                  <th>Action</th>
+                  <th>Description</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><code>bind</code> / <code>login</code></td>
+                  <td>绑定微信（扫码登录）</td>
+                </tr>
+                <tr>
+                  <td><code>unbind</code> / <code>logout</code></td>
+                  <td>解绑微信</td>
+                </tr>
+                <tr>
+                  <td><code>status</code> / <code>info</code></td>
+                  <td>查看绑定状态</td>
+                </tr>
+                <tr>
+                  <td><code>test</code></td>
+                  <td>发送测试消息</td>
+                </tr>
+                <tr>
+                  <td><code>listen</code></td>
+                  <td>启动消息监听</td>
+                </tr>
+                <tr>
+                  <td><code>enable</code> / <code>on</code></td>
+                  <td>启用微信通道</td>
+                </tr>
+                <tr>
+                  <td><code>disable</code> / <code>off</code></td>
+                  <td>禁用微信通道</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <h3>选项</h3>
+          <div class="table-wrapper">
+            <table>
+              <thead>
+                <tr>
+                  <th>Flag</th>
+                  <th>Description</th>
+                  <th>Default</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><code>--json</code></td>
+                  <td>JSON 格式输出</td>
+                  <td>false</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <h3>示例</h3>
+          <pre><code># 绑定微信（弹出二维码）
+dove wechat bind
+
+# 查看绑定状态
+dove wx status
+
+# 发送测试消息
+dove wx test
+
+# 启动消息监听
+dove wx listen
+
+# 启用微信通道
+dove wx on
+
+# 禁用微信通道
+dove wx off
+
+# 解绑微信
+dove wx unbind</code></pre>
+
+          <div class="info">
+            <p>微信通道与 CLI 功能等价，区别仅为来源标记（<code>source: "wechat"</code>）和双向推送能力。</p>
+          </div>
+
+          <!-- dove event -->
+          <h2 id="dove-event">dove event</h2>
+          <p>事件调度管理命令（别名：<code>evt</code>）。创建定时任务、语义事件和外部触发器。</p>
+
+          <div class="synopsis">
+            <span class="cmd">dove</span> <span class="arg">event</span> <span class="opt">[action]</span> <span class="opt">[name]</span> <span class="opt">[options]</span>
+          </div>
+
+          <h3>Actions</h3>
+          <div class="table-wrapper">
+            <table>
+              <thead>
+                <tr>
+                  <th>Action</th>
+                  <th>Description</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><code>schedule &lt;name&gt;</code></td>
+                  <td>创建定时事件</td>
+                </tr>
+                <tr>
+                  <td><code>semantic &lt;name&gt;</code></td>
+                  <td>创建语义事件</td>
+                </tr>
+                <tr>
+                  <td><code>list</code> / <code>ls</code></td>
+                  <td>列出所有事件</td>
+                </tr>
+                <tr>
+                  <td><code>show &lt;name&gt;</code></td>
+                  <td>查看事件详情</td>
+                </tr>
+                <tr>
+                  <td><code>trigger &lt;name&gt;</code></td>
+                  <td>手动触发事件</td>
+                </tr>
+                <tr>
+                  <td><code>check</code></td>
+                  <td>检查待触发事件</td>
+                </tr>
+                <tr>
+                  <td><code>delete &lt;name&gt;</code></td>
+                  <td>删除事件</td>
+                </tr>
+                <tr>
+                  <td><code>add-handler &lt;name&gt;</code></td>
+                  <td>添加事件处理器</td>
+                </tr>
+                <tr>
+                  <td><code>remove-handler &lt;name&gt;</code></td>
+                  <td>移除事件处理器</td>
+                </tr>
+                <tr>
+                  <td><code>disable &lt;name&gt;</code></td>
+                  <td>禁用事件</td>
+                </tr>
+                <tr>
+                  <td><code>enable &lt;name&gt;</code></td>
+                  <td>启用事件</td>
+                </tr>
+                <tr>
+                  <td><code>quota</code></td>
+                  <td>查看事件配额</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <h3>选项</h3>
+          <div class="table-wrapper">
+            <table>
+              <thead>
+                <tr>
+                  <th>Flag</th>
+                  <th>Description</th>
+                  <th>Default</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><code>--cron &lt;expr&gt;</code></td>
+                  <td>Cron 表达式</td>
+                  <td>-</td>
+                </tr>
+                <tr>
+                  <td><code>--condition &lt;expr&gt;</code></td>
+                  <td>触发条件表达式</td>
+                  <td>-</td>
+                </tr>
+                <tr>
+                  <td><code>--task &lt;desc&gt;</code></td>
+                  <td>触发时执行的任务描述</td>
+                  <td>-</td>
+                </tr>
+                <tr>
+                  <td><code>--threshold &lt;n&gt;</code></td>
+                  <td>语义匹配阈值</td>
+                  <td>0.8</td>
+                </tr>
+                <tr>
+                  <td><code>--cooldown &lt;seconds&gt;</code></td>
+                  <td>冷却时间（秒）</td>
+                  <td>60</td>
+                </tr>
+                <tr>
+                  <td><code>--no-llm-confirm</code></td>
+                  <td>触发时无需 LLM 二次确认</td>
+                  <td>false</td>
+                </tr>
+                <tr>
+                  <td><code>-t, --type &lt;type&gt;</code></td>
+                  <td>事件类型：scheduled, data_change, semantic, external, intent_driven</td>
+                  <td>-</td>
+                </tr>
+                <tr>
+                  <td><code>--action-text &lt;text&gt;</code></td>
+                  <td>处理器动作文本</td>
+                  <td>-</td>
+                </tr>
+                <tr>
+                  <td><code>--handler-id &lt;id&gt;</code></td>
+                  <td>处理器 ID</td>
+                  <td>-</td>
+                </tr>
+                <tr>
+                  <td><code>--json</code></td>
+                  <td>JSON 格式输出</td>
+                  <td>false</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <h3>事件类型说明</h3>
+          <div class="info">
+            <ul>
+              <li><strong>scheduled</strong> - 定时事件，使用 Cron 表达式</li>
+              <li><strong>data_change</strong> - 数据变更事件，监听数据源变化</li>
+              <li><strong>semantic</strong> - 语义事件，当对话匹配语义条件时触发</li>
+              <li><strong>external</strong> - 外部事件，由外部系统触发</li>
+              <li><strong>intent_driven</strong> - 意图驱动，当检测到特定用户意图时触发</li>
+            </ul>
+          </div>
+
+          <h3>示例</h3>
+          <pre><code># 创建定时事件（每天早上 9 点）
+dove event schedule "日报提醒" --cron "0 9 * * *" --task "提醒我写日报"
+
+# 创建语义事件
+dove event semantic "紧急求助" --condition "用户表示遇到紧急问题" --threshold 0.85 --task "立即响应并提供帮助"
+
+# 列出所有事件
+dove evt ls
+
+# 按类型过滤
+dove evt ls -t scheduled
+
+# 手动触发事件
+dove evt trigger "日报提醒"
+
+# 查看事件详情
+dove evt show "日报提醒"
+
+# 添加处理器
+dove evt add-handler "紧急求助" --action-text "发送微信通知"
+
+# 移除处理器
+dove evt remove-handler "紧急求助" --handler-id handler_123
+
+# 禁用事件
+dove evt disable "日报提醒"
+
+# 查看配额
+dove evt quota
+
+# 删除事件
+dove evt delete "旧事件"</code></pre>
+
+          <!-- dove notify -->
+          <h2 id="dove-notify">dove notify</h2>
+          <p>通知管理命令（别名：<code>ntf</code>）。查看和管理系统通知。</p>
+
+          <div class="synopsis">
+            <span class="cmd">dove</span> <span class="arg">notify</span> <span class="opt">[action]</span> <span class="opt">[id]</span> <span class="opt">[options]</span>
+          </div>
+
+          <h3>Actions</h3>
+          <div class="table-wrapper">
+            <table>
+              <thead>
+                <tr>
+                  <th>Action</th>
+                  <th>Description</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><code>list</code></td>
+                  <td>列出通知（默认 action）</td>
+                </tr>
+                <tr>
+                  <td><code>read &lt;id&gt;</code></td>
+                  <td>标记通知为已读</td>
+                </tr>
+                <tr>
+                  <td><code>config</code></td>
+                  <td>配置通知偏好</td>
+                </tr>
+                <tr>
+                  <td><code>history</code></td>
+                  <td>查看通知历史</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <h3>选项</h3>
+          <div class="table-wrapper">
+            <table>
+              <thead>
+                <tr>
+                  <th>Flag</th>
+                  <th>Description</th>
+                  <th>Default</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><code>--json</code></td>
+                  <td>JSON 格式输出</td>
+                  <td>false</td>
+                </tr>
+                <tr>
+                  <td><code>-n, --limit &lt;n&gt;</code></td>
+                  <td>列出条数</td>
+                  <td>20</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <h3>示例</h3>
+          <pre><code># 列出未读通知
+dove notify
+
+# 列出最近 50 条
+dove ntf list -n 50
+
+# 标记为已读
+dove ntf read ntf_abc123
+
+# 配置通知偏好
+dove ntf config
+
+# 查看通知历史
+dove ntf history --json</code></pre>
+
+          <!-- dove team -->
+          <h2 id="dove-team">dove team</h2>
+          <p>团队模型配置命令，管理团队共享的模型和提供商设置。</p>
+
+          <div class="synopsis">
+            <span class="cmd">dove</span> <span class="arg">team</span> <span class="opt">[action]</span> <span class="opt">[name]</span> <span class="opt">[options]</span>
+          </div>
+
+          <h3>Actions</h3>
+          <div class="table-wrapper">
+            <table>
+              <thead>
+                <tr>
+                  <th>Action</th>
+                  <th>Description</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><code>show</code> / <code>ls</code> / <code>list</code></td>
+                  <td>查看团队配置</td>
+                </tr>
+                <tr>
+                  <td><code>default &lt;name&gt;</code></td>
+                  <td>设置默认团队模型</td>
+                </tr>
+                <tr>
+                  <td><code>add &lt;name&gt;</code></td>
+                  <td>添加团队模型配置</td>
+                </tr>
+                <tr>
+                  <td><code>remove</code> / <code>rm &lt;name&gt;</code></td>
+                  <td>移除团队模型</td>
+                </tr>
+                <tr>
+                  <td><code>update</code> / <code>edit &lt;name&gt;</code></td>
+                  <td>更新团队模型配置</td>
+                </tr>
+                <tr>
+                  <td><code>reset</code></td>
+                  <td>重置为默认配置</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <h3>选项</h3>
+          <div class="table-wrapper">
+            <table>
+              <thead>
+                <tr>
+                  <th>Flag</th>
+                  <th>Description</th>
+                  <th>Default</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><code>-m, --model &lt;model&gt;</code></td>
+                  <td>模型名称</td>
+                  <td>-</td>
+                </tr>
+                <tr>
+                  <td><code>-p, --provider &lt;name&gt;</code></td>
+                  <td>提供商</td>
+                  <td>-</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <h3>示例</h3>
+          <pre><code># 查看团队配置
+dove team list
+
+# 添加团队模型
+dove team add "主力模型" -p anthropic -m claude-opus-4-20250514
+
+# 设为默认
+dove team default "主力模型"
+
+# 更新配置
+dove team edit "主力模型" -m claude-sonnet-4-20250514
+
+# 移除模型
+dove team rm "旧模型"
+
+# 重置为默认
+dove team reset</code></pre>
+
+          <!-- dove app -->
+          <h2 id="dove-app">dove app</h2>
+          <p>扩展应用管理命令，安装、开发、提交和审核扩展应用。</p>
+
+          <div class="synopsis">
+            <span class="cmd">dove</span> <span class="arg">app</span> <span class="opt">[action]</span> <span class="opt">[options]</span>
+          </div>
+
+          <h3>Actions</h3>
+          <div class="table-wrapper">
+            <table>
+              <thead>
+                <tr>
+                  <th>Action</th>
+                  <th>Description</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><code>install &lt;name&gt;</code></td>
+                  <td>安装扩展</td>
+                </tr>
+                <tr>
+                  <td><code>uninstall &lt;name&gt;</code></td>
+                  <td>卸载扩展</td>
+                </tr>
+                <tr>
+                  <td><code>info &lt;name&gt;</code></td>
+                  <td>查看扩展信息</td>
+                </tr>
+                <tr>
+                  <td><code>list</code></td>
+                  <td>列出已安装扩展</td>
+                </tr>
+                <tr>
+                  <td><code>search &lt;query&gt;</code></td>
+                  <td>搜索扩展市场</td>
+                </tr>
+                <tr>
+                  <td><code>create &lt;name&gt;</code></td>
+                  <td>创建扩展项目脚手架</td>
+                </tr>
+                <tr>
+                  <td><code>validate</code></td>
+                  <td>验证扩展配置</td>
+                </tr>
+                <tr>
+                  <td><code>dev</code></td>
+                  <td>开发模式运行</td>
+                </tr>
+                <tr>
+                  <td><code>submit</code></td>
+                  <td>提交扩展审核</td>
+                </tr>
+                <tr>
+                  <td><code>review &lt;id&gt;</code></td>
+                  <td>审核扩展（管理员）</td>
+                </tr>
+                <tr>
+                  <td><code>pending</code></td>
+                  <td>查看待审核列表（管理员）</td>
+                </tr>
+                <tr>
+                  <td><code>check &lt;id&gt;</code></td>
+                  <td>检查扩展状态</td>
+                </tr>
+                <tr>
+                  <td><code>publish &lt;id&gt;</code></td>
+                  <td>发布扩展（管理员）</td>
+                </tr>
+                <tr>
+                  <td><code>download &lt;name&gt;</code></td>
+                  <td>下载扩展源码</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <h3>示例</h3>
+
+          <h4>用户操作</h4>
+          <pre><code># 搜索扩展
+dove app search "视频处理"
+
+# 安装扩展
+dove app install video-processor
+
+# 查看已安装
+dove app list
+
+# 查看扩展信息
+dove app info video-processor
+
+# 卸载扩展
+dove app uninstall video-processor</code></pre>
+
+          <h4>开发者工作流</h4>
+          <pre><code># 1. 创建扩展脚手架
+dove app create my-extension
+
+# 2. 进入项目目录开发
+cd my-extension
+
+# 3. 验证 manifest 和权限配置
+dove app validate
+
+# 4. 开发模式运行（热重载）
+dove app dev
+
+# 5. 验证通过后提交审核
+dove app submit
+
+# 6. 查看审核状态
+dove app check ext_abc123</code></pre>
+
+          <h4>管理员操作</h4>
+          <pre><code># 查看待审核列表
+dove app pending
+
+# 审核扩展
+dove app review ext_abc123
+
+# 发布到市场
+dove app publish ext_abc123</code></pre>
+
+          <div class="tip">
+            <p><strong>提示</strong>：<code>dove app create</code>、<code>dove app validate</code> 和 <code>dove app dev</code> 是免认证命令，本地开发无需登录。</p>
+          </div>
+
+          <div class="warning">
+            <p><strong>安全提示</strong>：安装第三方扩展前请仔细阅读其权限声明。扩展会获得声明范围内的系统访问权限。</p>
+          </div>
+
+          <h2>相关命令</h2>
+          <ul>
+            <li><a href="dove.html#dove-skill">dove skill</a> - 管理已安装扩展提供的技能</li>
+            <li><a href="dove.html#dove-dove">dove dove cp</a> - 通道权限管理</li>
+            <li><a href="config.html#dove-config">dove config</a> - 集成相关配置</li>
+            <li><a href="storage.html#dove-memory">dove memory</a> - 事件触发器记忆</li>
+          </ul>
+
+        </article>
+      </main>
+    </div>
+  </div>
+  <script src="../js/components.js"></script>
+  <script src="../js/nav.js"></script>
+  <script src="../js/search.js"></script>
+</body>
+</html>

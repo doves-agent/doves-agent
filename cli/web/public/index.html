@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>白鸽</title>
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+  <div id="app">
+    <!-- 侧边导航 -->
+    <nav id="sidebar">
+      <div class="sidebar-header">
+        <span class="logo">🕊️</span>
+        <span class="title">白鸽</span>
+      </div>
+      <div id="nav-core" class="nav-section"></div>
+      <div id="nav-extensions" class="nav-section">
+        <div class="nav-section-title">扩展</div>
+      </div>
+    </nav>
+
+    <!-- 主内容区 -->
+    <main id="main">
+      <div id="page-container"></div>
+      <iframe id="ext-frame" class="hidden"></iframe>
+    </main>
+
+    <!-- 执行日志面板 -->
+    <div id="log-panel" class="log-panel collapsed">
+      <div class="log-panel-header" id="log-toggle">
+        <span>执行日志</span>
+        <span id="log-count" class="log-badge">0</span>
+        <span class="log-toggle-icon">▲</span>
+      </div>
+      <div class="log-panel-body">
+        <div class="log-toolbar">
+          <button id="log-clear" class="btn-sm">清空</button>
+          <select id="log-filter">
+            <option value="">全部</option>
+            <option value="true">成功</option>
+            <option value="false">失败</option>
+          </select>
+        </div>
+        <div id="log-entries" class="log-entries"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast 容器 -->
+  <div id="toast-container"></div>
+
+  <!-- 模态框容器 -->
+  <div id="modal-overlay" class="hidden"></div>
+
+  <script src="/js/sdk.js"></script>
+  <script src="/js/components/nav.js"></script>
+  <script src="/js/components/toast.js"></script>
+  <script src="/js/components/modal.js"></script>
+  <script src="/js/components/log-panel.js"></script>
+  <script src="/js/app.js"></script>
+</body>
+</html>

@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>变更日志</title>
+<link rel="stylesheet" href="/css/style.css">
+<style>
+  .tip { background: var(--warning); background: rgba(255, 193, 7, 0.1); border: 1px solid var(--warning); border-radius: var(--radius); padding: 12px 16px; margin-bottom: 16px; font-size: 13px; color: var(--text); }
+  .commit-list { list-style: none; padding: 0; margin: 0; }
+  .commit-item { padding: 12px 0; border-bottom: 1px solid var(--border); }
+  .commit-item:last-child { border-bottom: none; }
+  .commit-hash { font-family: monospace; font-size: 12px; color: var(--primary); }
+  .commit-msg { font-size: 14px; font-weight: 600; color: var(--text); margin: 4px 0; }
+  .commit-meta { font-size: 12px; color: var(--text-secondary); }
+  .format-section { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; margin-top: 12px; }
+  .format-card { padding: 12px; border: 1px solid var(--border); border-radius: var(--radius-sm); text-align: center; }
+  .format-card strong { display: block; margin-bottom: 4px; font-size: 14px; }
+  .format-card p { font-size: 12px; color: var(--text-secondary); margin: 0; }
+</style>
+</head>
+<body>
+  <div class="page-header">
+    <h1 class="page-title">变更日志</h1>
+  </div>
+
+  <div class="tip">使用 changelog 技能自动生成 Conventional Changelog</div>
+
+  <div class="card">
+    <h3 style="margin-bottom: 12px;">快速生成</h3>
+    <p style="margin-bottom: 12px; font-size: 14px; color: var(--text-secondary);">通过对话让白鸽生成变更日志：</p>
+    <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+      <button class="btn" onclick="sendCmd('帮我生成最近一周的变更日志')">生成本周 Changelog</button>
+      <button class="btn btn-outline" onclick="sendCmd('帮我生成从上个版本到现在的变更日志')">版本 Changelog</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3 style="margin-bottom: 12px;">提交历史</h3>
+    <ul class="commit-list" id="commitList">
+      <li class="empty-state">加载中...</li>
+    </ul>
+  </div>
+
+  <div class="card">
+    <h3 style="margin-bottom: 12px;">支持的格式</h3>
+    <div class="format-section">
+      <div class="format-card">
+        <strong>Markdown</strong>
+        <p>按 Conventional Commits 类型分组</p>
+      </div>
+      <div class="format-card">
+        <strong>JSON</strong>
+        <p>结构化数据，含分组和摘要统计</p>
+      </div>
+      <div class="format-card">
+        <strong>HTML</strong>
+        <p>精美页面，自动托管到 OSS</p>
+      </div>
+    </div>
+  </div>
+
+<script src="/js/sdk.js"></script>
+<script>
+DoveSDK.init('Git版本控制');
+
+function sendCmd(text) {
+  DoveSDK.cmd(text);
+  DoveSDK.navigateTo('chat');
+}
+
+async function loadLog() {
+  try {
+    const result = await DoveSDK.callTool('git_log', { limit: 20 });
+    const list = document.getElementById('commitList');
+    if (result.success && result.data?.commits?.length) {
+      list.innerHTML = result.data.commits.map(c => `
+        <li class="commit-item">
+          <span class="commit-hash">${escapeHtml(c.hash?.substring(0, 7) || '')}</span>
+          <div class="commit-msg">${escapeHtml(c.message || '')}</div>
+          <span class="commit-meta">${escapeHtml(c.author || '')} - ${escapeHtml(c.date || '')}</span>
+        </li>
+      `).join('');
+    } else {
+      list.innerHTML = '<li class="empty-state">暂无提交记录</li>';
+    }
+  } catch (e) {
+    document.getElementById('commitList').innerHTML = '<li class="empty-state">加载失败，请通过对话查看</li>';
+  }
+}
+
+function escapeHtml(text) {
+  const div = document.createElement('div');
+  div.textContent = text || '';
+  return div.innerHTML;
+}
+
+loadLog();
+</script>
+</body>
+</html>

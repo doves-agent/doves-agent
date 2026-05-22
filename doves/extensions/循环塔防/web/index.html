@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>循环塔防</title>
+  <link rel="stylesheet" href="css/game.css">
+</head>
+<body>
+  <!-- ===== 大厅界面 ===== -->
+  <div id="lobby-screen" class="screen active">
+    <div class="lobby-header">
+      <h1>🏰 循环塔防</h1>
+      <p class="subtitle">环形走廊 · 攻守兼备 · 实时对战</p>
+    </div>
+
+    <div class="lobby-body">
+      <div class="panel create-panel">
+        <h2>创建房间</h2>
+        <div class="form-row">
+          <label>昵称</label>
+          <input type="text" id="nickname-input" value="玩家" maxlength="8">
+        </div>
+        <div class="form-row">
+          <label>模式</label>
+          <select id="mode-select">
+            <option value="FFA">自由对战 (FFA)</option>
+            <option value="2v2">2v2 团队</option>
+            <option value="2v2v2">2v2v2 三方混战</option>
+            <option value="4v4">4v4 团队</option>
+          </select>
+        </div>
+        <div class="form-row">
+          <label>人数</label>
+          <select id="player-count-select">
+            <option value="2">2人</option>
+            <option value="4">4人</option>
+            <option value="6">6人</option>
+            <option value="8">8人</option>
+          </select>
+        </div>
+        <div class="form-row">
+          <label>AI难度</label>
+          <select id="ai-difficulty-select">
+            <option value="简单">简单</option>
+            <option value="普通" selected>普通</option>
+            <option value="困难">困难</option>
+            <option value="地狱">地狱</option>
+          </select>
+        </div>
+        <div class="form-row">
+          <label>AI填充</label>
+          <input type="checkbox" id="ai-fill-check" checked>
+        </div>
+        <button id="create-btn" class="btn primary">创建房间</button>
+      </div>
+
+      <div class="panel room-list-panel">
+        <h2>房间列表 <button id="refresh-btn" class="btn small">刷新</button></h2>
+        <div id="room-list">
+          <p style="color:#555;padding:12px">点击刷新查看在线房间</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="lobby-footer">
+      <div class="rules-hint">
+        <strong>规则简述：</strong>
+        环形走廊分N段，每人占一段。建塔防守上家来兵，出兵攻击下家基地。基地HP=0即淘汰，最后存活者胜。
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== 等待界面 ===== -->
+  <div id="waiting-screen" class="screen">
+    <div class="waiting-header">
+      <h2>房间 <span id="room-id-display"></span></h2>
+      <p>模式: <span id="room-mode-display"></span></p>
+    </div>
+    <div id="player-list"></div>
+    <div class="waiting-actions">
+      <button id="ready-btn" class="btn" data-ready="false">准备</button>
+      <button id="start-btn" class="btn primary" style="display:none">开始游戏</button>
+      <button id="leave-btn" class="btn danger">离开</button>
+    </div>
+  </div>
+
+  <!-- ===== 游戏界面 ===== -->
+  <div id="game-screen" class="screen">
+    <div class="game-layout">
+      <div class="game-sidebar left">
+        <div id="my-status" class="status-panel"></div>
+        <div id="build-panel" class="build-panel">
+          <h3>🏗 建造塔台</h3>
+          <button class="build-btn" data-type="箭塔" data-cost="50">♜ 箭塔 <span class="cost">$50</span></button>
+          <button class="build-btn" data-type="冰塔" data-cost="75">♞ 冰塔 <span class="cost">$75</span></button>
+          <button class="build-btn" data-type="炮塔" data-cost="100">♝ 炮塔 <span class="cost">$100</span></button>
+          <button class="build-btn" data-type="电塔" data-cost="150">♛ 电塔 <span class="cost">$150</span></button>
+          <h3>🚀 出兵进攻</h3>
+          <button class="spawn-btn" data-type="侦察兵" data-cost="20">S 侦察兵 <span class="cost">$20</span></button>
+          <button class="spawn-btn" data-type="重甲" data-cost="60">T 重甲 <span class="cost">$60</span></button>
+          <button class="spawn-btn" data-type="虫群" data-cost="10">z 虫群×3 <span class="cost">$10</span></button>
+          <button class="spawn-btn" data-type="精英" data-cost="150">E 精英 <span class="cost">$150</span></button>
+        </div>
+        <div class="hotkeys-hint">
+          <p>右键取消建造</p>
+        </div>
+      </div>
+
+      <div class="game-main">
+        <canvas id="game-canvas"></canvas>
+      </div>
+
+      <div class="game-sidebar right">
+        <div id="event-log" class="event-log"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== 结算界面 ===== -->
+  <div id="result-screen" class="screen">
+    <div class="result-container">
+      <h1 id="result-title"></h1>
+      <div id="result-stats"></div>
+      <button id="back-lobby-btn" class="btn primary">返回大厅</button>
+    </div>
+  </div>
+
+  <script type="module" src="js/游戏客户端.js"></script>
+  <script type="module" src="js/游戏状态.js"></script>
+  <script type="module" src="js/渲染器.js"></script>
+  <script type="module" src="js/UI面板.js"></script>
+  <script type="module" src="js/app.js"></script>
+</body>
+</html>

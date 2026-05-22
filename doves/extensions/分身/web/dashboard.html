@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>分身管理</title>
+<link rel="stylesheet" href="/css/style.css">
+<style>
+  .warning { background: var(--bg-card); border: 1px solid var(--warning); border-radius: var(--radius); padding: 10px 14px; font-size: 12px; color: var(--text-secondary); margin-bottom: 16px; }
+  .section { margin-bottom: 16px; }
+  .section h3 { font-size: 15px; margin-bottom: 12px; color: var(--text-secondary); }
+  .info-box { display: flex; gap: 16px; align-items: center; flex-wrap: wrap; }
+  .avatar-icon { font-size: 48px; width: 72px; height: 72px; display: flex; align-items: center; justify-content: center; background: var(--bg-input); border-radius: 50%; }
+  .avatar-details { flex: 1; }
+  .avatar-details .field { margin-bottom: 4px; font-size: 13px; color: var(--text); }
+  .avatar-details .field .label { color: var(--text-secondary); }
+  .steps { display: flex; gap: 12px; margin-bottom: 16px; flex-wrap: wrap; }
+  .step { flex: 1; min-width: 120px; padding: 14px; border: 1px solid var(--border); border-radius: var(--radius); text-align: center; background: var(--bg); }
+  .step.done { border-color: var(--success); background: #f0fff4; }
+  .step .step-icon { font-size: 28px; margin-bottom: 4px; }
+  .step .step-label { font-size: 12px; color: var(--text-secondary); }
+  .step .step-status { font-size: 11px; margin-top: 4px; color: var(--text-secondary); }
+  .step.done .step-status { color: var(--success); }
+  .btn-group { display: flex; gap: 8px; flex-wrap: wrap; }
+  .btn-success { background: var(--success); color: #fff; }
+  .btn-success:hover { opacity: 0.9; }
+  .news-list { list-style: none; padding: 0; margin: 0; }
+  .news-list li { padding: 8px 12px; border-bottom: 1px solid var(--border); font-size: 13px; color: var(--text); }
+  .news-list li:last-child { border-bottom: none; }
+</style>
+</head>
+<body>
+  <div class="page-header">
+    <h1 class="page-title">分身管理</h1>
+  </div>
+  <div class="warning">所有聊天数据仅存储在本地Git记忆，不会上传到云端</div>
+
+  <div class="card">
+    <div class="info-box">
+      <div class="avatar-icon">&#x1F916;</div>
+      <div class="avatar-details">
+        <div class="field"><span class="label">状态: </span><span id="avatarStatus">待训练</span></div>
+        <div class="field"><span class="label">已学习消息: </span><span id="learnedCount">0</span> 条</div>
+        <div class="field"><span class="label">风格模型: </span><span id="styleModel">未训练</span></div>
+        <div class="field"><span class="label">活跃对话: </span><span id="activeChats">0</span> 个</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="section">
+      <h3>设置进度</h3>
+      <div class="steps">
+        <div class="step" id="step1"><div class="step-icon">&#x1F4E4;</div><div class="step-label">导入聊天记录</div><div class="step-status">未开始</div></div>
+        <div class="step" id="step2"><div class="step-icon">&#x1F9E0;</div><div class="step-label">分析语气风格</div><div class="step-status">未开始</div></div>
+        <div class="step" id="step3"><div class="step-icon">&#x1F3AF;</div><div class="step-label">训练分身</div><div class="step-status">未开始</div></div>
+        <div class="step" id="step4"><div class="step-icon">&#x1F4AC;</div><div class="step-label">开始回复</div><div class="step-status">未开始</div></div>
+      </div>
+      <div class="btn-group">
+        <button class="btn btn-success" onclick="startImport()">导入聊天记录</button>
+        <button class="btn" onclick="startAnalysis()">分析风格</button>
+        <button class="btn btn-outline" onclick="startTraining()">训练分身</button>
+        <button class="btn btn-outline" onclick="checkStatus()">刷新状态</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="section">
+      <h3>最近动态</h3>
+      <ul class="news-list" id="newsList">
+        <li class="empty-state">暂无动态</li>
+      </ul>
+    </div>
+  </div>
+
+<script src="/js/sdk.js"></script>
+<script>
+DoveSDK.init('分身');
+
+async function checkStatus() {
+  const news = document.getElementById('newsList');
+  news.innerHTML = '<li>查询分身状态中...</li>';
+  try {
+    const data = await DoveSDK.cmd('chat send', { message: '请检查分身当前的状态：已导入多少条聊天记录、是否已完成风格分析和训练' });
+    if (data.success) {
+      document.getElementById('learnedCount').textContent = data.data?.learnedCount || '-';
+      document.getElementById('styleModel').textContent = data.data?.trained ? '已训练' : '未训练';
+    }
+    news.innerHTML = '<li>已发起状态查询，请查看对话面板的回复</li>';
+  } catch (e) {
+    news.innerHTML = '<li>' + e.message + '</li>';
+  }
+}
+
+async function startImport() {
+  addNews('正在发起导入聊天记录请求...');
+  try {
+    await DoveSDK.cmd('chat send', { message: '请帮我导入聊天记录来训练分身' });
+    addNews('已提交导入请求，请在对话面板操作');
+  } catch (e) { addNews(e.message); }
+}
+
+async function startAnalysis() {
+  addNews('正在发起风格分析请求...');
+  try {
+    await DoveSDK.cmd('chat send', { message: '请分析我已经导入的聊天记录的语气风格特征' });
+    addNews('已提交风格分析请求');
+  } catch (e) { addNews(e.message); }
+}
+
+async function startTraining() {
+  addNews('正在发起训练分身请求...');
+  try {
+    await DoveSDK.cmd('chat send', { message: '请基于已学习的风格训练分身，准备开始自动回复' });
+    addNews('已提交训练请求');
+  } catch (e) { addNews(e.message); }
+}
+
+function addNews(msg) {
+  const list = document.getElementById('newsList');
+  const emptyEl = list.querySelector('.empty-state');
+  if (emptyEl) emptyEl.remove();
+  const time = new Date().toLocaleTimeString();
+  const item = document.createElement('li');
+  item.innerHTML = '<span style="color:var(--text-secondary);margin-right:8px">' + time + '</span>' + msg;
+  list.insertBefore(item, list.firstChild);
+}
+</script>
+</body>
+</html>

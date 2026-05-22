@@ -1,0 +1,49 @@
+<div class="page-header">
+  <h1 class="page-title">任务</h1>
+  <button class="btn btn-outline btn-sm" id="tasks-refresh">刷新</button>
+</div>
+
+<div id="tasks-list" class="loading">加载中...</div>
+
+<script>
+(function() {
+  const container = document.getElementById('tasks-list');
+  document.getElementById('tasks-refresh').addEventListener('click', loadTasks);
+  loadTasks();
+
+  async function loadTasks() {
+    container.innerHTML = '<div class="loading">加载中...</div>';
+    const result = await DoveSDK.cmd('task list', { source: 'tasks-page' });
+
+    if (!result.success) {
+      container.innerHTML = `<div class="empty-state">加载失败: ${result.error || '未知错误'}</div>`;
+      return;
+    }
+
+    const tasks = Array.isArray(result.data) ? result.data : result.data?.tasks || [];
+    if (!tasks.length) {
+      container.innerHTML = '<div class="empty-state">暂无任务</div>';
+      return;
+    }
+
+    container.innerHTML = tasks.map(t => {
+      const statusColors = { '已完成': 'var(--success)', '执行中': 'var(--primary)', '失败': 'var(--error)', '等待中': 'var(--warning)' };
+      const color = statusColors[t.status] || 'var(--text-secondary)';
+      const time = t.createdAt ? new Date(t.createdAt).toLocaleString('zh-CN') : '';
+      return `
+        <div class="card" style="margin-bottom:8px">
+          <div style="display:flex;align-items:center;gap:12px">
+            <span style="width:8px;height:8px;border-radius:50%;background:${color}"></span>
+            <div style="flex:1">
+              <div style="font-weight:500">${escape(t.description || t.type || t._id || '未命名任务')}</div>
+              <div style="font-size:12px;color:var(--text-secondary);margin-top:2px">${t.status || '未知'} · ${time}</div>
+            </div>
+            <code style="font-size:11px;color:var(--text-secondary)">${(t._id || '').slice(-6)}</code>
+          </div>
+        </div>`;
+    }).join('');
+  }
+
+  function escape(str) { const d = document.createElement('div'); d.textContent = str; return d.innerHTML; }
+})();
+</script>

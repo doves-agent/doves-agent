@@ -1,0 +1,28 @@
+{
+  "name": "dovecli",
+  "version": "1.0.0",
+  "description": "白鸽 CLI 客户端",
+  "main": "index.js",
+  "type": "module",
+  "bin": {
+    "dove": "./index.js"
+  },
+  "dependencies": {
+    "@dove/common": "file:../common",
+    "chalk": "4.1.2",
+    "commander": "11.1.0",
+    "eventsource": "2.0.2",
+    "inquirer": "8.2.7",
+    "ora": "5.4.1",
+    "qrcode-terminal": "0.12.0",
+    "terminal-image": "4.3.0",
+    "ws": "8.18.0"
+  },
+  "devDependencies": {
+    "esbuild": "0.25.0",
+    "rcedit": "4.0.1"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

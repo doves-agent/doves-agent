@@ -1,0 +1,536 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>MongoDB 数据操作</title>
+<link rel="stylesheet" href="/css/style.css">
+<style>
+  body { display: flex; height: 100vh; overflow: hidden; }
+  .main { flex: 1; padding: 20px; overflow-y: auto; }
+  .ai-panel { width: 340px; background: var(--bg-card); border-left: 1px solid var(--border); display: flex; flex-direction: column; }
+  .ai-panel .ai-header { padding: 14px 16px; background: var(--primary); color: #fff; font-weight: 600; font-size: 14px; }
+  .ai-panel .ai-messages { flex: 1; overflow-y: auto; padding: 12px; }
+  .ai-msg { margin-bottom: 10px; padding: 8px 12px; border-radius: var(--radius); font-size: 13px; line-height: 1.5; max-width: 95%; }
+  .ai-msg.user { background: color-mix(in srgb, var(--primary) 10%, var(--bg)); margin-left: auto; }
+  .ai-msg.assistant { background: var(--bg-input); }
+  .ai-msg.system { background: color-mix(in srgb, var(--warning) 10%, var(--bg)); font-size: 12px; color: var(--warning); }
+  .ai-panel .ai-input-area { padding: 10px; border-top: 1px solid var(--border); display: flex; gap: 6px; }
+  .ai-panel .ai-input-area input { flex: 1; padding: 8px 12px; border: 1px solid var(--border); border-radius: var(--radius); font-size: 13px; background: var(--bg-input); color: var(--text); }
+  .ai-panel .ai-input-area input:focus { outline: none; border-color: var(--primary); }
+  .ai-panel .ai-input-area button { padding: 8px 14px; background: var(--primary); color: #fff; border: none; border-radius: var(--radius); cursor: pointer; font-size: 13px; }
+  .tabs { display: flex; gap: 0; margin-bottom: 14px; border-bottom: 2px solid var(--border); }
+  .tab { padding: 8px 14px; cursor: pointer; font-size: 13px; color: var(--text-secondary); border-bottom: 2px solid transparent; margin-bottom: -2px; transition: all 0.15s; }
+  .tab:hover { color: var(--primary); }
+  .tab.active { color: var(--primary); border-bottom-color: var(--primary); font-weight: 600; }
+  .tab-cont { display: none; }
+  .tab-cont.active { display: block; }
+  .config-row { display: flex; gap: 8px; align-items: center; margin-bottom: 10px; flex-wrap: wrap; }
+  .config-row label { font-size: 13px; color: var(--text-secondary); min-width: 60px; }
+  .config-row input, .config-row select { padding: 7px 12px; border: 1px solid var(--border); border-radius: var(--radius-sm); font-size: 13px; background: var(--bg-input); color: var(--text); }
+  .config-row input:focus { outline: none; border-color: var(--primary); }
+  textarea { width: 100%; padding: 10px; border: 1px solid var(--border); border-radius: var(--radius); font-size: 13px; font-family: 'Consolas', monospace; resize: vertical; background: var(--bg-input); color: var(--text); }
+  textarea:focus { outline: none; border-color: var(--primary); }
+  .op-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; }
+  .op-card { padding: 16px; border: 1px solid var(--border); border-radius: var(--radius); text-align: center; cursor: pointer; transition: all 0.15s; }
+  .op-card:hover { border-color: var(--primary); background: var(--bg-input); transform: translateY(-1px); }
+  .op-card .icon { font-size: 28px; margin-bottom: 6px; }
+  .op-card .label { font-size: 13px; color: var(--text); font-weight: 500; }
+  .op-card .desc { font-size: 11px; color: var(--text-secondary); margin-top: 4px; }
+  .warning-box { background: color-mix(in srgb, var(--warning) 10%, var(--bg)); border: 1px solid color-mix(in srgb, var(--warning) 30%, var(--border)); border-radius: var(--radius); padding: 10px 14px; font-size: 13px; color: var(--warning); margin-bottom: 12px; }
+  .success-box { background: color-mix(in srgb, var(--success) 10%, var(--bg)); border: 1px solid color-mix(in srgb, var(--success) 30%, var(--border)); border-radius: var(--radius); padding: 10px 14px; font-size: 13px; color: var(--success); margin-bottom: 12px; }
+  .section-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+  .section-header h3 { font-size: 15px; color: var(--text); margin: 0; }
+</style>
+</head>
+<body>
+  <div class="main">
+    <div class="page-header">
+      <h1 class="page-title">MongoDB 数据操作</h1>
+    </div>
+
+    <div class="tabs">
+      <div class="tab active" onclick="switchTab('crud')">CRUD</div>
+      <div class="tab" onclick="switchTab('import')">导入导出</div>
+      <div class="tab" onclick="switchTab('migrate')">数据迁移</div>
+      <div class="tab" onclick="switchTab('backup')">备份恢复</div>
+    </div>
+
+    <!-- 操作结果提示 -->
+    <div id="opResult" style="display:none"></div>
+
+    <!-- CRUD -->
+    <div id="tab-crud" class="tab-cont active">
+      <div class="card">
+        <div class="section-header"><h3>快捷操作</h3></div>
+        <div class="op-cards">
+          <div class="op-card" onclick="showCrudForm('insert')"><div class="icon">+</div><div class="label">插入文档</div><div class="desc">insertOne/insertMany</div></div>
+          <div class="op-card" onclick="showCrudForm('update')"><div class="icon">~</div><div class="label">更新文档</div><div class="desc">updateOne/updateMany</div></div>
+          <div class="op-card" onclick="showCrudForm('replace')"><div class="icon">=</div><div class="label">替换文档</div><div class="desc">replaceOne</div></div>
+          <div class="op-card" onclick="showCrudForm('delete')"><div class="icon">x</div><div class="label">删除文档</div><div class="desc">deleteOne/deleteMany</div></div>
+        </div>
+      </div>
+
+      <div class="card" id="crudForm" style="display:none">
+        <div class="section-header"><h3 id="crudFormTitle">操作</h3></div>
+        <div class="config-row">
+          <label>集合:</label>
+          <input type="text" id="crudCollection" placeholder="集合名称" style="max-width:200px">
+        </div>
+        <div id="crudFields"></div>
+        <div style="margin-top:8px;display:flex;gap:8px">
+          <button class="btn" id="crudSubmit" onclick="submitCrud()">执行</button>
+          <button class="btn btn-sm btn-outline" onclick="document.getElementById('crudForm').style.display='none'">取消</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 导入导出 -->
+    <div id="tab-import" class="tab-cont">
+      <div class="card">
+        <div class="section-header"><h3>数据导入</h3></div>
+        <div class="config-row">
+          <label>集合:</label>
+          <input type="text" id="importCol" placeholder="目标集合名称" style="max-width:200px">
+        </div>
+        <div class="config-row">
+          <label>数据:</label>
+          <textarea id="importData" rows="5" placeholder='[{"name": "张三", "age": 25}, {"name": "李四", "age": 30}]'></textarea>
+        </div>
+        <div style="margin-top:8px;display:flex;gap:8px">
+          <button class="btn" onclick="execImport()">导入</button>
+          <button class="btn btn-sm btn-outline" onclick="importFromFile()">从文件导入</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="section-header"><h3>数据导出</h3></div>
+        <div class="config-row">
+          <label>集合:</label>
+          <input type="text" id="exportCol" placeholder="集合名称" style="max-width:200px">
+          <label>格式:</label>
+          <select id="exportFormat"><option value="json">JSON</option><option value="csv">CSV</option></select>
+        </div>
+        <div class="config-row">
+          <label>条件:</label>
+          <input type="text" id="exportQuery" placeholder='{} (空=全部)' style="flex:1">
+          <label>条数:</label>
+          <input type="number" id="exportLimit" value="1000" style="width:80px">
+        </div>
+        <button class="btn" onclick="execExport()">导出</button>
+      </div>
+    </div>
+
+    <!-- 数据迁移 -->
+    <div id="tab-migrate" class="tab-cont">
+      <div class="card">
+        <div class="section-header"><h3>数据迁移</h3></div>
+        <div class="warning-box">数据迁移是不可逆操作，建议先使用"预估"功能评估影响范围</div>
+        <div class="config-row">
+          <label>源集合:</label>
+          <input type="text" id="migrateSrc" placeholder="源集合" style="max-width:200px">
+          <label>目标:</label>
+          <input type="text" id="migrateTgt" placeholder="目标集合" style="max-width:200px">
+        </div>
+        <div class="config-row">
+          <label>条件:</label>
+          <input type="text" id="migrateQuery" placeholder='{} (空=全部)' style="flex:1">
+        </div>
+        <div class="config-row">
+          <label>批大小:</label>
+          <input type="number" id="migrateBatch" value="500" style="width:80px">
+        </div>
+        <div style="display:flex;gap:8px">
+          <button class="btn btn-outline" onclick="estimateMigration()">预估</button>
+          <button class="btn" onclick="execMigration()">执行迁移</button>
+          <button class="btn btn-sm btn-outline" onclick="verifyMigration()">验证</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 备份恢复 -->
+    <div id="tab-backup" class="tab-cont">
+      <div class="card">
+        <div class="section-header"><h3>备份</h3></div>
+        <div class="config-row">
+          <label>集合:</label>
+          <input type="text" id="backupCol" placeholder="集合名称" style="max-width:200px">
+          <label>格式:</label>
+          <select id="backupFormat"><option value="json">JSON</option></select>
+        </div>
+        <div class="config-row">
+          <label>条件:</label>
+          <input type="text" id="backupQuery" placeholder='{} (空=全部)' style="flex:1">
+          <label>上限:</label>
+          <input type="number" id="backupLimit" value="10000" style="width:100px">
+        </div>
+        <button class="btn" onclick="execBackup()">备份</button>
+      </div>
+
+      <div class="card">
+        <div class="section-header"><h3>恢复</h3></div>
+        <div class="warning-box">恢复操作会写入数据，选择"清空重建"将删除目标集合现有数据</div>
+        <div class="config-row">
+          <label>集合:</label>
+          <input type="text" id="restoreCol" placeholder="目标集合" style="max-width:200px">
+          <label>文件:</label>
+          <input type="text" id="restoreFile" placeholder="备份文件路径" style="flex:1">
+        </div>
+        <div class="config-row">
+          <label><input type="checkbox" id="restoreDrop"> 清空重建</label>
+        </div>
+        <div style="display:flex;gap:8px">
+          <button class="btn" onclick="execRestore()">恢复</button>
+          <button class="btn btn-sm btn-outline" onclick="listBackups()">列出备份</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- AI 助手面板 -->
+  <div class="ai-panel">
+    <div class="ai-header">AI 操作助手</div>
+    <div class="ai-messages" id="aiMessages">
+      <div class="ai-msg assistant">你好！我是数据操作助手，可以帮你：<br>- "帮我导入这批数据到 users 集合"<br>- "把 log_2024 迁移到 log_archive"<br>- "备份 products 集合"<br>- "删除过期的临时数据"</div>
+    </div>
+    <div class="ai-input-area">
+      <input type="text" id="aiInput" placeholder="输入自然语言指令..." onkeydown="if(event.key==='Enter')sendAiMsg()">
+      <button onclick="sendAiMsg()">发送</button>
+    </div>
+  </div>
+
+<script src="/js/sdk.js"></script>
+<script>
+DoveSDK.init('MongoDB');
+
+async function callMongoTool(toolName, args = {}) {
+  try {
+    const result = await DoveSDK.callTool(toolName, args, { extension: 'MongoDB' });
+    if (!result.success) return { success: false, error: result.error || '工具调用失败' };
+    return { success: true, data: result.data };
+  } catch (e) { return { success: false, error: e.message }; }
+}
+
+async function chatWithAI(message) {
+  try { await DoveSDK.cmd('chat send', { message }); } catch (e) { /* ignore */ }
+}
+
+function parseResult(data) {
+  if (data?.content?.[0]?.text) {
+    try { return JSON.parse(data.content[0].text); } catch { return data.content[0].text; }
+  }
+  return data;
+}
+
+function switchTab(name) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.tab-cont').forEach(t => t.classList.remove('active'));
+  document.querySelector(`.tab[onclick*="'${name}'"]`).classList.add('active');
+  document.getElementById(`tab-${name}`).classList.add('active');
+}
+
+function showOpResult(type, text) {
+  const el = document.getElementById('opResult');
+  el.style.display = 'block';
+  el.className = type === 'success' ? 'success-box' : 'warning-box';
+  el.innerHTML = text;
+  setTimeout(() => { el.style.display = 'none'; }, 5000);
+}
+
+// CRUD
+function showCrudForm(type) {
+  const form = document.getElementById('crudForm');
+  const title = document.getElementById('crudFormTitle');
+  const fields = document.getElementById('crudFields');
+  const submit = document.getElementById('crudSubmit');
+  form.style.display = 'block';
+
+  const templates = {
+    insert: { title: '插入文档', fields: `<div class="config-row"><label>文档:</label><textarea id="crudDoc" rows="5" placeholder='{"name": "张三", "age": 25}'></textarea></div>` },
+    update: { title: '更新文档', fields: `<div class="config-row"><label>条件:</label><textarea id="crudQuery" rows="2" placeholder='{"name": "张三"}'></textarea></div><div class="config-row"><label>更新:</label><textarea id="crudUpdate" rows="3" placeholder='{"$set": {"age": 26}}'></textarea></div><div class="config-row"><label><input type="checkbox" id="crudMany"> 批量更新</label></div>` },
+    replace: { title: '替换文档', fields: `<div class="config-row"><label>条件:</label><textarea id="crudQuery" rows="2" placeholder='{"name": "张三"}'></textarea></div><div class="config-row"><label>替换:</label><textarea id="crudReplacement" rows="5" placeholder='{"name": "张三", "age": 26, "city": "北京"}'></textarea></div>` },
+    delete: { title: '删除文档', fields: `<div class="config-row"><label>条件:</label><textarea id="crudQuery" rows="3" placeholder='{"name": "张三"}'></textarea></div><div class="config-row"><label><input type="checkbox" id="crudMany"> 批量删除</label></div>` },
+  };
+
+  const tpl = templates[type];
+  title.textContent = tpl.title;
+  fields.innerHTML = tpl.fields;
+  submit.dataset.type = type;
+}
+
+async function submitCrud() {
+  const type = document.getElementById('crudSubmit').dataset.type;
+  const col = document.getElementById('crudCollection').value.trim();
+  if (!col) { DoveSDK.notify('warning', '请输入集合名称'); return; }
+
+  try {
+    switch (type) {
+      case 'insert': {
+        const docStr = document.getElementById('crudDoc')?.value?.trim();
+        if (!docStr) { DoveSDK.notify('warning', '请输入文档内容'); return; }
+        const doc = JSON.parse(docStr);
+        const result = await callMongoTool('mongo_insert_one', { collection: col, document: doc });
+        if (result.success) {
+          const d = parseResult(result.data);
+          showOpResult('success', `插入成功！ID: ${d.insertedId || '已生成'}`);
+        } else {
+          showOpResult('error', `插入失败: ${result.error}`);
+        }
+        break;
+      }
+      case 'update': {
+        const queryStr = document.getElementById('crudQuery')?.value?.trim() || '{}';
+        const updateStr = document.getElementById('crudUpdate')?.value?.trim();
+        if (!updateStr) { DoveSDK.notify('warning', '请输入更新操作'); return; }
+        const query = JSON.parse(queryStr);
+        const update = JSON.parse(updateStr);
+        const many = document.getElementById('crudMany')?.checked;
+
+        if (many) {
+          await chatWithAI(`批量更新 MongoDB ${col} 集合，条件: ${queryStr}，更新: ${updateStr}`);
+          showOpResult('success', '批量更新请求已提交到 AI，请确认执行');
+        } else {
+          const result = await callMongoTool('mongo_update_one', { collection: col, query, update });
+          if (result.success) {
+            const d = parseResult(result.data);
+            showOpResult('success', `更新成功！匹配: ${d.matchedCount}，修改: ${d.modifiedCount}`);
+          } else {
+            showOpResult('error', `更新失败: ${result.error}`);
+          }
+        }
+        break;
+      }
+      case 'replace': {
+        const queryStr = document.getElementById('crudQuery')?.value?.trim() || '{}';
+        const replaceStr = document.getElementById('crudReplacement')?.value?.trim();
+        if (!replaceStr) { DoveSDK.notify('warning', '请输入替换文档'); return; }
+        const query = JSON.parse(queryStr);
+        const replacement = JSON.parse(replaceStr);
+
+        const result = await callMongoTool('mongo_replace_one', { collection: col, query, replacement });
+        if (result.success) {
+          const d = parseResult(result.data);
+          showOpResult('success', `替换成功！匹配: ${d.matchedCount}，修改: ${d.modifiedCount}`);
+        } else {
+          showOpResult('error', `替换失败: ${result.error}`);
+        }
+        break;
+      }
+      case 'delete': {
+        const queryStr = document.getElementById('crudQuery')?.value?.trim();
+        if (!queryStr || queryStr === '{}') { DoveSDK.notify('warning', '删除操作必须指定条件'); return; }
+        const many = document.getElementById('crudMany')?.checked;
+
+        const ok = await DoveSDK.confirm('删除确认', `确定要${many ? '批量' : ''}删除 ${col} 集合中条件为 ${queryStr} 的文档吗？`);
+        if (!ok) return;
+
+        await chatWithAI(`${many ? '批量' : ''}删除 MongoDB ${col} 集合中条件为 ${queryStr} 的文档`);
+        showOpResult('success', '删除请求已提交到 AI，请确认执行');
+        break;
+      }
+    }
+  } catch (e) {
+    showOpResult('error', `参数错误: ${e.message}`);
+  }
+}
+
+// 导入导出
+async function execImport() {
+  const col = document.getElementById('importCol').value.trim();
+  const dataStr = document.getElementById('importData').value.trim();
+  if (!col || !dataStr) { DoveSDK.notify('warning', '请填写集合名和数据'); return; }
+
+  try {
+    const data = JSON.parse(dataStr);
+    const docs = Array.isArray(data) ? data : [data];
+    const result = await callMongoTool('mongo_import', { collection: col, data: docs });
+
+    if (result.success) {
+      const d = parseResult(result.data);
+      showOpResult('success', `导入成功！${d.importedCount || docs.length} 条文档已导入 ${col}`);
+    } else {
+      showOpResult('error', `导入失败: ${result.error}`);
+    }
+  } catch (e) {
+    showOpResult('error', `数据格式错误: ${e.message}`);
+  }
+}
+
+async function importFromFile() {
+  const col = document.getElementById('importCol').value.trim();
+  const file = prompt('请输入文件路径:');
+  if (!col || !file) return;
+
+  const result = await callMongoTool('mongo_import', { collection: col, filePath: file });
+  if (result.success) {
+    const d = parseResult(result.data);
+    showOpResult('success', `文件导入成功！${d.importedCount || '?'} 条文档已导入 ${col}`);
+  } else {
+    showOpResult('error', `导入失败: ${result.error}`);
+  }
+}
+
+async function execExport() {
+  const col = document.getElementById('exportCol').value.trim();
+  if (!col) { DoveSDK.notify('warning', '请输入集合名称'); return; }
+
+  const format = document.getElementById('exportFormat').value;
+  const queryStr = document.getElementById('exportQuery').value.trim() || '{}';
+  const limit = parseInt(document.getElementById('exportLimit').value) || 1000;
+
+  try {
+    const query = JSON.parse(queryStr);
+    const result = await callMongoTool('mongo_export', { collection: col, format, query, limit });
+
+    if (result.success) {
+      const d = parseResult(result.data);
+      if (d.data && d.data.length > 0) {
+        const content = format === 'csv' ? convertToCsv(d.data) : JSON.stringify(d.data, null, 2);
+        const blob = new Blob([content], { type: format === 'csv' ? 'text/csv' : 'application/json' });
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = `${col}_export_${Date.now()}.${format}`;
+        a.click();
+        showOpResult('success', `导出成功！${d.exportedCount || d.data.length} 条文档已下载`);
+      } else {
+        showOpResult('success', `导出完成，${d.exportedCount || 0} 条文档`);
+      }
+    } else {
+      showOpResult('error', `导出失败: ${result.error}`);
+    }
+  } catch (e) {
+    showOpResult('error', `参数错误: ${e.message}`);
+  }
+}
+
+function convertToCsv(data) {
+  if (!data || data.length === 0) return '';
+  const allKeys = new Set();
+  data.forEach(doc => Object.keys(doc).forEach(k => allKeys.add(k)));
+  const headers = [...allKeys];
+  const lines = [headers.join(',')];
+  for (const doc of data) {
+    const vals = headers.map(h => {
+      const v = doc[h];
+      if (v === null || v === undefined) return '';
+      const s = String(v);
+      return s.includes(',') || s.includes('"') || s.includes('\n') ? `"${s.replace(/"/g, '""')}"` : s;
+    });
+    lines.push(vals.join(','));
+  }
+  return lines.join('\n');
+}
+
+// 迁移
+async function estimateMigration() {
+  const src = document.getElementById('migrateSrc').value.trim();
+  if (!src) { DoveSDK.notify('warning', '请输入源集合'); return; }
+
+  const result = await callMongoTool('mongo_count_documents', { collection: src, query: {} });
+  if (result.success) {
+    const d = parseResult(result.data);
+    showOpResult('success', `${src} 集合预估: ${d.count} 条文档`);
+  } else {
+    showOpResult('error', `预估失败: ${result.error}`);
+  }
+}
+
+async function execMigration() {
+  const src = document.getElementById('migrateSrc').value.trim();
+  const tgt = document.getElementById('migrateTgt').value.trim();
+  if (!src || !tgt) { DoveSDK.notify('warning', '请填写源和目标集合'); return; }
+  const ok = await DoveSDK.confirm('迁移确认', `确定要将 ${src} 迁移到 ${tgt} 吗？`);
+  if (!ok) return;
+
+  await chatWithAI(`使用 data_migration 技能将 ${src} 迁移到 ${tgt}`);
+  showOpResult('success', '迁移请求已提交到 AI，请查看对话面板确认');
+}
+
+async function verifyMigration() {
+  const src = document.getElementById('migrateSrc').value.trim();
+  const tgt = document.getElementById('migrateTgt').value.trim();
+  if (!src || !tgt) { DoveSDK.notify('warning', '请填写源和目标集合'); return; }
+
+  const [srcResult, tgtResult] = await Promise.all([
+    callMongoTool('mongo_count_documents', { collection: src, query: {} }),
+    callMongoTool('mongo_count_documents', { collection: tgt, query: {} }),
+  ]);
+
+  if (srcResult.success && tgtResult.success) {
+    const srcCount = parseResult(srcResult.data).count;
+    const tgtCount = parseResult(tgtResult.data).count;
+    const match = srcCount === tgtCount;
+    showOpResult(match ? 'success' : 'error',
+      `验证: 源 ${srcCount} 条，目标 ${tgtCount} 条${match ? '，数量一致' : '，数量不一致！'}`);
+  } else {
+    showOpResult('error', '验证失败');
+  }
+}
+
+// 备份恢复
+async function execBackup() {
+  const col = document.getElementById('backupCol').value.trim();
+  if (!col) { DoveSDK.notify('warning', '请输入集合名称'); return; }
+
+  const format = document.getElementById('backupFormat').value;
+  const limit = parseInt(document.getElementById('backupLimit').value) || 10000;
+
+  const result = await callMongoTool('mongo_export', { collection: col, format, limit });
+  if (result.success) {
+    const d = parseResult(result.data);
+    if (d.data) {
+      const content = JSON.stringify({ 备份信息: { 集合: col, 时间: new Date().toISOString(), 文档数: d.data.length }, 数据: d.data }, null, 2);
+      const blob = new Blob([content], { type: 'application/json' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = `${col}_backup_${new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19)}.json`;
+      a.click();
+      showOpResult('success', `备份成功！${d.exportedCount || d.data.length} 条文档已下载`);
+    }
+  } else {
+    showOpResult('error', `备份失败: ${result.error}`);
+  }
+}
+
+async function execRestore() {
+  const col = document.getElementById('restoreCol').value.trim();
+  const file = document.getElementById('restoreFile').value.trim();
+  if (!col || !file) { DoveSDK.notify('warning', '请填写目标集合和备份文件路径'); return; }
+  const drop = document.getElementById('restoreDrop').checked;
+  if (drop) {
+    const ok = await DoveSDK.confirm('清空确认', `确定要清空 ${col} 集合后恢复吗？`);
+    if (!ok) return;
+  }
+
+  await chatWithAI(`使用 backup_restore 技能从 ${file} 恢复到 ${col} 集合${drop ? '，清空重建' : ''}`);
+  showOpResult('success', '恢复请求已提交到 AI，请确认执行');
+}
+
+async function listBackups() {
+  await chatWithAI('列出所有 MongoDB 备份文件');
+  showOpResult('success', '查询备份列表已提交，请查看对话面板');
+}
+
+// AI 助手
+function addAiMsg(role, text) {
+  const container = document.getElementById('aiMessages');
+  const div = document.createElement('div');
+  div.className = `ai-msg ${role}`;
+  div.innerHTML = text;
+  container.appendChild(div);
+  container.scrollTop = container.scrollHeight;
+}
+
+async function sendAiMsg() {
+  const input = document.getElementById('aiInput');
+  const msg = input.value.trim();
+  if (!msg) return;
+  addAiMsg('user', msg);
+  input.value = '';
+
+  await chatWithAI(msg);
+  addAiMsg('assistant', '已发送到 AI，请查看主对话面板确认操作。');
+}
+</script>
+</body>
+</html>

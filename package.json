@@ -1,0 +1,81 @@
+{
+  "name": "dove",
+  "version": "0.0.31",
+  "description": "白鸽 - 智能体应用平台框架（白鸽=底座+运行时，白鸽应用=垂直智能体）",
+  "private": true,
+  "type": "module",
+  "main": "cli/index.js",
+  "bin": {
+    "dove": "cli/index.js"
+  },
+  "files": [
+    "server/**/*.js",
+    "doves/**/*.js",
+    "cli/**/*.js",
+    "common/**/*.js",
+    "ecosystem.config.cjs",
+    "Dockerfile",
+    "docker-compose.yml"
+  ],
+  "scripts": {
+    "安装依赖": "npm install && npm install --prefix common && npm install --prefix server && npm install --prefix doves && npm install --prefix cli && npm install --prefix ../白鸽测试",
+    "构建:all": "node scripts/build.js",
+    "构建:cli": "node scripts/build.js --only cli",
+    "构建:server": "node scripts/build.js --only server",
+    "构建:doves": "node scripts/build.js --only doves",
+    "发布": "node scripts/release.js",
+    "发布:上传": "node scripts/publish-oss.js",
+    "发布:预演": "node scripts/publish-oss.js --dry-run",
+    "发布:win": "node scripts/release.js --platform=win32",
+    "发布:linux": "node scripts/release.js --platform=linux",
+    "发布:mac": "node scripts/release.js --platform=darwin",
+    "sync": "node scripts/sync-release.js",
+    "sync:conv": "node ../sync-conversations.js",
+    "推送所有": "node ../push-all.js",
+    "打开代理": "node ../代理脚本/hi_speed_google_chrome.js",
+    "清理": "node ../reset-env.js"
+  },
+  "keywords": [
+    "dove",
+    "agent",
+    "llm",
+    "distributed",
+    "chinese-llm",
+    "task-execution"
+  ],
+  "author": "白鸽团队",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/doves-agent/doves-agent.git"
+  },
+  "dependencies": {
+    "@dove/common": "file:common",
+    "archiver": "8.0.0",
+    "dotenv": "16.3.1",
+    "lodash.isequal": "4.5.0",
+    "nodemailer": "8.0.7",
+    "pm2": "5.3.1",
+    "puppeteer-core": "25.0.4",
+    "sharp": "0.34.5",
+    "swagger-jsdoc": "6.2.8",
+    "swagger-ui-express": "5.0.1",
+    "tar": "7.5.13",
+    "ws": "8.20.0"
+  },
+  "devDependencies": {
+    "ali-oss": "6.21.0",
+    "esbuild": "0.28.0",
+    "rcedit": "5.0.2"
+  },
+  "optionalDependencies": {
+    "pm2-windows-startup": "1.0.3"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "bugs": {
+    "url": "https://github.com/doves-agent/doves-agent/issues"
+  },
+  "homepage": "https://github.com/doves-agent/doves-agent#readme"
+}

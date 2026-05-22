@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>代码审查概览</title>
+<link rel="stylesheet" href="/css/style.css">
+<style>
+  .tip { background: color-mix(in srgb, var(--warning) 10%, var(--bg)); border-radius: var(--radius); padding: 12px 16px; margin-bottom: 16px; font-size: 13px; color: var(--text-secondary); }
+  .card-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; }
+  .action-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px; cursor: pointer; transition: transform 0.15s, border-color 0.15s; }
+  .action-card:hover { transform: translateY(-2px); border-color: var(--primary); }
+  .action-card .icon { font-size: 28px; margin-bottom: 10px; }
+  .action-card .title { font-weight: 600; color: var(--text); margin-bottom: 4px; font-size: 14px; }
+  .action-card .desc { font-size: 12px; color: var(--text-secondary); line-height: 1.4; }
+</style>
+</head>
+<body>
+  <div class="page-header">
+    <h1 class="page-title">代码审查</h1>
+  </div>
+
+  <div class="tip">审查操作通过对话进行，点击下方卡片快速发起</div>
+
+  <div class="card-grid">
+    <div class="action-card" onclick="sendCmd('帮我审查当前分支的代码变更')">
+      <div class="icon">📋</div>
+      <div class="title">PR 审查</div>
+      <div class="desc">多维度分析：安全/性能/规范/可维护性</div>
+    </div>
+    <div class="action-card" onclick="sendCmd('帮我做安全扫描')">
+      <div class="icon">🔒</div>
+      <div class="title">安全扫描</div>
+      <div class="desc">注入/XSS/硬编码密钥/权限漏洞</div>
+    </div>
+    <div class="action-card" onclick="sendCmd('检查代码规范')">
+      <div class="icon">📐</div>
+      <div class="title">规范检查</div>
+      <div class="desc">对照项目配置检查编码规范</div>
+    </div>
+    <div class="action-card" onclick="sendCmd('帮我运行质量门禁')">
+      <div class="icon">🚪</div>
+      <div class="title">质量门禁</div>
+      <div class="desc">综合评分 + 通过/阻断判断</div>
+    </div>
+  </div>
+
+<script src="/js/sdk.js"></script>
+<script>
+DoveSDK.init('代码审查');
+
+function sendCmd(text) {
+  DoveSDK.cmd(text);
+  DoveSDK.navigateTo('chat');
+}
+</script>
+</body>
+</html>

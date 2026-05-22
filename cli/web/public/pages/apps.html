@@ -1,0 +1,110 @@
+<div class="page-header">
+  <h1 class="page-title">应用商店</h1>
+</div>
+
+<div style="display:flex;gap:8px;margin-bottom:16px">
+  <button class="btn btn-sm tab-btn active" data-tab="installed">已安装</button>
+  <button class="btn btn-sm btn-outline tab-btn" data-tab="store">可安装</button>
+</div>
+
+<div id="tab-installed">
+  <div id="installed-list" class="loading">加载中...</div>
+</div>
+
+<div id="tab-store" class="hidden">
+  <div id="store-list" class="loading">加载中...</div>
+</div>
+
+<script>
+(function() {
+  const tabs = document.querySelectorAll('.tab-btn');
+  tabs.forEach(tab => {
+    tab.addEventListener('click', () => {
+      tabs.forEach(t => { t.classList.remove('active'); t.classList.add('btn-outline'); });
+      tab.classList.add('active'); tab.classList.remove('btn-outline');
+      document.getElementById('tab-installed').classList.toggle('hidden', tab.dataset.tab !== 'installed');
+      document.getElementById('tab-store').classList.toggle('hidden', tab.dataset.tab !== 'store');
+      if (tab.dataset.tab === 'store') loadStore();
+    });
+  });
+
+  loadInstalled();
+
+  async function loadInstalled() {
+    const container = document.getElementById('installed-list');
+    const resp = await fetch('/api/extensions/list');
+    const data = await resp.json();
+
+    if (!data.success || !data.data?.length) {
+      container.innerHTML = '<div class="empty-state">暂无已安装的扩展</div>';
+      return;
+    }
+
+    container.innerHTML = data.data.map(ext => `
+      <div class="card" style="margin-bottom:12px;display:flex;align-items:center;gap:12px">
+        <span style="font-size:24px">${ext.nav?.icon || '📦'}</span>
+        <div style="flex:1">
+          <div style="font-weight:600">${ext.nav?.label || ext.name}</div>
+          <div style="font-size:12px;color:var(--text-secondary)">${ext.name}</div>
+        </div>
+        <button class="btn btn-sm btn-outline" onclick="openExt('${ext.name}')">打开</button>
+        <button class="btn btn-sm btn-danger" onclick="uninstallExt('${ext.name}')">卸载</button>
+      </div>
+    `).join('');
+  }
+
+  async function loadStore() {
+    const container = document.getElementById('store-list');
+    container.innerHTML = '<div class="loading">加载中...</div>';
+
+    const resp = await fetch('/api/extensions/store');
+    const data = await resp.json();
+
+    if (!data.success || !data.data?.length) {
+      container.innerHTML = '<div class="empty-state">商店暂无可用扩展（或 Server 未连接）</div>';
+      return;
+    }
+
+    container.innerHTML = data.data.map(ext => `
+      <div class="card" style="margin-bottom:12px;display:flex;align-items:center;gap:12px">
+        <span style="font-size:24px">${ext.icon || '📦'}</span>
+        <div style="flex:1">
+          <div style="font-weight:600">${ext.label || ext.name}</div>
+          <div style="font-size:12px;color:var(--text-secondary)">${ext.description || ''}</div>
+        </div>
+        <button class="btn btn-sm" onclick="installExt('${ext.name}')">安装</button>
+      </div>
+    `).join('');
+  }
+
+  window.openExt = function(name) {
+    DoveApp.navigateTo('ext-' + name);
+  };
+
+  window.uninstallExt = async function(name) {
+    const ok = await DoveSDK.confirm('确认卸载', `确定要卸载扩展 "${name}" 吗？`);
+    if (!ok) return;
+    await fetch('/api/extensions/uninstall', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name })
+    });
+    loadInstalled();
+  };
+
+  window.installExt = async function(name) {
+    const resp = await fetch('/api/extensions/install', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name })
+    });
+    const data = await resp.json();
+    if (data.success) {
+      DoveSDK.notify('success', `扩展 "${name}" 安装成功`);
+      loadInstalled();
+    } else {
+      DoveSDK.notify('error', data.error || '安装失败');
+    }
+  };
+})();
+</script>

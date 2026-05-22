@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>任务命令 - 白鸽文档</title>
+  <link rel="stylesheet" href="../css/style.css">
+</head>
+<body>
+  <div id="app">
+    <header id="site-header"></header>
+    <div class="layout">
+      <aside id="sidebar"></aside>
+      <main class="content">
+        <article>
+          <h1>任务命令</h1>
+          <p>任务是白鸽系统的核心执行单元。通过任务命令可以创建、监控、追踪和管理任务的完整生命周期。</p>
+
+          <h2 id="dove-task">dove task</h2>
+          <p>任务生命周期管理命令，支持创建、发布、监控、取消和执行追踪。</p>
+
+          <div class="synopsis">
+            <span class="cmd">dove</span> <span class="arg">task</span> <span class="opt">[action]</span> <span class="opt">[id]</span> <span class="opt">[options]</span>
+          </div>
+
+          <h3>Actions</h3>
+          <div class="table-wrapper">
+            <table>
+              <thead>
+                <tr>
+                  <th>Action</th>
+                  <th>Description</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><code>list</code></td>
+                  <td>列出任务（默认 action）</td>
+                </tr>
+                <tr>
+                  <td><code>create</code></td>
+                  <td>创建新任务</td>
+                </tr>
+                <tr>
+                  <td><code>publish</code></td>
+                  <td>发布任务到公共任务池</td>
+                </tr>
+                <tr>
+                  <td><code>status &lt;id&gt;</code></td>
+                  <td>查看任务状态</td>
+                </tr>
+                <tr>
+                  <td><code>result &lt;id&gt;</code></td>
+                  <td>获取任务执行结果</td>
+                </tr>
+                <tr>
+                  <td><code>watch &lt;id&gt;</code></td>
+                  <td>实时观察任务执行过程</td>
+                </tr>
+                <tr>
+                  <td><code>monitor</code></td>
+                  <td>监控所有活跃任务</td>
+                </tr>
+                <tr>
+                  <td><code>cancel &lt;id&gt;</code></td>
+                  <td>取消任务</td>
+                </tr>
+                <tr>
+                  <td><code>trace &lt;id&gt;</code></td>
+                  <td>追踪任务执行链路</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <h3>选项</h3>
+          <div class="table-wrapper">
+            <table>
+              <thead>
+                <tr>
+                  <th>Flag</th>
+                  <th>Description</th>
+                  <th>Default</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><code>-d, --description &lt;text&gt;</code></td>
+                  <td>任务描述</td>
+                  <td>-</td>
+                </tr>
+                <tr>
+                  <td><code>-t, --type &lt;type&gt;</code></td>
+                  <td>任务类型</td>
+                  <td>general</td>
+                </tr>
+                <tr>
+                  <td><code>--reward &lt;amount&gt;</code></td>
+                  <td>任务奖励积分</td>
+                  <td>0</td>
+                </tr>
+                <tr>
+                  <td><code>--timeout &lt;seconds&gt;</code></td>
+                  <td>超时时间（秒）</td>
+                  <td>300</td>
+                </tr>
+                <tr>
+                  <td><code>--capabilities &lt;list&gt;</code></td>
+                  <td>所需能力（逗号分隔）</td>
+                  <td>-</td>
+                </tr>
+                <tr>
+                  <td><code>--min-reputation &lt;n&gt;</code></td>
+                  <td>最低信誉分要求</td>
+                  <td>0</td>
+                </tr>
+                <tr>
+                  <td><code>--json</code></td>
+                  <td>JSON 格式输出</td>
+                  <td>false</td>
+                </tr>
+                <tr>
+                  <td><code>--detail</code></td>
+                  <td>显示详细信息</td>
+                  <td>false</td>
+                </tr>
+                <tr>
+                  <td><code>-a, --all</code></td>
+                  <td>显示所有任务（包括已完成）</td>
+                  <td>false</td>
+                </tr>
+                <tr>
+                  <td><code>--uid &lt;uid&gt;</code></td>
+                  <td>指定用户 ID 过滤</td>
+                  <td>当前用户</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <h3>任务状态流转</h3>
+          <div class="info">
+            <p>任务状态：<code>pending</code> → <code>queued</code> → <code>running</code> → <code>completed</code> / <code>failed</code> / <code>cancelled</code></p>
+          </div>
+
+          <h3>示例</h3>
+
+          <h4>创建任务</h4>
+          <pre><code># 创建一般任务
+dove task create -d "分析 2024 年销售数据并生成报告"
+
+# 创建需要特定能力的任务
+dove task create -d "处理视频转码" --capabilities "视频处理,ffmpeg" --timeout 600
+
+# 发布到公共任务池（带奖励）
+dove task publish -d "翻译技术文档" --reward 100 --min-reputation 50</code></pre>
+
+          <h4>查看和监控</h4>
+          <pre><code># 列出当前任务
+dove task list
+
+# 列出所有任务（含已完成）
+dove task list -a
+
+# 查看任务状态
+dove task status 6478a3f2
+
+# 实时观察任务执行
+dove task watch 6478a3f2
+
+# 监控所有活跃任务（类似 htop）
+dove task monitor</code></pre>
+
+          <h4>获取结果与追踪</h4>
+          <pre><code># 获取任务结果
+dove task result 6478a3f2
+
+# 追踪执行链路（查看子任务分解和调用记录）
+dove task trace 6478a3f2
+
+# JSON 格式获取结果（便于管道处理）
+dove task result 6478a3f2 --json | jq '.output'</code></pre>
+
+          <h4>取消任务</h4>
+          <pre><code># 取消进行中的任务
+dove task cancel 6478a3f2</code></pre>
+
+          <div class="warning">
+            <p><strong>注意</strong>：已经进入 <code>running</code> 状态的任务取消后，鸽子会在下一个检查点停止执行，不保证立即终止。</p>
+          </div>
+
+          <h2>相关命令</h2>
+          <ul>
+            <li><a href="chat.html#dove-chat">dove chat --async</a> - 通过对话异步创建任务</li>
+            <li><a href="dove.html#dove-capability">dove capability</a> - 查看鸽子能力（决定任务分配）</li>
+            <li><a href="service.html#dove-stats">dove stats</a> - 查看任务消耗的 Token 统计</li>
+          </ul>
+
+        </article>
+      </main>
+    </div>
+  </div>
+  <script src="../js/components.js"></script>
+  <script src="../js/nav.js"></script>
+  <script src="../js/search.js"></script>
+</body>
+</html>

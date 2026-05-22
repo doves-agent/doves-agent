@@ -1,0 +1,1047 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>冰雹猜想 — 最小反例的逆向分析</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;600;700;900&family=Source+Han+Serif+SC:wght@400;700&family=JetBrains+Mono:wght@400;500&display=swap');
+
+        :root {
+            --ink: #1a1a2e;
+            --paper: #f8f6f1;
+            --accent: #8b1a1a;
+            --accent-light: #c4463a;
+            --gold: #b8860b;
+            --border: #d4c5a9;
+            --shadow: rgba(26, 26, 46, 0.08);
+            --success: #2d6a4f;
+            --failure: #8b1a1a;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Noto Serif SC', 'Source Han Serif SC', serif;
+            background: var(--paper);
+            color: var(--ink);
+            line-height: 1.9;
+            font-size: 17px;
+            min-height: 100vh;
+        }
+
+        .page {
+            max-width: 820px;
+            margin: 0 auto;
+            padding: 80px 60px;
+            background: white;
+            min-height: 100vh;
+            box-shadow: 0 0 60px var(--shadow);
+            position: relative;
+        }
+
+        .page::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 50px;
+            right: 50px;
+            height: 4px;
+            background: linear-gradient(90deg, var(--accent), var(--gold), var(--accent));
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 60px;
+            padding-bottom: 40px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        h1 {
+            font-size: 2.2em;
+            font-weight: 900;
+            color: var(--ink);
+            letter-spacing: 0.05em;
+            margin-bottom: 12px;
+        }
+
+        .subtitle {
+            font-size: 1.05em;
+            color: #666;
+            font-weight: 400;
+        }
+
+        section {
+            margin-bottom: 48px;
+        }
+
+        h2 {
+            font-size: 1.3em;
+            font-weight: 700;
+            color: var(--accent);
+            margin-bottom: 20px;
+            padding-left: 16px;
+            border-left: 4px solid var(--gold);
+        }
+
+        h3 {
+            font-size: 1.1em;
+            font-weight: 600;
+            margin-bottom: 12px;
+            color: var(--ink);
+        }
+
+        .definition, .theorem, .lemma {
+            background: #fafaf7;
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            padding: 24px 28px;
+            margin: 20px 0;
+            position: relative;
+        }
+
+        .definition::before, .theorem::before, .lemma::before {
+            position: absolute;
+            top: -11px;
+            left: 20px;
+            background: white;
+            padding: 0 10px;
+            font-weight: 700;
+            font-size: 0.85em;
+            letter-spacing: 0.1em;
+        }
+
+        .definition::before { content: '定义'; color: var(--gold); }
+        .theorem::before { content: '定理'; color: var(--accent); }
+        .lemma::before { content: '引理'; color: #4a6741; }
+
+        .proof {
+            margin: 16px 0 16px 20px;
+            padding: 16px 24px;
+            border-left: 3px solid var(--border);
+            background: #fdfdfc;
+        }
+
+        .proof-label {
+            font-weight: 700;
+            font-size: 0.9em;
+            color: #555;
+            margin-bottom: 8px;
+            letter-spacing: 0.05em;
+        }
+
+        .qed {
+            text-align: right;
+            color: var(--accent);
+            font-size: 1.2em;
+            margin-top: 8px;
+        }
+
+        .math-block {
+            text-align: center;
+            margin: 20px 0;
+            padding: 16px;
+            overflow-x: auto;
+        }
+
+        .step {
+            margin: 12px 0;
+            padding-left: 8px;
+        }
+
+        .step-number {
+            display: inline-block;
+            width: 24px;
+            height: 24px;
+            background: var(--ink);
+            color: white;
+            border-radius: 50%;
+            text-align: center;
+            line-height: 24px;
+            font-size: 0.75em;
+            font-weight: 600;
+            margin-right: 10px;
+            vertical-align: middle;
+        }
+
+        .critical {
+            background: #fff5f5;
+            border: 2px solid var(--accent-light);
+            border-radius: 6px;
+            padding: 24px 28px;
+            margin: 28px 0;
+            position: relative;
+        }
+
+        .critical::before {
+            content: '⚠ 关键转折';
+            position: absolute;
+            top: -12px;
+            left: 20px;
+            background: white;
+            padding: 0 10px;
+            font-weight: 700;
+            font-size: 0.85em;
+            color: var(--accent-light);
+            letter-spacing: 0.1em;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 24px 0;
+            font-size: 0.95em;
+        }
+
+        thead {
+            background: var(--ink);
+            color: white;
+        }
+
+        th {
+            padding: 12px 16px;
+            font-weight: 600;
+            text-align: center;
+            letter-spacing: 0.03em;
+        }
+
+        td {
+            padding: 12px 16px;
+            border-bottom: 1px solid var(--border);
+            text-align: center;
+        }
+
+        tr:nth-child(even) { background: #fafaf7; }
+
+        .status-yes {
+            color: var(--success);
+            font-weight: 700;
+        }
+
+        .status-no {
+            color: var(--failure);
+            font-weight: 700;
+        }
+
+        .conclusion-box {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 24px;
+            margin: 28px 0;
+        }
+
+        .proven, .unproven {
+            padding: 24px;
+            border-radius: 6px;
+        }
+
+        .proven {
+            background: #f0f7f4;
+            border: 1px solid #a8d5ba;
+        }
+
+        .proven h3 {
+            color: var(--success);
+        }
+
+        .unproven {
+            background: #fdf4f4;
+            border: 1px solid #e8b4b4;
+        }
+
+        .unproven h3 {
+            color: var(--failure);
+        }
+
+        .proven ul, .unproven ul {
+            list-style: none;
+            padding: 0;
+            margin-top: 12px;
+        }
+
+        .proven li::before {
+            content: '✓ ';
+            color: var(--success);
+            font-weight: 700;
+        }
+
+        .unproven li::before {
+            content: '✗ ';
+            color: var(--failure);
+            font-weight: 700;
+        }
+
+        .proven li, .unproven li {
+            margin: 8px 0;
+            font-size: 0.93em;
+            line-height: 1.6;
+        }
+
+        .diagram {
+            text-align: center;
+            margin: 30px 0;
+            padding: 30px;
+            background: #fafaf7;
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.85em;
+            line-height: 1.6;
+            overflow-x: auto;
+            white-space: pre;
+        }
+
+        .note {
+            font-size: 0.9em;
+            color: #666;
+            font-style: italic;
+            margin-top: 8px;
+        }
+
+        .separator {
+            text-align: center;
+            margin: 40px 0;
+            color: var(--border);
+            letter-spacing: 1em;
+        }
+
+        footer {
+            margin-top: 60px;
+            padding-top: 24px;
+            border-top: 1px solid var(--border);
+            font-size: 0.85em;
+            color: #999;
+            text-align: center;
+        }
+
+        .viz-controls {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 16px;
+            flex-wrap: wrap;
+        }
+
+        .viz-controls label {
+            font-weight: 600;
+            font-size: 0.95em;
+        }
+
+        .viz-controls input {
+            width: 100px;
+            padding: 6px 10px;
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.95em;
+        }
+
+        .viz-controls button {
+            padding: 6px 16px;
+            border: 1px solid var(--ink);
+            background: var(--ink);
+            color: white;
+            border-radius: 4px;
+            font-size: 0.85em;
+            font-weight: 600;
+            cursor: pointer;
+            letter-spacing: 0.03em;
+            transition: opacity 0.15s;
+        }
+
+        .viz-controls button:hover {
+            opacity: 0.85;
+        }
+
+        .viz-controls button:last-of-type {
+            background: transparent;
+            color: var(--ink);
+        }
+
+        .viz-info {
+            font-size: 0.85em;
+            color: #666;
+            margin-left: auto;
+        }
+
+        #collatz-canvas {
+            width: 100%;
+            height: 360px;
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            cursor: grab;
+            display: block;
+        }
+
+        #collatz-canvas:active {
+            cursor: grabbing;
+        }
+
+        .viz-legend {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            margin-top: 12px;
+            font-size: 0.85em;
+            color: #666;
+            flex-wrap: wrap;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .legend-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            display: inline-block;
+        }
+
+        .legend-arc {
+            width: 24px;
+            height: 12px;
+            border-top: 3px solid;
+            border-radius: 50% 50% 0 0;
+            display: inline-block;
+            margin-left: 12px;
+        }
+
+        .legend-arc.arc-up {
+            border-color: #c4463a;
+        }
+
+        .legend-arc.arc-down {
+            border-color: #2d6a4f;
+        }
+
+        .legend-label {
+            margin-left: 4px;
+        }
+
+        @media (max-width: 700px) {
+            .page { padding: 40px 24px; }
+            h1 { font-size: 1.6em; }
+            .conclusion-box { grid-template-columns: 1fr; }
+            table { font-size: 0.85em; }
+            td, th { padding: 8px 10px; }
+        }
+    </style>
+</head>
+<body>
+    <div class="page">
+        <header>
+            <h1>冰雹猜想</h1>
+            <div class="subtitle">最小反例的逆向图分析</div>
+        </header>
+
+        <!-- Section 1: Definitions -->
+        <section>
+            <h2>§1 预备定义</h2>
+
+            <div class="definition">
+                <p><strong>Collatz 函数。</strong> 对正整数 $n$，定义</p>
+                <div class="math-block">
+                    $$T(n) = \begin{cases} n/2, & n \equiv 0 \pmod{2} \\ 3n+1, & n \equiv 1 \pmod{2} \end{cases}$$
+                </div>
+                <p>对 $n$ 反复迭代 $T$ 所得序列 $n, T(n), T^2(n), \ldots$ 称为 $n$ 的<strong>轨道</strong>（orbit）。</p>
+            </div>
+
+            <div class="definition">
+                <p><strong>Collatz 猜想。</strong> 对任意正整数 $n$，其轨道最终到达 $1$（即进入循环 $4 \to 2 \to 1$）。</p>
+            </div>
+
+            <div class="definition">
+                <p><strong>最小反例假设。</strong> 设猜想不成立。由正整数的良序性，存在最小的正整数 $x$ 使得 $x$ 的轨道不经过 $1$。记此 $x$ 为最小反例。</p>
+                <div class="math-block">
+                    $$\forall\, n \in \mathbb{Z}^+,\; n < x \implies n \text{ 的轨道到达 } 1$$
+                </div>
+            </div>
+        </section>
+
+        <!-- Section 2: x is odd -->
+        <section>
+            <h2>§2 最小反例的奇偶性</h2>
+
+            <div class="theorem">
+                <p><strong>定理 1.</strong> 若 $x$ 是最小反例，则 $x$ 为奇数。</p>
+            </div>
+
+            <div class="proof">
+                <div class="proof-label">证明</div>
+                <p>设 $x$ 为偶数。则 $T(x) = x/2 < x$。</p>
+                <p>由 $x$ 的最小性，$x/2$ 的轨道到达 $1$。</p>
+                <p>但 $x$ 的轨道为 $x \to x/2 \to \cdots \to 1$，故 $x$ 的轨道也到达 $1$，矛盾。</p>
+                <div class="qed">∎</div>
+            </div>
+        </section>
+
+        <!-- Section 3: Inverse Collatz -->
+        <section>
+            <h2>§3 逆向 Collatz 图</h2>
+
+            <div class="definition">
+                <p><strong>前驱（predecessor）。</strong> 称 $m$ 是 $n$ 的前驱，若 $T(m) = n$。对给定 $n$，其前驱集合为：</p>
+                <div class="math-block">
+                    $$T^{-1}(n) = \{2n\} \;\cup\; \begin{cases} \{(n-1)/3\}, & \text{若 } (n-1)/3 \in \mathbb{Z}^+ \text{ 且为奇数} \\ \emptyset, & \text{否则} \end{cases}$$
+                </div>
+                <p class="note">即：$2n$ 总是 $n$ 的前驱（因 $2n$ 为偶数，$T(2n) = n$）；若 $(n-1)/3$ 是正奇数，则它也是前驱（因对奇数 $m$，$T(m) = 3m+1 = n$）。</p>
+            </div>
+
+            <div class="lemma">
+                <p><strong>引理（前驱传递性）。</strong> 若 $m$ 是 $n$ 的前驱且 $m$ 的轨道到达 $1$，则 $n$ 的轨道也到达 $1$。</p>
+            </div>
+            <div class="proof">
+                <div class="proof-label">证明</div>
+                <p>$m$ 的轨道为 $m \to T(m) = n \to T(n) \to \cdots$。若此轨道到达 $1$，则从 $n$ 开始的子轨道自然到达 $1$。</p>
+                <div class="qed">∎</div>
+            </div>
+        </section>
+
+        <!-- Section 4: Eliminate predecessors of x -->
+        <section>
+            <h2>§4 消除 $x$ 的奇数前驱</h2>
+
+            <div class="theorem">
+                <p><strong>定理 2.</strong> $x$ 在逆向图中的唯一前驱是 $2x$。</p>
+            </div>
+
+            <div class="proof">
+                <div class="proof-label">证明</div>
+                <p>$x$ 的前驱集为 $T^{-1}(x) = \{2x\} \cup P$，其中 $P = \{(x-1)/3\}$（若合法）或 $P = \emptyset$。</p>
+                <p>设 $y_0 = (x-1)/3$ 为正奇数（即 $P \neq \emptyset$）。则：</p>
+                <div class="math-block">
+                    $$y_0 = \frac{x-1}{3} < x$$
+                </div>
+                <p>由 $x$ 的最小性，$y_0$ 的轨道到达 $1$。而 $y_0$ 的轨道为：</p>
+                <div class="math-block">
+                    $$y_0 \;\to\; 3y_0 + 1 = x \;\to\; \cdots$$
+                </div>
+                <p>故 $x$ 在 $y_0$ 的轨道上，$x$ 的轨道到达 $1$，与 $x$ 为反例矛盾。</p>
+                <p>故 $y_0$ 不存在（即 $(x-1)/3$ 不是正奇数），$T^{-1}(x) = \{2x\}$。</p>
+                <div class="qed">∎</div>
+            </div>
+        </section>
+
+        <!-- Section 5: Eliminate predecessors of 2x -->
+        <section>
+            <h2>§5 消除 $2x$ 的奇数前驱</h2>
+
+            <div class="theorem">
+                <p><strong>定理 3.</strong> $2x$ 在逆向图中的唯一前驱是 $4x$。</p>
+            </div>
+
+            <div class="proof">
+                <div class="proof-label">证明</div>
+                <p>$2x$ 的前驱集为 $T^{-1}(2x) = \{4x\} \cup P$，其中 $P = \{(2x-1)/3\}$（若合法）或 $P = \emptyset$。</p>
+                <p>设 $y_1 = (2x-1)/3$ 为正奇数。则：</p>
+                <div class="math-block">
+                    $$y_1 = \frac{2x-1}{3} = \frac{2}{3}x - \frac{1}{3} < x$$
+                </div>
+                <p>由 $x$ 的最小性，$y_1$ 的轨道到达 $1$。而 $y_1$ 的轨道为：</p>
+                <div class="math-block">
+                    $$y_1 \;\to\; 3y_1 + 1 = 2x \;\to\; x \;\to\; \cdots$$
+                </div>
+                <p>故 $x$ 在 $y_1$ 的轨道上，$x$ 的轨道到达 $1$，矛盾。</p>
+                <p>故 $y_1$ 不存在，$T^{-1}(2x) = \{4x\}$。</p>
+                <div class="qed">∎</div>
+            </div>
+        </section>
+
+        <div class="separator">· · ·</div>
+
+        <!-- Section 6: Critical turning point -->
+        <section>
+            <h2>§6 关键转折：$4x$ 及更高层</h2>
+
+            <div class="critical">
+                <p><strong>分析 $4x$ 的前驱。</strong> 设 $y_2 = (4x - 1)/3$，则：</p>
+                <div class="math-block">
+                    $$y_2 = \frac{4x-1}{3} = \frac{4}{3}x - \frac{1}{3}$$
+                </div>
+                <p>由于 $x \geq 3$（最小反例显然 $> 2$）：</p>
+                <div class="math-block">
+                    $$y_2 - x = \frac{4x-1}{3} - x = \frac{x - 1}{3} > 0$$
+                </div>
+                <p>即 $y_2 > x$。<strong>无法</strong>由 $x$ 的最小性推出 $y_2$ 的轨道到达 $1$。</p>
+                <p>事实上，若 $y_2$ 存在（为正奇数），则其轨道 $y_2 \to 4x \to 2x \to x \to \cdots$ 经过 $x$，与 $x$ 同为反例——<strong>自洽，不产生矛盾</strong>。</p>
+            </div>
+
+            <p>对更高层级完全类似：</p>
+
+            <div class="math-block">
+                $$y_k = \frac{2^k x - 1}{3}, \quad k \geq 2$$
+            </div>
+
+            <table>
+                <thead>
+                    <tr>
+                        <th>节点</th>
+                        <th>奇数前驱 $y_k$</th>
+                        <th>$y_k$ 与 $x$ 的关系</th>
+                        <th>可否消除</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>$x$</td>
+                        <td>$y_0 = \dfrac{x-1}{3}$</td>
+                        <td>$y_0 < x$</td>
+                        <td class="status-yes">可消除 ✓</td>
+                    </tr>
+                    <tr>
+                        <td>$2x$</td>
+                        <td>$y_1 = \dfrac{2x-1}{3}$</td>
+                        <td>$y_1 < x$</td>
+                        <td class="status-yes">可消除 ✓</td>
+                    </tr>
+                    <tr>
+                        <td>$4x$</td>
+                        <td>$y_2 = \dfrac{4x-1}{3}$</td>
+                        <td>$y_2 > x$</td>
+                        <td class="status-no">不可消除 ✗</td>
+                    </tr>
+                    <tr>
+                        <td>$8x$</td>
+                        <td>$y_3 = \dfrac{8x-1}{3}$</td>
+                        <td>$y_3 > x$</td>
+                        <td class="status-no">不可消除 ✗</td>
+                    </tr>
+                    <tr>
+                        <td>$16x$</td>
+                        <td>$y_4 = \dfrac{16x-1}{3}$</td>
+                        <td>$y_4 > x$</td>
+                        <td class="status-no">不可消除 ✗</td>
+                    </tr>
+                    <tr>
+                        <td>$2^k x$</td>
+                        <td>$y_k = \dfrac{2^k x - 1}{3}$</td>
+                        <td>$y_k > x \;(k \geq 2)$</td>
+                        <td class="status-no">不可消除 ✗</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <p><strong>一般结论：</strong>对 $k \geq 2$，$y_k = \frac{2^k x - 1}{3} > x$，故最小性论证在第三层 ($4x$) 即失效。</p>
+        </section>
+
+        <!-- Section 7: Inverse tree diagram -->
+        <section>
+            <h2>§7 逆向树结构</h2>
+            <div class="diagram">                       ···
+                        |
+                      16x ←──── y₄ = (16x−1)/3 > x  [不可消除]
+                        |
+                       8x ←──── y₃ = (8x−1)/3 > x   [不可消除]
+                        |
+                       4x ←──── y₂ = (4x−1)/3 > x   [不可消除]
+                        |
+                       2x ←──── y₁ = (2x−1)/3 < x   [已消除]
+                        |
+                        x ←──── y₀ = (x−1)/3 < x    [已消除]
+                        |
+                       ···（x 的前向轨道 → 3x+1 → ···）</div>
+        </section>
+
+        <!-- Section 8: Interactive Visualization -->
+        <section>
+            <h2>§8 轨道跳跃可视化</h2>
+            <p style="margin-bottom: 16px; font-size: 0.95em; color: #555;">
+                输入起始数字，观察 Collatz 序列在数轴上的跳跃轨迹。滚轮缩放，拖拽平移。
+            </p>
+
+            <div class="viz-controls">
+                <label>起始数字：</label>
+                <input type="number" id="collatz-input" value="27" min="1" step="1">
+                <button id="collatz-run">运行</button>
+                <button id="collatz-reset">重置视图</button>
+                <span class="viz-info" id="collatz-info"></span>
+            </div>
+
+            <canvas id="collatz-canvas" width="760" height="360"></canvas>
+
+            <div class="viz-legend">
+                <span class="legend-item"><span class="legend-dot" style="background:#b8860b"></span>偶数</span>
+                <span class="legend-item"><span class="legend-dot" style="background:#8b1a1a"></span>奇数</span>
+                <span class="legend-arc arc-up"></span><span class="legend-label">跳跃增大</span>
+                <span class="legend-arc arc-down"></span><span class="legend-label">跳跃减小</span>
+            </div>
+        </section>
+
+        <div class="separator">· · ·</div>
+
+        <!-- Section 9: Summary -->
+        <section>
+            <h2>§9 结论与边界</h2>
+
+            <div class="conclusion-box">
+                <div class="proven">
+                    <h3>已严格证明</h3>
+                    <ul>
+                        <li>最小反例 $x$ 必为奇数</li>
+                        <li>$x$ 的唯一前驱为 $2x$（无奇数前驱）</li>
+                        <li>$2x$ 的唯一前驱为 $4x$（无奇数前驱）</li>
+                        <li>$x$ 的逆向链为 $x \leftarrow 2x \leftarrow 4x \leftarrow \cdots$（前两层纯净）</li>
+                        <li>$(x-1)/3$ 不是正奇数</li>
+                        <li>$(2x-1)/3$ 不是正奇数</li>
+                    </ul>
+                </div>
+                <div class="unproven">
+                    <h3>未能证明的关键步</h3>
+                    <ul>
+                        <li>$x$ 的<strong>前向</strong>轨道 $x \to 3x+1 \to \cdots$ 是否终将降至 $x$ 以下</li>
+                        <li>$4x$ 及更高层的奇数前驱 $y_k\;(k \geq 2)$ 能否被消除</li>
+                        <li>最小反例 $x$ 是否真的不存在（即猜想本身）</li>
+                    </ul>
+                </div>
+            </div>
+
+            <p style="margin-top: 24px; font-size: 0.95em; color: #555;">
+                <strong>总结：</strong>逆向分析证明了最小反例 $x$ 在 Collatz 逆向图中的局部孤立性（前两层无奇数前驱），
+                但从第三层 ($4x$) 开始，奇数前驱 $y_k > x$，最小性论证失效。
+                猜想的核心困难——证明每个正整数的前向轨道最终下降——仍未被此方法触及。
+            </p>
+        </section>
+
+        <footer>
+            <p>冰雹猜想（Collatz Conjecture, 1937）· 至今未解的开放问题</p>
+        </footer>
+    </div>
+
+    <script>
+        document.addEventListener("DOMContentLoaded", function() {
+            renderMathInElement(document.body, {
+                delimiters: [
+                    {left: '$$', right: '$$', display: true},
+                    {left: '$', right: '$', display: false}
+                ],
+                throwOnError: false
+            });
+
+            const canvas = document.getElementById('collatz-canvas');
+            const ctx = canvas.getContext('2d');
+            const input = document.getElementById('collatz-input');
+            const runBtn = document.getElementById('collatz-run');
+            const resetBtn = document.getElementById('collatz-reset');
+            const info = document.getElementById('collatz-info');
+
+            const dpr = window.devicePixelRatio || 1;
+            function resizeCanvas() {
+                const rect = canvas.getBoundingClientRect();
+                canvas.width = rect.width * dpr;
+                canvas.height = rect.height * dpr;
+                ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+            }
+            resizeCanvas();
+
+            const COLOR_ODD = '#8b1a1a';
+            const COLOR_EVEN = '#b8860b';
+            const COLOR_ARC_UP = '#c4463a';
+            const COLOR_ARC_DOWN = '#2d6a4f';
+            const AXIS_Y = 260;
+
+            let offsetX = 60;
+            let scale = 8;
+            let sequence = [];
+            let isDragging = false;
+            let dragStartX = 0;
+            let dragStartOffset = 0;
+            let animProgress = 0;
+            let animId = null;
+
+            function collatzSequence(n) {
+                const seq = [n];
+                let steps = 0;
+                while (n !== 1 && steps < 1000) {
+                    n = n % 2 === 0 ? n / 2 : 3 * n + 1;
+                    seq.push(n);
+                    steps++;
+                }
+                return seq;
+            }
+
+            function numToX(n) {
+                return offsetX + n * scale;
+            }
+
+            function xToNum(x) {
+                return (x - offsetX) / scale;
+            }
+
+            function draw() {
+                const w = canvas.getBoundingClientRect().width;
+                const h = canvas.getBoundingClientRect().height;
+                ctx.clearRect(0, 0, w, h);
+
+                // visible range
+                const minN = Math.max(1, Math.floor(xToNum(0)));
+                const maxN = Math.ceil(xToNum(w));
+
+                // axis line
+                ctx.beginPath();
+                ctx.strokeStyle = '#999';
+                ctx.lineWidth = 1.5;
+                ctx.moveTo(0, AXIS_Y);
+                ctx.lineTo(w, AXIS_Y);
+                ctx.stroke();
+
+                // tick spacing - adapt to zoom
+                let tickStep = 1;
+                if (scale < 1) tickStep = 100;
+                else if (scale < 3) tickStep = 50;
+                else if (scale < 6) tickStep = 20;
+                else if (scale < 12) tickStep = 10;
+                else if (scale < 25) tickStep = 5;
+                else if (scale < 60) tickStep = 2;
+
+                // draw ticks and numbers
+                const startTick = Math.max(1, Math.floor(minN / tickStep) * tickStep);
+                for (let n = startTick; n <= maxN; n += tickStep) {
+                    if (n < 1) continue;
+                    const x = numToX(n);
+                    if (x < -10 || x > w + 10) continue;
+
+                    const isOdd = n % 2 === 1;
+                    ctx.beginPath();
+                    ctx.strokeStyle = isOdd ? COLOR_ODD : COLOR_EVEN;
+                    ctx.lineWidth = (n % (tickStep * 5) === 0) ? 2 : 1;
+                    ctx.moveTo(x, AXIS_Y - 8);
+                    ctx.lineTo(x, AXIS_Y + 8);
+                    ctx.stroke();
+
+                    // label
+                    if (scale > 3 || n % (tickStep * 5) === 0 || tickStep >= 10) {
+                        ctx.fillStyle = isOdd ? COLOR_ODD : COLOR_EVEN;
+                        ctx.font = '11px "JetBrains Mono", monospace';
+                        ctx.textAlign = 'center';
+                        ctx.fillText(n, x, AXIS_Y + 22);
+                    }
+                }
+
+                // draw sequence dots on axis
+                const visibleSteps = Math.min(sequence.length, Math.floor(animProgress));
+                for (let i = 0; i < visibleSteps; i++) {
+                    const n = sequence[i];
+                    const x = numToX(n);
+                    if (x < -20 || x > w + 20) continue;
+
+                    ctx.beginPath();
+                    const isOdd = n % 2 === 1;
+                    ctx.fillStyle = isOdd ? COLOR_ODD : COLOR_EVEN;
+                    ctx.arc(x, AXIS_Y, 4, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+
+                // draw arcs
+                for (let i = 0; i < visibleSteps - 1; i++) {
+                    const from = sequence[i];
+                    const to = sequence[i + 1];
+                    const x1 = numToX(from);
+                    const x2 = numToX(to);
+                    const goingUp = to > from;
+
+                    const midX = (x1 + x2) / 2;
+                    const dist = Math.abs(x2 - x1);
+                    const arcH = Math.min(180, 30 + dist * 0.3);
+                    const cpY = AXIS_Y - arcH;
+
+                    // partial arc for current step
+                    let drawFraction = 1;
+                    if (i === visibleSteps - 2) {
+                        drawFraction = animProgress - Math.floor(animProgress);
+                        if (drawFraction === 0) drawFraction = 1;
+                    }
+
+                    ctx.beginPath();
+                    ctx.strokeStyle = goingUp ? COLOR_ARC_UP : COLOR_ARC_DOWN;
+                    ctx.lineWidth = 2;
+                    ctx.globalAlpha = 0.7;
+
+                    if (drawFraction >= 1) {
+                        ctx.moveTo(x1, AXIS_Y);
+                        ctx.quadraticCurveTo(midX, cpY, x2, AXIS_Y);
+                        ctx.stroke();
+
+                        // arrowhead
+                        const t = 0.95;
+                        const ax = (1-t)*(1-t)*x1 + 2*(1-t)*t*midX + t*t*x2;
+                        const ay = (1-t)*(1-t)*AXIS_Y + 2*(1-t)*t*cpY + t*t*AXIS_Y;
+                        const angle = Math.atan2(AXIS_Y - ay, x2 - ax);
+                        ctx.beginPath();
+                        ctx.moveTo(x2, AXIS_Y);
+                        ctx.lineTo(x2 - 8*Math.cos(angle - 0.4), AXIS_Y - 8*Math.sin(angle - 0.4));
+                        ctx.moveTo(x2, AXIS_Y);
+                        ctx.lineTo(x2 - 8*Math.cos(angle + 0.4), AXIS_Y - 8*Math.sin(angle + 0.4));
+                        ctx.stroke();
+                    } else {
+                        // partial draw using sub-path
+                        const steps = 30;
+                        const endStep = Math.floor(steps * drawFraction);
+                        ctx.moveTo(x1, AXIS_Y);
+                        for (let s = 1; s <= endStep; s++) {
+                            const t = s / steps;
+                            const px = (1-t)*(1-t)*x1 + 2*(1-t)*t*midX + t*t*x2;
+                            const py = (1-t)*(1-t)*AXIS_Y + 2*(1-t)*t*cpY + t*t*AXIS_Y;
+                            ctx.lineTo(px, py);
+                        }
+                        ctx.stroke();
+                    }
+                    ctx.globalAlpha = 1;
+                }
+
+                // step counter label
+                if (visibleSteps > 0) {
+                    const cur = sequence[visibleSteps - 1];
+                    const x = numToX(cur);
+                    ctx.fillStyle = '#1a1a2e';
+                    ctx.font = 'bold 13px "JetBrains Mono", monospace';
+                    ctx.textAlign = 'center';
+                    ctx.fillText(cur, x, AXIS_Y - 14);
+                }
+            }
+
+            function animate() {
+                if (animProgress < sequence.length) {
+                    animProgress += 0.12;
+                    draw();
+                    animId = requestAnimationFrame(animate);
+                } else {
+                    animProgress = sequence.length;
+                    draw();
+                }
+            }
+
+            function run() {
+                const n = parseInt(input.value);
+                if (!n || n < 1) return;
+                if (animId) cancelAnimationFrame(animId);
+
+                sequence = collatzSequence(n);
+                info.textContent = `${sequence.length - 1} 步到达 1（最大值 ${Math.max(...sequence)}）`;
+
+                // auto-fit view
+                const maxVal = Math.max(...sequence);
+                const w = canvas.getBoundingClientRect().width;
+                scale = (w - 120) / maxVal;
+                scale = Math.max(0.5, Math.min(scale, 60));
+                offsetX = 60;
+
+                animProgress = 1;
+                animate();
+            }
+
+            function resetView() {
+                if (!sequence.length) return;
+                const maxVal = Math.max(...sequence);
+                const w = canvas.getBoundingClientRect().width;
+                scale = (w - 120) / maxVal;
+                scale = Math.max(0.5, Math.min(scale, 60));
+                offsetX = 60;
+                animProgress = sequence.length;
+                draw();
+            }
+
+            // zoom
+            canvas.addEventListener('wheel', function(e) {
+                e.preventDefault();
+                const rect = canvas.getBoundingClientRect();
+                const mouseX = e.clientX - rect.left;
+                const numAtMouse = xToNum(mouseX);
+
+                const factor = e.deltaY < 0 ? 1.15 : 0.87;
+                scale *= factor;
+                scale = Math.max(0.1, Math.min(scale, 200));
+
+                offsetX = mouseX - numAtMouse * scale;
+                draw();
+            });
+
+            // pan
+            canvas.addEventListener('mousedown', function(e) {
+                isDragging = true;
+                dragStartX = e.clientX;
+                dragStartOffset = offsetX;
+            });
+
+            window.addEventListener('mousemove', function(e) {
+                if (!isDragging) return;
+                offsetX = dragStartOffset + (e.clientX - dragStartX);
+                draw();
+            });
+
+            window.addEventListener('mouseup', function() {
+                isDragging = false;
+            });
+
+            // touch support
+            let lastTouchX = 0;
+            let lastPinchDist = 0;
+            canvas.addEventListener('touchstart', function(e) {
+                if (e.touches.length === 1) {
+                    isDragging = true;
+                    lastTouchX = e.touches[0].clientX;
+                    dragStartOffset = offsetX;
+                    dragStartX = lastTouchX;
+                } else if (e.touches.length === 2) {
+                    isDragging = false;
+                    lastPinchDist = Math.hypot(
+                        e.touches[0].clientX - e.touches[1].clientX,
+                        e.touches[0].clientY - e.touches[1].clientY
+                    );
+                }
+                e.preventDefault();
+            }, {passive: false});
+
+            canvas.addEventListener('touchmove', function(e) {
+                if (e.touches.length === 1 && isDragging) {
+                    offsetX = dragStartOffset + (e.touches[0].clientX - dragStartX);
+                    draw();
+                } else if (e.touches.length === 2) {
+                    const dist = Math.hypot(
+                        e.touches[0].clientX - e.touches[1].clientX,
+                        e.touches[0].clientY - e.touches[1].clientY
+                    );
+                    const factor = dist / lastPinchDist;
+                    const rect = canvas.getBoundingClientRect();
+                    const midX = (e.touches[0].clientX + e.touches[1].clientX) / 2 - rect.left;
+                    const numAtMid = xToNum(midX);
+                    scale *= factor;
+                    scale = Math.max(0.1, Math.min(scale, 200));
+                    offsetX = midX - numAtMid * scale;
+                    lastPinchDist = dist;
+                    draw();
+                }
+                e.preventDefault();
+            }, {passive: false});
+
+            canvas.addEventListener('touchend', function() {
+                isDragging = false;
+            });
+
+            // resize
+            window.addEventListener('resize', function() {
+                resizeCanvas();
+                draw();
+            });
+
+            runBtn.addEventListener('click', run);
+            resetBtn.addEventListener('click', resetView);
+            input.addEventListener('keydown', function(e) {
+                if (e.key === 'Enter') run();
+            });
+
+            // initial run
+            run();
+        });
+    </script>
+</body>
+</html>

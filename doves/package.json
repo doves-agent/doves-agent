@@ -1,0 +1,23 @@
+{
+  "name": "doves",
+  "version": "1.0.0",
+  "description": "白鸽鸽子框架 - 分布式任务执行器",
+  "type": "module",
+  "main": "入口.js",
+  "dependencies": {
+    "@dove/common": "file:../common",
+    "@jitsi/robotjs": "^0.6.22",
+    "ali-oss": "6.21.0",
+    "dotenv": "16.3.1",
+    "jsonwebtoken": "9.0.0",
+    "ssh2": "1.17.0",
+    "screenshot-desktop": "^1.15.4"
+  },
+  "devDependencies": {
+    "esbuild": "0.25.0",
+    "rcedit": "4.0.1"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

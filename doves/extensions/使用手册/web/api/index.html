@@ -1,0 +1,580 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Server API 路由速查 - 白鸽文档</title>
+  <link rel="stylesheet" href="../css/style.css">
+</head>
+<body>
+  <div id="app">
+    <header id="site-header"></header>
+    <div class="layout">
+      <aside id="sidebar"></aside>
+      <main class="content">
+        <article>
+          <h1>Server API 路由速查</h1>
+          <p>白鸽 Server 的完整路由参考。所有路由通过 Noise NX 加密 TCP（端口 3003）访问，无明文 HTTP。</p>
+
+          <div class="info">
+            <p><strong>协议说明：</strong>虽然路由格式类似 REST API，但传输层是 Noise NX 加密 TCP，不是 HTTP。内部 Express 仅绑定 localhost。</p>
+          </div>
+
+          <h2>Public（无需认证）</h2>
+          <div class="table-wrapper">
+            <table>
+              <thead>
+                <tr>
+                  <th>Method</th>
+                  <th>Path</th>
+                  <th>说明</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>GET</td>
+                  <td>/ping</td>
+                  <td>连通性检查，返回 pong</td>
+                </tr>
+                <tr>
+                  <td>GET</td>
+                  <td>/health</td>
+                  <td>健康检查（含依赖状态）</td>
+                </tr>
+                <tr>
+                  <td>GET</td>
+                  <td>/ready</td>
+                  <td>就绪检查（是否可接受请求）</td>
+                </tr>
+                <tr>
+                  <td>GET</td>
+                  <td>/api/versions</td>
+                  <td>API 版本信息</td>
+                </tr>
+                <tr>
+                  <td>GET</td>
+                  <td>/api/protocol-doc</td>
+                  <td>协议文档</td>
+                </tr>
+                <tr>
+                  <td>POST</td>
+                  <td>/auth/register</td>
+                  <td>用户注册</td>
+                </tr>
+                <tr>
+                  <td>POST</td>
+                  <td>/auth/login</td>
+                  <td>用户登录，返回 JWT</td>
+                </tr>
+                <tr>
+                  <td>POST</td>
+                  <td>/auth/admin</td>
+                  <td>管理员登录</td>
+                </tr>
+                <tr>
+                  <td>POST</td>
+                  <td>/auth/anonymous</td>
+                  <td>匿名登录（受限功能）</td>
+                </tr>
+                <tr>
+                  <td>POST</td>
+                  <td>/api/im/:platform/webhook</td>
+                  <td>IM 平台 Webhook 接入（微信/钉钉/飞书）</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <h2>User Authenticated（JWT 认证）</h2>
+
+          <h3>数据库代理</h3>
+          <div class="table-wrapper">
+            <table>
+              <thead>
+                <tr>
+                  <th>Method</th>
+                  <th>Path</th>
+                  <th>说明</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>POST</td>
+                  <td>/db/*</td>
+                  <td>MongoDB 代理（白名单集合 + 操作，自动注入 userId）</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <h3>文件操作</h3>
+          <div class="table-wrapper">
+            <table>
+              <thead>
+                <tr>
+                  <th>Method</th>
+                  <th>Path</th>
+                  <th>说明</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>*</td>
+                  <td>/files/*</td>
+                  <td>文件上传、下载、列表</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <h3>任务管理</h3>
+          <div class="table-wrapper">
+            <table>
+              <thead>
+                <tr>
+                  <th>Method</th>
+                  <th>Path</th>
+                  <th>说明</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>POST</td>
+                  <td>/api/task/create</td>
+                  <td>创建任务</td>
+                </tr>
+                <tr>
+                  <td>GET</td>
+                  <td>/api/task/list</td>
+                  <td>查询任务列表</td>
+                </tr>
+                <tr>
+                  <td>GET</td>
+                  <td>/api/task/:id</td>
+                  <td>查询任务详情</td>
+                </tr>
+                <tr>
+                  <td>POST</td>
+                  <td>/api/task/:id/cancel</td>
+                  <td>取消任务</td>
+                </tr>
+                <tr>
+                  <td>*</td>
+                  <td>/api/task/*</td>
+                  <td>其他任务操作</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <h3>用户 API Key</h3>
+          <div class="table-wrapper">
+            <table>
+              <thead>
+                <tr>
+                  <th>Method</th>
+                  <th>Path</th>
+                  <th>说明</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>*</td>
+                  <td>/api/user/keys</td>
+                  <td>用户 API Key 管理（创建/列表/吊销）</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <h3>记忆与事件</h3>
+          <div class="table-wrapper">
+            <table>
+              <thead>
+                <tr>
+                  <th>Method</th>
+                  <th>Path</th>
+                  <th>说明</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>*</td>
+                  <td>/api/memory/*</td>
+                  <td>向量记忆读写、搜索</td>
+                </tr>
+                <tr>
+                  <td>*</td>
+                  <td>/api/event/*</td>
+                  <td>事件管理（创建/查询/触发）</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <h3>能力与技能</h3>
+          <div class="table-wrapper">
+            <table>
+              <thead>
+                <tr>
+                  <th>Method</th>
+                  <th>Path</th>
+                  <th>说明</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>*</td>
+                  <td>/api/capability/*</td>
+                  <td>能力声明与查询</td>
+                </tr>
+                <tr>
+                  <td>*</td>
+                  <td>/api/skill/*</td>
+                  <td>技能管理（安装/卸载/配置）</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <h3>用户配置</h3>
+          <div class="table-wrapper">
+            <table>
+              <thead>
+                <tr>
+                  <th>Method</th>
+                  <th>Path</th>
+                  <th>说明</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>*</td>
+                  <td>/api/profile/*</td>
+                  <td>用户个人资料与偏好设置</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <h3>IM 通道</h3>
+          <div class="table-wrapper">
+            <table>
+              <thead>
+                <tr>
+                  <th>Method</th>
+                  <th>Path</th>
+                  <th>说明</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>*</td>
+                  <td>/api/wechat/*</td>
+                  <td>微信通道管理</td>
+                </tr>
+                <tr>
+                  <td>*</td>
+                  <td>/api/dingtalk/*</td>
+                  <td>钉钉通道管理</td>
+                </tr>
+                <tr>
+                  <td>*</td>
+                  <td>/api/feishu/*</td>
+                  <td>飞书通道管理</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <h3>多智能体协作</h3>
+          <div class="table-wrapper">
+            <table>
+              <thead>
+                <tr>
+                  <th>Method</th>
+                  <th>Path</th>
+                  <th>说明</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>*</td>
+                  <td>/api/team/*</td>
+                  <td>多智能体团队管理（创建/配置/协作）</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <h3>存储服务</h3>
+          <div class="table-wrapper">
+            <table>
+              <thead>
+                <tr>
+                  <th>Method</th>
+                  <th>Path</th>
+                  <th>说明</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>*</td>
+                  <td>/api/git-storage/*</td>
+                  <td>Git 存储操作</td>
+                </tr>
+                <tr>
+                  <td>*</td>
+                  <td>/api/oss/*</td>
+                  <td>OSS 对象存储操作</td>
+                </tr>
+                <tr>
+                  <td>*</td>
+                  <td>/api/temp/*</td>
+                  <td>临时文件操作</td>
+                </tr>
+                <tr>
+                  <td>*</td>
+                  <td>/api/file/*</td>
+                  <td>OSS 流式传输（大文件上传/下载）</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <h3>通知与统计</h3>
+          <div class="table-wrapper">
+            <table>
+              <thead>
+                <tr>
+                  <th>Method</th>
+                  <th>Path</th>
+                  <th>说明</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>*</td>
+                  <td>/api/notify/*</td>
+                  <td>通知管理（发送/查询/标记已读）</td>
+                </tr>
+                <tr>
+                  <td>GET</td>
+                  <td>/stats/*</td>
+                  <td>Token 使用量统计</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <h3>CLI 专用</h3>
+          <div class="table-wrapper">
+            <table>
+              <thead>
+                <tr>
+                  <th>Method</th>
+                  <th>Path</th>
+                  <th>说明</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>*</td>
+                  <td>/api/cli/*</td>
+                  <td>CLI 能力声明与动作执行</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <h3>扩展工具</h3>
+          <div class="table-wrapper">
+            <table>
+              <thead>
+                <tr>
+                  <th>Method</th>
+                  <th>Path</th>
+                  <th>说明</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>*</td>
+                  <td>/api/extensions/tools</td>
+                  <td>扩展工具注册与查询</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <h2>Dove Authenticated（API Key 认证）</h2>
+          <div class="table-wrapper">
+            <table>
+              <thead>
+                <tr>
+                  <th>Method</th>
+                  <th>Path</th>
+                  <th>说明</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>POST</td>
+                  <td>/api/dove/claim-task</td>
+                  <td>原子任务认领（findOneAndUpdate）</td>
+                </tr>
+                <tr>
+                  <td>POST</td>
+                  <td>/api/dove/task/heartbeat</td>
+                  <td>任务心跳（证明鸽子活跃）</td>
+                </tr>
+                <tr>
+                  <td>POST</td>
+                  <td>/api/dove/task/result</td>
+                  <td>提交任务执行结果</td>
+                </tr>
+                <tr>
+                  <td>POST</td>
+                  <td>/api/dove/task/release</td>
+                  <td>释放任务（放弃执行，回归队列）</td>
+                </tr>
+                <tr>
+                  <td>POST</td>
+                  <td>/api/dove/register</td>
+                  <td>鸽子注册/上线</td>
+                </tr>
+                <tr>
+                  <td>GET</td>
+                  <td>/api/dove/config</td>
+                  <td>获取鸽子配置</td>
+                </tr>
+                <tr>
+                  <td>POST</td>
+                  <td>/api/dove/capabilities</td>
+                  <td>上报能力声明</td>
+                </tr>
+                <tr>
+                  <td>*</td>
+                  <td>/api/dove/mcp/*</td>
+                  <td>MCP 协议相关操作</td>
+                </tr>
+                <tr>
+                  <td>*</td>
+                  <td>/api/dove/extensions/*</td>
+                  <td>扩展管理（安装/更新/查询）</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div class="warning">
+            <p><strong>认领是原子操作：</strong><code>/api/dove/claim-task</code> 使用 MongoDB findOneAndUpdate 保证同一任务不会被重复认领。</p>
+          </div>
+
+          <h2>Admin Only（管理员 + IP 白名单）</h2>
+          <div class="table-wrapper">
+            <table>
+              <thead>
+                <tr>
+                  <th>Method</th>
+                  <th>Path</th>
+                  <th>说明</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>*</td>
+                  <td>/api/admin/users</td>
+                  <td>用户管理（列表/禁用/删除）</td>
+                </tr>
+                <tr>
+                  <td>*</td>
+                  <td>/api/admin/doves</td>
+                  <td>鸽子管理（状态/配置/禁用）</td>
+                </tr>
+                <tr>
+                  <td>*</td>
+                  <td>/api/admin/tasks</td>
+                  <td>全局任务管理（查看/终止/重试）</td>
+                </tr>
+                <tr>
+                  <td>*</td>
+                  <td>/api/admin/config</td>
+                  <td>系统配置管理</td>
+                </tr>
+                <tr>
+                  <td>*</td>
+                  <td>/api/admin/audit</td>
+                  <td>审计日志查询</td>
+                </tr>
+                <tr>
+                  <td>*</td>
+                  <td>/api/admin/keys</td>
+                  <td>API Key 全局管理</td>
+                </tr>
+                <tr>
+                  <td>*</td>
+                  <td>/api/admin/*</td>
+                  <td>其他系统管理操作</td>
+                </tr>
+                <tr>
+                  <td>GET</td>
+                  <td>/metrics</td>
+                  <td>Prometheus 指标（系统监控）</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div class="info">
+            <p><strong>双重验证：</strong>Admin 路由同时检查 JWT 中的 admin 角色和请求来源 IP 是否在白名单中。缺一不可。</p>
+          </div>
+
+          <h2>认证方式速查</h2>
+          <div class="table-wrapper">
+            <table>
+              <thead>
+                <tr>
+                  <th>路由组</th>
+                  <th>认证方式</th>
+                  <th>Token 来源</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>Public</td>
+                  <td>无</td>
+                  <td>-</td>
+                </tr>
+                <tr>
+                  <td>User</td>
+                  <td>JWT</td>
+                  <td>登录接口返回，存于 ~/.dove/config.json</td>
+                </tr>
+                <tr>
+                  <td>Dove</td>
+                  <td>API Key</td>
+                  <td>格式 sk_{keyId}_{secret}，注册时生成</td>
+                </tr>
+                <tr>
+                  <td>Admin</td>
+                  <td>JWT + IP 白名单</td>
+                  <td>admin 角色 JWT + 白名单 IP</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div class="tip">
+            <p>Server 使用双模认证中间件：自动识别请求携带的是 JWT 还是 API Key，分别走不同的验证逻辑。</p>
+          </div>
+
+        </article>
+      </main>
+    </div>
+  </div>
+  <script src="../js/components.js"></script>
+  <script src="../js/nav.js"></script>
+  <script src="../js/search.js"></script>
+</body>
+</html>

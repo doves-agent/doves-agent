@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>MongoDB 管理</title>
+<link rel="stylesheet" href="/css/style.css">
+<style>
+  .app { display: flex; height: 100vh; }
+  .sidebar { width: 260px; background: var(--bg-sidebar); border-right: 1px solid var(--border); display: flex; flex-direction: column; overflow: hidden; }
+  .sidebar-header { padding: 16px; font-weight: 600; font-size: 15px; color: var(--text); border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 8px; }
+  .db-tree { flex: 1; overflow-y: auto; padding: 8px; }
+  .tree-empty { text-align: center; color: var(--text-secondary); padding: 20px; font-size: 13px; }
+  .tree-item { padding: 8px 12px; border-radius: var(--radius-sm); cursor: pointer; font-size: 13px; font-family: 'Consolas', monospace; color: var(--text); transition: background 0.15s; display: flex; align-items: center; gap: 8px; }
+  .tree-item:hover { background: var(--bg-input); }
+  .tree-item.active { background: color-mix(in srgb, var(--primary) 10%, var(--bg)); color: var(--primary); }
+  .tree-item .count { font-size: 11px; color: var(--text-secondary); margin-left: auto; background: var(--bg-input); padding: 1px 6px; border-radius: 8px; }
+  .main { flex: 1; padding: 20px; overflow-y: auto; background: var(--bg); }
+  .welcome { text-align: center; padding: 60px 20px; color: var(--text-secondary); }
+  .welcome h2 { font-size: 20px; color: var(--text); margin-bottom: 8px; }
+  .welcome p { font-size: 14px; }
+  .collection-view { display: none; }
+  .collection-view.show { display: block; }
+  .breadcrumb { font-size: 13px; color: var(--text-secondary); margin-bottom: 12px; }
+  .breadcrumb span { cursor: pointer; }
+  .breadcrumb span:hover { color: var(--primary); }
+  .tab-bar { display: flex; gap: 0; border-bottom: 2px solid var(--border); margin-bottom: 14px; }
+  .tab-bar .tab { padding: 8px 16px; cursor: pointer; font-size: 13px; color: var(--text-secondary); border-bottom: 2px solid transparent; margin-bottom: -2px; transition: all 0.15s; }
+  .tab-bar .tab:hover { color: var(--primary); }
+  .tab-bar .tab.active { color: var(--primary); border-bottom-color: var(--primary); font-weight: 600; }
+  .doc-list { max-height: 500px; overflow: auto; }
+  .doc-item { padding: 10px 14px; border-bottom: 1px solid var(--border); font-size: 12px; font-family: 'Consolas', monospace; cursor: pointer; transition: background 0.15s; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .doc-item:hover { background: var(--bg-input); }
+  .toolbar { display: flex; gap: 8px; margin-bottom: 12px; flex-wrap: wrap; align-items: center; }
+  .result-area { background: #1e1e1e; color: #d4d4d4; padding: 14px; border-radius: var(--radius); font-family: 'Consolas', monospace; font-size: 13px; line-height: 1.5; white-space: pre-wrap; max-height: 400px; overflow: auto; }
+  .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.5); display: none; align-items: center; justify-content: center; z-index: 100; }
+  .modal-overlay.show { display: flex; }
+  .modal { background: var(--bg-card); border-radius: var(--radius); width: 90%; max-width: 600px; max-height: 80vh; display: flex; flex-direction: column; }
+  .modal-header { padding: 14px 18px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; }
+  .modal-header h3 { font-size: 15px; color: var(--text); margin: 0; }
+  .modal-close { background: none; border: none; font-size: 18px; cursor: pointer; color: var(--text-secondary); }
+  .modal-body { padding: 18px; flex: 1; overflow-y: auto; }
+  .modal-body textarea { width: 100%; padding: 10px; border: 1px solid var(--border); border-radius: var(--radius); font-family: 'Consolas', monospace; font-size: 13px; resize: vertical; background: var(--bg-input); color: var(--text); }
+  .modal-footer { padding: 12px 18px; border-top: 1px solid var(--border); display: flex; gap: 8px; justify-content: flex-end; }
+  .conn-section { padding: 12px; border-bottom: 1px solid var(--border); }
+  .conn-section input { width: 100%; padding: 6px 10px; border: 1px solid var(--border); border-radius: var(--radius-sm); font-size: 12px; margin-bottom: 6px; background: var(--bg-input); color: var(--text); }
+  .conn-section input:focus { outline: none; border-color: var(--primary); }
+  .conn-section .conn-btn { width: 100%; padding: 6px; font-size: 12px; }
+</style>
+</head>
+<body>
+  <div class="app">
+    <aside class="sidebar">
+      <div class="sidebar-header">MongoDB</div>
+      <div class="conn-section" id="connSection">
+        <input type="text" id="connString" placeholder="mongodb://localhost:27017" value="mongodb://localhost:27017">
+        <input type="text" id="connDb" placeholder="数据库名" value="doves_user_data">
+        <button class="btn btn-sm conn-btn" onclick="connectDB()">连接</button>
+      </div>
+      <div class="db-tree" id="dbTree">
+        <div class="tree-empty">请先连接数据库</div>
+      </div>
+    </aside>
+
+    <main class="main">
+      <div class="welcome" id="welcome">
+        <h2>MongoDB 管理器</h2>
+        <p>在左侧连接数据库，选择集合开始浏览</p>
+      </div>
+
+      <div class="collection-view" id="collectionView">
+        <div class="breadcrumb" id="breadcrumb"></div>
+        <div class="tab-bar" id="tabBar">
+          <div class="tab active" onclick="switchView('docs')">文档</div>
+          <div class="tab" onclick="switchView('stats')">统计</div>
+        </div>
+        <div class="toolbar">
+          <button class="btn btn-sm" onclick="refreshDocs()">刷新</button>
+          <button class="btn btn-sm btn-outline" onclick="openInsertModal()">插入文档</button>
+        </div>
+        <div id="viewContent">
+          <div class="empty-state">选择集合以查看文档</div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <div class="modal-overlay" id="docModal">
+    <div class="modal">
+      <div class="modal-header">
+        <h3 id="docModalTitle">文档</h3>
+        <button class="modal-close" onclick="closeModal()">x</button>
+      </div>
+      <div class="modal-body" id="docModalBody">
+        <textarea id="docEditor" rows="12" placeholder='{"key": "value"}'></textarea>
+      </div>
+      <div class="modal-footer" id="docModalFooter">
+        <button class="btn btn-sm btn-outline" onclick="closeModal()">取消</button>
+        <button class="btn btn-sm" id="docModalSubmit" onclick="submitDoc()">保存</button>
+      </div>
+    </div>
+  </div>
+
+<script src="/js/sdk.js"></script>
+<script>
+DoveSDK.init('MongoDB');
+
+let currentCollection = null;
+let modalMode = 'insert';
+
+async function callMongoTool(toolName, args = {}) {
+  try {
+    const result = await DoveSDK.callTool(toolName, args, { extension: 'MongoDB' });
+    if (!result.success) return { success: false, error: result.error || '工具调用失败' };
+    return { success: true, data: result.data };
+  } catch (e) { return { success: false, error: e.message }; }
+}
+
+function parseResult(data) {
+  if (data?.content?.[0]?.text) {
+    try { return JSON.parse(data.content[0].text); } catch { return data.content[0].text; }
+  }
+  return data;
+}
+
+async function connectDB() {
+  const uri = document.getElementById('connString').value.trim();
+  const db = document.getElementById('connDb').value.trim();
+
+  const result = await callMongoTool('mongo_connect', { action: 'config', connectionString: uri, dbName: db });
+  if (result.success) {
+    DoveSDK.notify('success', `已连接 ${db}`);
+    loadCollections();
+  } else {
+    DoveSDK.notify('error', `连接失败: ${result.error}`);
+  }
+}
+
+async function loadCollections() {
+  const tree = document.getElementById('dbTree');
+  tree.innerHTML = '<div class="tree-empty">加载中...</div>';
+
+  const result = await callMongoTool('mongo_list_collections', { detailed: true });
+  if (result.success) {
+    const cols = result.data.collections || [];
+    if (cols.length === 0) {
+      tree.innerHTML = '<div class="tree-empty">暂无集合</div>';
+      return;
+    }
+    tree.innerHTML = '';
+    for (const col of cols) {
+      const item = document.createElement('div');
+      item.className = 'tree-item';
+      item.onclick = () => selectCollection(col.name);
+      item.innerHTML = `<span>${col.name}</span><span class="count">${col.documentCount ?? '?'}</span>`;
+      tree.appendChild(item);
+    }
+  } else {
+    tree.innerHTML = `<div class="tree-empty">加载失败: ${result.error}</div>`;
+  }
+}
+
+function selectCollection(name) {
+  currentCollection = name;
+  document.getElementById('welcome').style.display = 'none';
+  document.getElementById('collectionView').classList.add('show');
+  document.getElementById('breadcrumb').innerHTML = `<span onclick="selectCollection('${name}')">${name}</span>`;
+
+  document.querySelectorAll('.tree-item').forEach(el => {
+    el.classList.toggle('active', el.textContent.includes(name));
+  });
+
+  refreshDocs();
+}
+
+async function refreshDocs() {
+  if (!currentCollection) return;
+  const content = document.getElementById('viewContent');
+  content.innerHTML = '<div class="empty-state">加载中...</div>';
+
+  const result = await callMongoTool('mongo_find', { collection: currentCollection, query: {}, options: { limit: 50 } });
+  if (result.success) {
+    const d = parseResult(result.data);
+    const docs = d.data || [];
+    if (docs.length === 0) {
+      content.innerHTML = '<div class="empty-state">该集合无文档</div>';
+      return;
+    }
+    content.innerHTML = '<div class="doc-list">' + docs.map((doc, i) =>
+      `<div class="doc-item" onclick="viewDoc(${i})" title="点击查看详情">${JSON.stringify(doc).slice(0, 200)}</div>`
+    ).join('') + '</div>';
+    window._docs = docs;
+  } else {
+    content.innerHTML = `<div class="empty-state">查询失败: ${result.error}</div>`;
+  }
+}
+
+function switchView(view) {
+  document.querySelectorAll('.tab-bar .tab').forEach(t => t.classList.remove('active'));
+  event.target.classList.add('active');
+  if (view === 'stats') {
+    loadCollectionStats();
+  } else {
+    refreshDocs();
+  }
+}
+
+async function loadCollectionStats() {
+  if (!currentCollection) return;
+  const content = document.getElementById('viewContent');
+  content.innerHTML = '<div class="empty-state">加载中...</div>';
+
+  const result = await callMongoTool('mongo_collection_stats', { collection: currentCollection });
+  if (result.success) {
+    const d = result.data;
+    content.innerHTML = `<div class="result-area">${JSON.stringify(d, null, 2)}</div>`;
+  } else {
+    content.innerHTML = `<div class="empty-state">加载失败: ${result.error}</div>`;
+  }
+}
+
+function viewDoc(index) {
+  if (!window._docs || !window._docs[index]) return;
+  modalMode = 'edit';
+  document.getElementById('docModalTitle').textContent = '编辑文档';
+  document.getElementById('docEditor').value = JSON.stringify(window._docs[index], null, 2);
+  document.getElementById('docModal').classList.add('show');
+}
+
+function openInsertModal() {
+  modalMode = 'insert';
+  document.getElementById('docModalTitle').textContent = '插入文档';
+  document.getElementById('docEditor').value = '{\n  \n}';
+  document.getElementById('docModal').classList.add('show');
+}
+
+function closeModal() {
+  document.getElementById('docModal').classList.remove('show');
+}
+
+async function submitDoc() {
+  const docStr = document.getElementById('docEditor').value.trim();
+  if (!docStr) return;
+
+  try {
+    const doc = JSON.parse(docStr);
+    if (modalMode === 'insert') {
+      const result = await callMongoTool('mongo_insert_one', { collection: currentCollection, document: doc });
+      if (result.success) {
+        DoveSDK.notify('success', '文档已插入');
+        closeModal();
+        refreshDocs();
+      } else {
+        DoveSDK.notify('error', `插入失败: ${result.error}`);
+      }
+    } else {
+      const result = await callMongoTool('mongo_replace_one', { collection: currentCollection, query: { _id: doc._id }, replacement: doc });
+      if (result.success) {
+        DoveSDK.notify('success', '文档已更新');
+        closeModal();
+        refreshDocs();
+      } else {
+        DoveSDK.notify('error', `更新失败: ${result.error}`);
+      }
+    }
+  } catch (e) {
+    DoveSDK.notify('error', `JSON 格式错误: ${e.message}`);
+  }
+}
+</script>
+</body>
+</html>

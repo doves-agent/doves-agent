@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>SQL 查询</title>
+<link rel="stylesheet" href="/css/style.css">
+<style>
+  .config-row { display: flex; gap: 8px; align-items: center; margin-bottom: 10px; flex-wrap: wrap; }
+  .config-row label { font-size: 13px; color: var(--text-secondary); min-width: 50px; }
+  .config-row select { padding: 7px 12px; border: 1px solid var(--border); border-radius: var(--radius-sm); font-size: 13px; background: var(--bg-input); color: var(--text); }
+  .sql-editor { width: 100%; padding: 12px; border: 1px solid var(--border); border-radius: var(--radius); font-size: 13px; font-family: 'Consolas', monospace; resize: vertical; background: var(--bg-input); color: var(--text); line-height: 1.5; }
+  .sql-editor:focus { outline: none; border-color: var(--primary); }
+  .query-templates { display: flex; gap: 6px; margin-bottom: 10px; flex-wrap: wrap; }
+  .q-chip { padding: 5px 14px; border: 1px solid var(--border); border-radius: 16px; font-size: 12px; cursor: pointer; background: var(--bg-card); color: var(--text-secondary); transition: all 0.15s; }
+  .q-chip:hover { border-color: var(--primary); color: var(--primary); }
+  .result-area { max-height: 400px; overflow: auto; background: #1e1e1e; color: #d4d4d4; padding: 14px; border-radius: var(--radius); font-family: 'Consolas', monospace; font-size: 13px; line-height: 1.5; white-space: pre-wrap; }
+  .warning-bar { background: color-mix(in srgb, var(--warning) 10%, var(--bg)); padding: 10px 14px; border-radius: var(--radius); font-size: 12px; color: var(--warning); margin-bottom: 16px; }
+  .query-actions { display: flex; gap: 8px; margin-top: 10px; }
+  .section-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+  .section-header h3 { font-size: 15px; color: var(--text); margin: 0; }
+</style>
+</head>
+<body>
+  <div class="page-header">
+    <h1 class="page-title">SQL 查询</h1>
+  </div>
+
+  <div class="warning-bar">写操作（INSERT/UPDATE/DELETE）需要通过对话面板确认后执行</div>
+
+  <div class="card">
+    <div class="config-row">
+      <label>数据库:</label>
+      <select id="dbSelect">
+        <option value="">当前连接的数据库</option>
+      </select>
+      <label>表:</label>
+      <select id="tableSelect">
+        <option value="">选择表</option>
+      </select>
+    </div>
+
+    <div class="query-templates">
+      <span class="q-chip" onclick="fillSQL('selectAll')">SELECT *</span>
+      <span class="q-chip" onclick="fillSQL('selectWhere')">条件查询</span>
+      <span class="q-chip" onclick="fillSQL('join')">关联查询</span>
+      <span class="q-chip" onclick="fillSQL('groupBy')">分组统计</span>
+      <span class="q-chip" onclick="fillSQL('describe')">表结构</span>
+    </div>
+
+    <textarea id="sqlInput" class="sql-editor" rows="6" placeholder="输入 SQL 或自然语言查询&#10;例如：SELECT * FROM users LIMIT 10&#10;或者：查询 users 表中年龄大于25的用户"></textarea>
+
+    <div class="query-actions">
+      <button class="btn" onclick="executeQuery()">执行查询</button>
+      <button class="btn btn-outline" onclick="executeNatural()">自然语言查询</button>
+      <button class="btn btn-sm btn-outline" onclick="clearSQL()">清空</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="section-header">
+      <h3>查询结果</h3>
+    </div>
+    <div class="result-area" id="sqlResult">执行查询后结果将显示在这里</div>
+  </div>
+
+<script src="/js/sdk.js"></script>
+<script>
+DoveSDK.init('MySQL');
+
+function fillSQL(type) {
+  const table = document.getElementById('tableSelect').value || 'users';
+  const sqls = {
+    selectAll: `SELECT * FROM \`${table}\` LIMIT 10`,
+    selectWhere: `SELECT * FROM \`${table}\` WHERE 1=1 LIMIT 10`,
+    join: `SELECT a.*, b.*\nFROM \`${table}\` a\nJOIN \`related_table\` b ON a.id = b.${table}_id\nLIMIT 10`,
+    groupBy: `SELECT COUNT(*) as count, category\nFROM \`${table}\`\nGROUP BY category\nORDER BY count DESC`,
+    describe: `DESCRIBE \`${table}\``
+  };
+  document.getElementById('sqlInput').value = sqls[type] || '';
+}
+
+async function executeQuery() {
+  const sql = document.getElementById('sqlInput').value.trim();
+  if (!sql) { showResult('请输入 SQL 查询'); return; }
+  showResult('执行中...');
+  try {
+    const data = await DoveSDK.cmd('chat send', { message: `请执行以下 SQL：\`${sql}\`` });
+    showResult(data.success ? '已提交执行请求，请在对话面板查看结果' : `${data.message || '执行失败'}`);
+  } catch (e) {
+    showResult(e.message);
+  }
+}
+
+async function executeNatural() {
+  const sql = document.getElementById('sqlInput').value.trim();
+  if (!sql) { showResult('请输入查询描述'); return; }
+  showResult('执行中...');
+  try {
+    const data = await DoveSDK.cmd('chat send', { message: `请帮我实现这个数据库查询：${sql}` });
+    showResult(data.success ? '已提交自然语言查询，请在对话面板查看结果' : `${data.message || '查询失败'}`);
+  } catch (e) {
+    showResult(e.message);
+  }
+}
+
+function showResult(text) {
+  document.getElementById('sqlResult').textContent = text;
+}
+
+function clearSQL() {
+  document.getElementById('sqlInput').value = '';
+  showResult('执行查询后结果将显示在这里');
+}
+</script>
+</body>
+</html>

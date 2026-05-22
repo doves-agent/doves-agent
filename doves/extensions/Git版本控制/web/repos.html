@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>仓库管理</title>
+<link rel="stylesheet" href="/css/style.css">
+<style>
+  .repo-list { list-style: none; padding: 0; margin: 0; }
+  .repo-item { padding: 14px 16px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; cursor: pointer; transition: background 0.15s; }
+  .repo-item:hover { background: var(--bg-hover); }
+  .repo-item:last-child { border-bottom: none; }
+  .repo-item.active { border-left: 3px solid var(--primary); }
+  .repo-info { flex: 1; min-width: 0; }
+  .repo-name { font-weight: 700; font-size: 15px; color: var(--text); }
+  .repo-url { font-size: 12px; color: var(--text-secondary); font-family: monospace; margin-top: 2px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .repo-meta { display: flex; gap: 10px; margin-top: 4px; }
+  .repo-meta span { font-size: 11px; color: var(--text-muted); }
+  .repo-badge { font-size: 11px; padding: 2px 8px; border-radius: var(--radius-sm); font-weight: 600; }
+  .badge-local { background: #d4edda; color: #155724; }
+  .badge-remote { background: #cce5ff; color: #004085; }
+  .repo-actions { display: flex; gap: 6px; align-items: center; }
+  .add-form { display: none; }
+  .add-form.show { display: block; }
+  .form-row { margin-bottom: 12px; }
+  .form-row label { display: block; font-size: 13px; font-weight: 600; color: var(--text-secondary); margin-bottom: 4px; }
+  .form-row input, .form-row select { width: 100%; padding: 8px 12px; border: 1px solid var(--border); border-radius: var(--radius-sm); font-size: 14px; background: var(--bg-input); color: var(--text); }
+  .form-actions { display: flex; gap: 8px; justify-content: flex-end; }
+  .stats-bar { display: flex; gap: 16px; margin-bottom: 16px; padding: 12px 16px; background: var(--bg-card); border-radius: var(--radius); border: 1px solid var(--border); }
+  .stats-bar .stat { font-size: 13px; color: var(--text-secondary); }
+  .stats-bar .stat strong { color: var(--primary); }
+</style>
+</head>
+<body>
+  <div class="page-header">
+    <h1 class="page-title">仓库管理</h1>
+    <button class="btn btn-sm" onclick="toggleAddForm()">+ 添加仓库</button>
+  </div>
+
+  <div class="stats-bar" id="statsBar">
+    <span class="stat">活跃: <strong id="statActive">-</strong></span>
+    <span class="stat">本地: <strong id="statLocal">-</strong></span>
+    <span class="stat">远程: <strong id="statRemote">-</strong></span>
+  </div>
+
+  <div class="card add-form" id="addForm">
+    <h3 style="margin-bottom: 12px;">添加仓库</h3>
+    <div class="form-row">
+      <label>仓库地址 *</label>
+      <input id="inputUrl" placeholder="https://github.com/user/repo.git 或 /path/to/local/repo" />
+    </div>
+    <div class="form-row">
+      <label>别名 *</label>
+      <input id="inputAlias" placeholder="给仓库取个短名称" />
+    </div>
+    <div class="form-row">
+      <label>默认分支</label>
+      <input id="inputBranch" placeholder="main (可选)" />
+    </div>
+    <div class="form-row">
+      <label>克隆到本地路径（远程仓库可选）</label>
+      <input id="inputLocalPath" placeholder="留空则用默认位置 ~/.dove/repos/{别名}" />
+    </div>
+    <div class="form-row">
+      <label>认证方式</label>
+      <select id="inputAuth">
+        <option value="none">无认证</option>
+        <option value="ssh">SSH</option>
+        <option value="token">Token</option>
+      </select>
+    </div>
+    <div class="form-actions">
+      <button class="btn btn-sm btn-outline" onclick="toggleAddForm()">取消</button>
+      <button class="btn btn-sm" onclick="addRepo()">添加</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <ul class="repo-list" id="repoList">
+      <li class="empty-state">加载中...</li>
+    </ul>
+  </div>
+
+<script src="/js/sdk.js"></script>
+<script>
+DoveSDK.init('Git版本控制');
+
+let currentRepos = [];
+
+async function loadRepos() {
+  try {
+    const data = await DoveSDK.callTool('git_repo_list', { 状态: 'active' });
+    const parsed = typeof data === 'string' ? JSON.parse(data) : data;
+    if (parsed.success) {
+      currentRepos = parsed.repos || [];
+      renderRepos();
+      updateStats();
+    }
+  } catch (e) {
+    document.getElementById('repoList').innerHTML = '<li class="empty-state">加载失败，请通过对话添加仓库</li>';
+  }
+}
+
+function renderRepos() {
+  const list = document.getElementById('repoList');
+  if (currentRepos.length === 0) {
+    list.innerHTML = '<li class="empty-state">暂无仓库，点击上方 + 添加</li>';
+    return;
+  }
+  list.innerHTML = currentRepos.map((r, i) => `
+    <li class="repo-item ${i === 0 ? 'active' : ''}" onclick="switchRepo('${escapeAttr(r.别名)}')">
+      <div class="repo-info">
+        <div class="repo-name">${escapeHtml(r.别名)}</div>
+        <div class="repo-url">${escapeHtml(r.地址)}</div>
+        <div class="repo-meta">
+          <span class="repo-badge ${r.类型 === 'local' ? 'badge-local' : 'badge-remote'}">${r.类型 === 'local' ? '本地' : '远程'}</span>
+          <span>${r.默认分支 || 'main'}</span>
+          ${r.最后访问 ? '<span>访问: ' + new Date(r.最后访问).toLocaleDateString() + '</span>' : ''}
+        </div>
+      </div>
+      <div class="repo-actions">
+        <button class="btn btn-sm" onclick="event.stopPropagation(); syncRepo('${escapeAttr(r.别名)}')">同步</button>
+        <button class="btn btn-sm btn-outline" onclick="event.stopPropagation(); removeRepo('${escapeAttr(r.别名)}')">移除</button>
+      </div>
+    </li>
+  `).join('');
+}
+
+function updateStats() {
+  document.getElementById('statActive').textContent = currentRepos.length;
+  document.getElementById('statLocal').textContent = currentRepos.filter(r => r.类型 === 'local').length;
+  document.getElementById('statRemote').textContent = currentRepos.filter(r => r.类型 === 'remote').length;
+}
+
+function toggleAddForm() {
+  document.getElementById('addForm').classList.toggle('show');
+}
+
+async function addRepo() {
+  const 地址 = document.getElementById('inputUrl').value.trim();
+  const 别名 = document.getElementById('inputAlias').value.trim();
+  const 默认分支 = document.getElementById('inputBranch').value.trim() || undefined;
+  const 本地路径 = document.getElementById('inputLocalPath').value.trim() || undefined;
+  const 认证方式 = document.getElementById('inputAuth').value;
+
+  if (!地址 || !别名) {
+    DoveSDK.notify('error', '请填写仓库地址和别名');
+    return;
+  }
+
+  try {
+    DoveSDK.notify('info', '正在添加仓库...');
+    const data = await DoveSDK.callTool('git_repo_add', { 地址, 别名, 默认分支, 本地路径, 认证方式 });
+    const parsed = typeof data === 'string' ? JSON.parse(data) : data;
+    if (parsed.success) {
+      DoveSDK.notify('success', `仓库 "${别名}" 添加成功`);
+      toggleAddForm();
+      document.getElementById('inputUrl').value = '';
+      document.getElementById('inputAlias').value = '';
+      document.getElementById('inputBranch').value = '';
+      document.getElementById('inputLocalPath').value = '';
+      loadRepos();
+    } else {
+      DoveSDK.notify('error', parsed.error || '添加失败');
+    }
+  } catch (e) {
+    DoveSDK.notify('error', '添加失败: ' + e.message);
+  }
+}
+
+async function switchRepo(别名) {
+  try {
+    await DoveSDK.callTool('git_repo_switch', { 仓库: 别名 });
+    DoveSDK.notify('success', `已切换到: ${别名}`);
+    loadRepos();
+  } catch (e) {
+    DoveSDK.notify('error', '切换失败: ' + e.message);
+  }
+}
+
+async function syncRepo(别名) {
+  try {
+    DoveSDK.notify('info', `正在同步 ${别名}...`);
+    const data = await DoveSDK.callTool('git_pull', { 仓库: 别名, rebase: true });
+    const parsed = typeof data === 'string' ? JSON.parse(data) : data;
+    if (parsed.success) {
+      DoveSDK.notify('success', `${别名} 同步完成`);
+    } else {
+      DoveSDK.notify('error', parsed.error || '同步失败');
+    }
+  } catch (e) {
+    DoveSDK.notify('error', '同步失败: ' + e.message);
+  }
+}
+
+async function removeRepo(别名) {
+  if (!confirm(`确定移除仓库 "${别名}"？（不会删除本地文件）`)) return;
+  try {
+    await DoveSDK.callTool('git_repo_remove', { 仓库: 别名 });
+    DoveSDK.notify('success', `已移除: ${别名}`);
+    loadRepos();
+  } catch (e) {
+    DoveSDK.notify('error', '移除失败: ' + e.message);
+  }
+}
+
+function escapeHtml(text) {
+  const div = document.createElement('div');
+  div.textContent = text || '';
+  return div.innerHTML;
+}
+
+function escapeAttr(text) {
+  return (text || '').replace(/'/g, "\\'").replace(/"/g, '&quot;');
+}
+
+loadRepos();
+</script>
+</body>
+</html>

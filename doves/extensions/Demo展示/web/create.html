@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html><head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>创建 Demo</title>
+<link rel="stylesheet" href="/css/style.css">
+<style>
+  .tip-box {
+    background: var(--bg-card); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 12px 16px;
+    margin-bottom: 20px; font-size: 13px; color: var(--text-secondary);
+  }
+  .card-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 12px;
+  }
+  .action-card {
+    cursor: pointer; transition: transform 0.2s;
+    padding: 16px;
+  }
+  .action-card:hover { transform: translateY(-2px); }
+  .action-card .icon { font-size: 24px; margin-bottom: 8px; }
+  .action-card .title { font-weight: 600; color: var(--text); margin-bottom: 4px; }
+  .action-card .desc { font-size: 12px; color: var(--text-secondary); }
+</style>
+</head><body>
+<div class="page-header">
+  <h1 class="page-title">Demo 展示</h1>
+</div>
+
+<div class="tip-box">快速生成可交互的 Demo 页面，一键部署到云端</div>
+
+<div class="card-grid">
+  <div class="card action-card" data-cmd="帮我创建一个交互式Demo">
+    <div class="icon">🚀</div>
+    <div class="title">交互式 Demo</div>
+    <div class="desc">可拖拽/点击的交互演示</div>
+  </div>
+  <div class="card action-card" data-cmd="帮我创建一个截图Demo">
+    <div class="icon">📸</div>
+    <div class="title">截图 Demo</div>
+    <div class="desc">精美截图 + 标注说明</div>
+  </div>
+  <div class="card action-card" data-cmd="帮我创建一个动画Demo">
+    <div class="icon">🎬</div>
+    <div class="title">动画 Demo</div>
+    <div class="desc">流程动画/时序演示</div>
+  </div>
+  <div class="card action-card" data-cmd="帮我部署Demo到云端">
+    <div class="icon">☁️</div>
+    <div class="title">一键部署</div>
+    <div class="desc">部署到 OSS + 生成链接</div>
+  </div>
+</div>
+
+<script src="/js/sdk.js"></script>
+<script>
+DoveSDK.init('Demo展示');
+
+function sendCmd(text) {
+  DoveSDK.cmd(text);
+  DoveSDK.navigateTo('chat');
+}
+
+document.querySelectorAll('.action-card[data-cmd]').forEach(card => {
+  card.addEventListener('click', () => {
+    sendCmd(card.dataset.cmd);
+  });
+});
+</script>
+</body></html>

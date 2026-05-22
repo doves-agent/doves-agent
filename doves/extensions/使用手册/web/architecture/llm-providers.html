@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>LLM 提供商 - 白鸽文档</title>
+  <link rel="stylesheet" href="../css/style.css">
+</head>
+<body>
+  <div id="app">
+    <header id="site-header"></header>
+    <div class="layout">
+      <aside id="sidebar"></aside>
+      <main class="content">
+        <article>
+          <h1>LLM 提供商</h1>
+          <p>白鸽系统通过统一的 OpenAI 兼容 API 客户端（提供商客户端）接入多家 LLM 提供商。只有 Doves 调用 LLM，Server 和 CLI 不调用。</p>
+
+          <div class="info">
+            <p><strong>架构约束：</strong>LLM 调用是 Doves 的独占能力。Server 和 CLI 永远不直接调用 LLM。</p>
+          </div>
+
+          <h2>三种调用模式</h2>
+          <div class="card-grid">
+            <div class="card">
+              <h3>调用（非流式）</h3>
+              <p>一次性返回完整响应。用于短回复、工具调用判断等场景。</p>
+            </div>
+            <div class="card">
+              <h3>流式调用</h3>
+              <p>逐 token 流式返回。用于长文本生成、实时展示进度。</p>
+            </div>
+            <div class="card">
+              <h3>工具调用</h3>
+              <p>带 function calling 的调用。LLM 返回 tool_calls，由执行器处理。KISS 执行循环的核心。</p>
+            </div>
+          </div>
+
+          <h2>提供商列表</h2>
+          <div class="table-wrapper">
+            <table>
+              <thead>
+                <tr>
+                  <th>提供商</th>
+                  <th>关键模型</th>
+                  <th>特性</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>百炼（Alibaba）</td>
+                  <td>Qwen3.x, DeepSeek, GLM, Kimi</td>
+                  <td>全栈能力，模型聚合平台</td>
+                </tr>
+                <tr>
+                  <td>DeepSeek</td>
+                  <td>v4-pro, v4-flash, v3, r1</td>
+                  <td>推理能力强，代码生成优秀</td>
+                </tr>
+                <tr>
+                  <td>GLM（智谱）</td>
+                  <td>glm-5.1, glm-5, glm-4v</td>
+                  <td>推理、视觉理解</td>
+                </tr>
+                <tr>
+                  <td>自定义</td>
+                  <td>Claude 4.x, GPT-5.x, Gemini 3.x</td>
+                  <td>通过代理端点接入海外模型</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <h2>模型角色与选择</h2>
+          <p>系统定义 5 种模型角色，每种角色对应不同的使用场景：</p>
+          <div class="table-wrapper">
+            <table>
+              <thead>
+                <tr>
+                  <th>角色</th>
+                  <th>用途</th>
+                  <th>典型模型</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>推理（Reasoning）</td>
+                  <td>复杂推理、深度分析</td>
+                  <td>DeepSeek-v4-pro, Qwen3-max</td>
+                </tr>
+                <tr>
+                  <td>Flash（快速）</td>
+                  <td>简单任务、低延迟响应</td>
+                  <td>DeepSeek-v4-flash, Qwen3-mini</td>
+                </tr>
+                <tr>
+                  <td>视觉（Vision）</td>
+                  <td>图像理解、OCR</td>
+                  <td>glm-4v, Qwen3-vl</td>
+                </tr>
+                <tr>
+                  <td>意图（Intent）</td>
+                  <td>意图识别、分类</td>
+                  <td>Flash 级模型</td>
+                </tr>
+                <tr>
+                  <td>规划（Planning）</td>
+                  <td>任务分解、方案制定</td>
+                  <td>Reasoning 级模型</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <h3>选择优先级</h3>
+<pre><code>模型选择优先级（3 级）：
+
+  优先级 1: 用户配置（执行配置中指定的模型）
+     │
+     │ 未指定
+     ▼
+  优先级 2: 系统默认（系统配置中的角色-模型映射）
+     │
+     │ 未配置
+     ▼
+  优先级 3: 提供商默认（提供商的默认模型）</code></pre>
+
+          <h2>API Key 管理</h2>
+
+          <h3>Key 优先级</h3>
+          <div class="table-wrapper">
+            <table>
+              <thead>
+                <tr>
+                  <th>优先级</th>
+                  <th>来源</th>
+                  <th>说明</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>1（最高）</td>
+                  <td>用户自有 Key</td>
+                  <td>用户在个人设置中配置的 API Key</td>
+                </tr>
+                <tr>
+                  <td>2</td>
+                  <td>官方 Key</td>
+                  <td>系统统一提供的 API Key</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <h3>KeyManager</h3>
+          <p>KeyManager 负责管理多个提供商的多个 API Key：</p>
+          <div class="card-grid">
+            <div class="card">
+              <h3>Key 轮换</h3>
+              <p>同一提供商多个 Key 轮流使用，避免单 Key 达到速率限制。</p>
+            </div>
+            <div class="card">
+              <h3>配额追踪</h3>
+              <p>追踪每个 Key 的使用量和剩余配额，接近上限时自动切换。</p>
+            </div>
+          </div>
+
+          <h2>熔断器（Circuit Breaker）</h2>
+<pre><code>熔断机制：
+
+正常状态（Closed）
+  │
+  │ 连续失败达到阈值
+  ▼
+熔断状态（Open）
+  │ - 所有请求直接拒绝
+  │ - 自动切换到备选提供商
+  │
+  │ 冷却时间到达
+  ▼
+半开状态（Half-Open）
+  │ - 放行少量试探请求
+  │
+  ├─ 成功 → 恢复正常（Closed）
+  └─ 失败 → 重回熔断（Open）</code></pre>
+
+          <div class="tip">
+            <p>熔断器按提供商粒度工作。某个提供商熔断后，系统自动降级到其他可用提供商，不影响任务执行。</p>
+          </div>
+
+          <h2>自动重试</h2>
+          <div class="table-wrapper">
+            <table>
+              <thead>
+                <tr>
+                  <th>参数</th>
+                  <th>值</th>
+                  <th>说明</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>最大重试次数</td>
+                  <td>3</td>
+                  <td>首次失败后最多重试 3 次</td>
+                </tr>
+                <tr>
+                  <td>基础延迟</td>
+                  <td>1 秒</td>
+                  <td>第一次重试前等待 1 秒</td>
+                </tr>
+                <tr>
+                  <td>退避策略</td>
+                  <td>指数退避</td>
+                  <td>1s → 2s → 4s</td>
+                </tr>
+                <tr>
+                  <td>可重试错误</td>
+                  <td>网络超时、5xx、429</td>
+                  <td>4xx（非 429）不重试</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <h2>Token 统计</h2>
+          <p>系统追踪每次 LLM 调用的 token 消耗：</p>
+          <div class="table-wrapper">
+            <table>
+              <thead>
+                <tr>
+                  <th>统计维度</th>
+                  <th>说明</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>任务级</td>
+                  <td>每个任务累计消耗的 input/output tokens</td>
+                </tr>
+                <tr>
+                  <td>鸽子级</td>
+                  <td>每只鸽子的总消耗，用于计费</td>
+                </tr>
+                <tr>
+                  <td>提供商级</td>
+                  <td>按提供商统计，辅助配额管理</td>
+                </tr>
+                <tr>
+                  <td>模型级</td>
+                  <td>按具体模型统计，辅助成本分析</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <h2>提供商客户端架构</h2>
+<pre><code>┌─────────────────────────────────────────────────┐
+│              提供商客户端 (OpenAI 兼容)            │
+│                                                  │
+│  ┌───────────┐  ┌──────────┐  ┌──────────────┐  │
+│  │ 熔断器    │  │ 重试器   │  │ Token 统计   │  │
+│  └─────┬─────┘  └────┬─────┘  └──────┬───────┘  │
+│        │              │               │          │
+│        └──────────────┼───────────────┘          │
+│                       ▼                          │
+│              ┌─────────────────┐                 │
+│              │  KeyManager     │                 │
+│              │  (Key轮换/配额) │                 │
+│              └────────┬────────┘                 │
+│                       ▼                          │
+│  ┌──────────────────────────────────────────┐   │
+│  │         HTTP Client (axios)               │   │
+│  │  → 百炼 / DeepSeek / GLM / 自定义代理     │   │
+│  └──────────────────────────────────────────┘   │
+└─────────────────────────────────────────────────┘</code></pre>
+
+          <div class="info">
+            <p>所有提供商都通过 OpenAI 兼容的 API 格式调用。切换提供商只需改 endpoint 和 API Key，无需修改调用逻辑。</p>
+          </div>
+
+        </article>
+      </main>
+    </div>
+  </div>
+  <script src="../js/components.js"></script>
+  <script src="../js/nav.js"></script>
+  <script src="../js/search.js"></script>
+</body>
+</html>

@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>词汇复习</title>
+<link rel="stylesheet" href="/css/style.css">
+<style>
+  .page-nav { display: flex; gap: 4px; margin-bottom: 16px; background: var(--bg-card); border-radius: var(--radius); padding: 6px; border: 1px solid var(--border); }
+  .page-nav a { padding: 6px 16px; border-radius: var(--radius-sm); font-size: 13px; color: var(--text-secondary); text-decoration: none; transition: all 0.15s; }
+  .page-nav a:hover { background: var(--bg-input); color: var(--text); }
+  .page-nav a.active { background: var(--primary); color: #fff; }
+
+  .toolbar { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; flex-wrap: wrap; padding: 12px 16px; background: var(--bg-card); border-radius: var(--radius); border: 1px solid var(--border); }
+  .toolbar label { font-size: 13px; color: var(--text-secondary); font-weight: 600; }
+  .mode-btns { display: flex; gap: 4px; }
+  .mode-btns button { padding: 5px 14px; border: 1px solid var(--border); background: var(--bg-card); border-radius: var(--radius-sm); cursor: pointer; font-size: 13px; color: var(--text-secondary); transition: all 0.2s; }
+  .mode-btns button.active { background: var(--primary); color: #fff; border-color: var(--primary); }
+  .mode-btns button:hover:not(.active) { border-color: var(--primary); color: var(--primary); }
+  .template-select { padding: 5px 10px; border: 1px solid var(--border); border-radius: var(--radius-sm); font-size: 13px; outline: none; cursor: pointer; background: var(--bg-input); color: var(--text); }
+  .color-preview { display: flex; gap: 3px; align-items: center; }
+  .color-dot { width: 14px; height: 14px; border-radius: 50%; border: 1px solid rgba(0,0,0,0.1); }
+
+  .review-card { background: var(--bg-card); border-radius: var(--radius); padding: 32px; border: 1px solid var(--border); text-align: center; animation: fadeIn 0.3s ease; }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+  .colored-word { font-size: 52px; font-weight: 700; letter-spacing: 2px; line-height: 1.3; margin-bottom: 6px; }
+  .phonetic { font-size: 17px; color: var(--text-secondary); margin-bottom: 8px; }
+  .familiarity { font-size: 13px; color: var(--text-secondary); margin-bottom: 16px; }
+  .familiarity-bar { height: 4px; background: var(--border); border-radius: 2px; width: 60%; margin: 6px auto 0; }
+  .familiarity-fill { height: 100%; border-radius: 2px; transition: width 0.3s; }
+
+  .legend { display: flex; gap: 10px; justify-content: center; margin-bottom: 12px; flex-wrap: wrap; }
+  .legend-item { display: flex; align-items: center; gap: 4px; font-size: 12px; color: var(--text-secondary); }
+  .legend-dot { width: 10px; height: 10px; border-radius: 50%; }
+
+  .answer-area { display: none; margin-top: 20px; padding-top: 20px; border-top: 1px solid var(--border); text-align: left; }
+  .answer-area .def-item { margin-bottom: 8px; padding-left: 12px; border-left: 3px solid var(--primary); }
+  .answer-area .pos { color: var(--error); font-weight: 600; margin-right: 6px; font-size: 13px; }
+  .answer-area .meaning { font-size: 15px; }
+  .answer-area .roots-hint { background: var(--bg-input); padding: 8px 12px; border-radius: var(--radius-sm); margin-top: 10px; font-size: 13px; color: var(--text-secondary); }
+  .answer-area .roots-parts { display: flex; gap: 6px; margin-top: 6px; }
+  .answer-area .roots-part { padding: 3px 10px; border-radius: var(--radius-sm); font-size: 14px; font-weight: 600; }
+
+  .feedback-btns { display: flex; gap: 10px; justify-content: center; margin-top: 24px; }
+  .feedback-btns button { padding: 12px 28px; border: none; border-radius: var(--radius); cursor: pointer; font-size: 15px; color: #fff; font-weight: 600; transition: transform 0.15s; }
+  .feedback-btns button:active { transform: scale(0.96); }
+  .btn-unknown { background: var(--error); }
+  .btn-unknown:hover { opacity: 0.9; }
+  .btn-vague { background: var(--warning); }
+  .btn-vague:hover { opacity: 0.9; }
+  .btn-known { background: var(--success); }
+  .btn-known:hover { opacity: 0.9; }
+
+  .btn-show { background: var(--primary); color: #fff; border: none; padding: 10px 28px; border-radius: var(--radius); cursor: pointer; font-size: 14px; margin-top: 12px; transition: background 0.2s; }
+  .btn-show:hover { background: var(--primary-hover); }
+
+  .stats { display: flex; gap: 20px; justify-content: center; margin-bottom: 12px; font-size: 14px; color: var(--text-secondary); }
+  .stats span { font-weight: 600; color: var(--text); }
+  .progress { height: 4px; background: var(--border); border-radius: 2px; margin-bottom: 20px; }
+  .progress-bar { height: 100%; background: var(--primary); border-radius: 2px; transition: width 0.3s; }
+
+  .done { text-align: center; padding: 40px; }
+  .done .emoji { font-size: 48px; margin-bottom: 12px; }
+
+  /* vocab-common.js compatibility */
+  .definitions { margin-top: 14px; }
+  .definition { margin-bottom: 8px; padding-left: 12px; border-left: 3px solid var(--primary); }
+  .definition .pos { font-weight: 600; color: var(--error); margin-right: 6px; font-size: 13px; }
+  .definition .meaning { font-size: 15px; }
+  .roots-section { background: var(--bg-input); padding: 12px 16px; border-radius: var(--radius); margin-bottom: 14px; }
+  .roots-section .roots-title { font-size: 13px; color: var(--primary); font-weight: 600; margin-bottom: 6px; }
+  .roots-parts { display: flex; gap: 6px; flex-wrap: wrap; }
+  .roots-part { padding: 4px 12px; border-radius: var(--radius-sm); font-size: 15px; font-weight: 600; }
+  .roots-explanation { font-size: 13px; color: var(--text-secondary); margin-top: 6px; }
+</style>
+</head>
+<body>
+  <div class="page-header">
+    <h1 class="page-title">词汇复习</h1>
+  </div>
+
+  <div class="page-nav">
+    <a href="#" onclick="DoveSDK.navigateTo('vocabulary-learn');return false">学习</a>
+    <a href="#" class="active" onclick="return false">复习</a>
+    <a href="#" onclick="DoveSDK.navigateTo('vocabulary-import');return false">录入</a>
+    <a href="#" onclick="DoveSDK.navigateTo('vocabulary-stats');return false">统计</a>
+  </div>
+
+  <div class="toolbar">
+    <label>着色:</label>
+    <div class="mode-btns">
+      <button class="mode-btn active" data-mode="syllable" onclick="switchMode('syllable')">音节</button>
+      <button class="mode-btn" data-mode="root" onclick="switchMode('root')">词根</button>
+      <button class="mode-btn" data-mode="vowel" onclick="switchMode('vowel')">元音</button>
+    </div>
+    <label>配色:</label>
+    <select class="template-select" id="templateSelect"></select>
+    <div class="color-preview" id="colorPreview"></div>
+  </div>
+
+  <div class="stats" id="statsBar">
+    <div>待复习: <span id="totalWords">0</span></div>
+    <div>已完成: <span id="doneWords">0</span></div>
+  </div>
+  <div class="progress"><div class="progress-bar" id="progressBar" style="width:0%"></div></div>
+  <div id="reviewArea">
+    <div class="loading">加载中...</div>
+  </div>
+
+<script src="/js/sdk.js"></script>
+<script src="vocab-common.js"></script>
+<script>
+DoveSDK.init('背单词');
+
+// ==================== 状态 ====================
+let reviewWords = [];
+let currentIndex = 0;
+let currentMode = 'syllable';
+let wordDetailCache = {};
+let isSubmitting = false;
+
+// ==================== 初始化 ====================
+
+VocTemplates.load('templateSelect', 'colorPreview', () => {
+  if (reviewWords.length > 0) showWord();
+});
+
+loadReviewWords();
+
+// ==================== 模式切换 ====================
+
+function switchMode(mode) {
+  currentMode = mode;
+  document.querySelectorAll('.mode-btn').forEach(btn => btn.classList.toggle('active', btn.dataset.mode === mode));
+  if (reviewWords.length > 0) showWord();
+}
+
+// ==================== 复习逻辑 ====================
+
+async function loadReviewWords() {
+  const area = document.getElementById('reviewArea');
+  area.innerHTML = '<div class="loading">加载复习列表...</div>';
+
+  try {
+    const data = await VocAPI.reviewList(20);
+
+    if (data?.words && data.words.length > 0) {
+      reviewWords = data.words;
+      document.getElementById('totalWords').textContent = reviewWords.length;
+      await preloadWordDetails();
+      showWord();
+    } else {
+      area.innerHTML = '<div class="empty-state">今天没有需要复习的单词</div>';
+    }
+  } catch (e) {
+    area.innerHTML = '<div class="empty-state">加载失败: ' + e.message + '</div>';
+  }
+}
+
+async function preloadWordDetails() {
+  const words = reviewWords.map(w => w.word).filter(Boolean);
+  const batchSize = 5;
+  for (let i = 0; i < words.length; i += batchSize) {
+    const batch = words.slice(i, i + batchSize);
+    await Promise.all(batch.map(async word => {
+      if (wordDetailCache[word]) return;
+      try {
+        const data = await VocAPI.queryWord(word);
+        if (data?.found) wordDetailCache[word] = data;
+      } catch (e) { /* skip */ }
+    }));
+  }
+}
+
+function getWordDetail(word) {
+  return wordDetailCache[word] || { word };
+}
+
+function showWord() {
+  if (currentIndex >= reviewWords.length) {
+    document.getElementById('reviewArea').innerHTML =
+      '<div class="done"><div class="emoji">&#127881;</div><h3>复习完成!</h3><p>已完成 ' + currentIndex + ' 个单词的复习</p></div>';
+    return;
+  }
+
+  const w = reviewWords[currentIndex];
+  document.getElementById('doneWords').textContent = currentIndex;
+  const pct = reviewWords.length > 0 ? Math.round((currentIndex / reviewWords.length) * 100) : 0;
+  document.getElementById('progressBar').style.width = pct + '%';
+
+  const detail = getWordDetail(w.word);
+  const c = VocTemplates.getColors();
+  const coloredWord = VocRender.coloredWord(detail, currentMode, c);
+  const legend = VocRender.legend(detail, currentMode);
+  const familiarity = w.familiarity || 0;
+  const famColor = familiarity >= 0.8 ? 'var(--success)' : familiarity >= 0.5 ? 'var(--warning)' : 'var(--error)';
+
+  // 释义区
+  let answerHtml = VocRender.definitions(detail.definitions);
+  if (detail.roots && (detail.roots.prefix || detail.roots.root || detail.roots.suffix)) {
+    answerHtml += '<div class="roots-hint">词根拆解: <div class="roots-parts">';
+    if (detail.roots.prefix) answerHtml += '<span class="roots-part" style="background:' + c[0] + '22;color:' + c[0] + '">' + detail.roots.prefix + '</span>';
+    if (detail.roots.root) answerHtml += '<span class="roots-part" style="background:' + c[1] + '22;color:' + c[1] + '">' + detail.roots.root + '</span>';
+    if (detail.roots.suffix) answerHtml += '<span class="roots-part" style="background:' + c[2] + '22;color:' + c[2] + '">' + detail.roots.suffix + '</span>';
+    answerHtml += '</div>';
+    if (detail.roots.explanation) answerHtml += '<div style="margin-top:4px">' + detail.roots.explanation + '</div>';
+    answerHtml += '</div>';
+  }
+
+  const recordId = w.record_id || '';
+
+  document.getElementById('reviewArea').innerHTML =
+    '<div class="review-card" data-record-id="' + recordId + '">' +
+      '<div class="colored-word">' + coloredWord + '</div>' +
+      legend +
+      '<div class="familiarity">' +
+        '掌握度: ' + Math.round(familiarity * 100) + '% | 阶段: ' + (w.stage || 'learning') +
+        '<div class="familiarity-bar"><div class="familiarity-fill" style="width:' + Math.round(familiarity * 100) + '%;background:' + famColor + '"></div></div>' +
+      '</div>' +
+      '<button class="btn-show" onclick="revealAnswer()">显示释义</button>' +
+      '<div class="answer-area" id="answerArea">' +
+        answerHtml +
+        '<div class="feedback-btns">' +
+          '<button class="btn-unknown" onclick="submitFeedback(this.closest(\'.review-card\'),\'unknown\')">不认识</button>' +
+          '<button class="btn-vague" onclick="submitFeedback(this.closest(\'.review-card\'),\'vague\')">模糊</button>' +
+          '<button class="btn-known" onclick="submitFeedback(this.closest(\'.review-card\'),\'known\')">熟悉</button>' +
+        '</div>' +
+      '</div>' +
+    '</div>';
+}
+
+function revealAnswer() {
+  const area = document.getElementById('answerArea');
+  const btn = document.querySelector('.btn-show');
+  if (area) area.style.display = 'block';
+  if (btn) btn.style.display = 'none';
+}
+
+async function submitFeedback(cardEl, feedback) {
+  if (isSubmitting) return;
+  const recordId = cardEl?.dataset?.recordId;
+  if (!recordId) { console.error('无法获取 record_id'); return; }
+
+  isSubmitting = true;
+
+  try {
+    await VocAPI.reviewSubmit(recordId, feedback);
+  } catch (e) {
+    console.error('提交复习结果失败', e);
+  }
+
+  currentIndex++;
+  isSubmitting = false;
+  showWord();
+}
+</script>
+</body>
+</html>

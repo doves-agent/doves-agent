@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>扩展系统概述 - 白鸽文档</title>
+  <link rel="stylesheet" href="../css/style.css">
+</head>
+<body>
+  <div id="app">
+    <header id="site-header"></header>
+    <div class="layout">
+      <aside id="sidebar"></aside>
+      <main class="content">
+        <article>
+          <h1>扩展系统概述</h1>
+
+          <p class="synopsis">
+            扩展（Extension）是白鸽系统的能力插件，为鸽子（智能体）提供可组合的执行能力。
+            每个扩展封装一组工具、技能和策略，通过标准化接口接入系统。
+          </p>
+
+          <h2>设计哲学</h2>
+
+          <div class="info">
+            <p><strong>鸽子之下的一切都是能力。</strong></p>
+            <p>鸽子本身只是调度与决策层，真正的执行力来自扩展。
+            编码能力、文档生成、视频处理、数据分析——所有这些都以扩展形式存在，按需组合。</p>
+          </div>
+
+          <h2>扩展 vs 应用</h2>
+
+          <div class="table-wrapper">
+            <table>
+              <thead>
+                <tr>
+                  <th>概念</th>
+                  <th>性质</th>
+                  <th>说明</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>扩展（Extension）</td>
+                  <td>技术实体</td>
+                  <td>代码模块，声明权限、注册工具和技能，运行在沙箱中</td>
+                </tr>
+                <tr>
+                  <td>应用（Application）</td>
+                  <td>用户界面概念</td>
+                  <td>面向用户的入口，可由一个或多个扩展组合而成</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <p>一个「应用」可以组合多个扩展的能力，但扩展本身是独立、可复用的技术单元。</p>
+
+          <h2>能力层级</h2>
+
+          <p>白鸽系统中的能力按以下层级组织：</p>
+
+<pre><code>能力管理器（Capability Manager）
+├── 扩展（Extensions）
+│   ├── 技能（Skills）    — 高级执行逻辑
+│   └── 工具（Tools）     — 原子操作
+├── LLM Providers         — 大模型调用能力
+└── MCP（Model Context Protocol）— 外部模型上下文</code></pre>
+
+          <p><strong>能力管理器</strong>负责在系统启动时发现、验证并注册所有能力。
+          它扫描 <code>doves/extensions/</code> 目录，加载每个扩展的 manifest，完成权限验证和资源注册。</p>
+
+          <h2>官方扩展列表</h2>
+
+          <div class="card-grid">
+            <div class="card">
+              <h3>编码</h3>
+              <p>代码生成、重构、调试，支持多语言</p>
+            </div>
+            <div class="card">
+              <h3>文档</h3>
+              <p>文档生成、格式转换、模板渲染</p>
+            </div>
+            <div class="card">
+              <h3>视频处理</h3>
+              <p>视频转码、剪辑、字幕生成</p>
+            </div>
+            <div class="card">
+              <h3>数据分析</h3>
+              <p>数据清洗、统计分析、可视化</p>
+            </div>
+            <div class="card">
+              <h3>Git版本控制</h3>
+              <p>仓库管理、分支操作、提交历史分析</p>
+            </div>
+            <div class="card">
+              <h3>MongoDB</h3>
+              <p>数据库查询、聚合、索引管理</p>
+            </div>
+            <div class="card">
+              <h3>MySQL</h3>
+              <p>SQL 查询、表结构管理、数据迁移</p>
+            </div>
+            <div class="card">
+              <h3>代码审查</h3>
+              <p>代码质量检查、安全漏洞扫描、最佳实践建议</p>
+            </div>
+            <div class="card">
+              <h3>电脑操作</h3>
+              <p>文件系统操作、进程管理、系统命令执行</p>
+            </div>
+            <div class="card">
+              <h3>邮箱</h3>
+              <p>邮件收发、模板管理、附件处理</p>
+            </div>
+            <div class="card">
+              <h3>背单词</h3>
+              <p>词汇学习、复习计划、进度追踪</p>
+            </div>
+          </div>
+
+          <h2>核心特征</h2>
+
+          <ul>
+            <li><strong>沙箱隔离</strong>：扩展只能通过 <code>DoveAppContext (ctx)</code> 访问系统资源，无法直接操作数据库或发起网络请求</li>
+            <li><strong>权限声明式</strong>：所有资源访问必须在 manifest 中预先声明，运行时由系统强制执行</li>
+            <li><strong>多租户安全</strong>：<code>user_scoped</code> 权限确保扩展只能访问当前用户的数据</li>
+            <li><strong>热加载</strong>：扩展可在运行时加载/卸载，单个扩展的故障不影响系统整体</li>
+            <li><strong>标准化接口</strong>：统一的 manifest 规范、工具定义格式和生命周期钩子</li>
+          </ul>
+
+          <h2>下一步</h2>
+
+          <p>准备好开始开发扩展了？前往 <a href="getting-started.html">快速上手</a> 创建你的第一个扩展。</p>
+
+        </article>
+      </main>
+    </div>
+  </div>
+  <script src="../js/components.js"></script>
+  <script src="../js/nav.js"></script>
+  <script src="../js/search.js"></script>
+</body>
+</html>

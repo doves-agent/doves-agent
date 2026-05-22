@@ -1,0 +1,95 @@
+<div class="page-header">
+  <h1 class="page-title">聊天</h1>
+  <button class="btn btn-outline btn-sm" id="new-chat-btn">新对话</button>
+</div>
+
+<div class="card" style="display:flex;flex-direction:column;height:calc(100vh - 200px)">
+  <div id="chat-messages" style="flex:1;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:12px">
+    <div class="empty-state">发送消息开始对话</div>
+  </div>
+  <div style="border-top:1px solid var(--border);padding:12px;display:flex;gap:8px">
+    <textarea id="chat-input" class="input" rows="2" placeholder="输入消息（Enter 发送，Shift+Enter 换行）" style="resize:none"></textarea>
+    <button class="btn" id="chat-send-btn">发送</button>
+  </div>
+</div>
+
+<script>
+(function() {
+  const messages = document.getElementById('chat-messages');
+  const input = document.getElementById('chat-input');
+  const sendBtn = document.getElementById('chat-send-btn');
+  const newBtn = document.getElementById('new-chat-btn');
+  let watching = null;
+
+  input.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      send();
+    }
+  });
+
+  sendBtn.addEventListener('click', send);
+  newBtn.addEventListener('click', () => {
+    messages.innerHTML = '<div class="empty-state">发送消息开始对话</div>';
+    if (watching) watching();
+  });
+
+  async function send() {
+    const text = input.value.trim();
+    if (!text) return;
+    input.value = '';
+
+    addMessage('user', text);
+
+    const result = await DoveSDK.cmd('chat send', { body: { message: text } });
+
+    if (!result.success) {
+      addMessage('system', '发送失败: ' + (result.error || '未知错误'));
+      return;
+    }
+
+    const taskId = result.data?.taskId;
+    if (taskId) {
+      addMessage('assistant', '思考中...', true);
+      watching = DoveSDK.watchTask(taskId, {
+        onUpdate(task) {
+          if (task.streamContent) {
+            updateLastMessage(task.streamContent);
+          }
+        },
+        onDone(task) {
+          const content = task.result?.content || task.result?.message || JSON.stringify(task.result);
+          updateLastMessage(content);
+        },
+        onError(err) {
+          updateLastMessage('任务出错: ' + err.message);
+        }
+      });
+    } else if (result.data) {
+      addMessage('assistant', typeof result.data === 'string' ? result.data : JSON.stringify(result.data));
+    }
+  }
+
+  function addMessage(role, content, loading = false) {
+    if (messages.querySelector('.empty-state')) messages.innerHTML = '';
+    const div = document.createElement('div');
+    div.className = `chat-msg chat-msg-${role}`;
+    if (loading) div.classList.add('loading-msg');
+    div.style.cssText = role === 'user'
+      ? 'align-self:flex-end;background:var(--primary);color:white;padding:10px 14px;border-radius:12px 12px 2px 12px;max-width:70%'
+      : 'align-self:flex-start;background:var(--bg-input);padding:10px 14px;border-radius:12px 12px 12px 2px;max-width:70%;white-space:pre-wrap';
+    div.textContent = content;
+    messages.appendChild(div);
+    messages.scrollTop = messages.scrollHeight;
+  }
+
+  function updateLastMessage(content) {
+    const last = messages.querySelector('.loading-msg') || messages.lastElementChild;
+    if (last) {
+      last.textContent = content;
+      last.classList.remove('loading-msg');
+    }
+    messages.scrollTop = messages.scrollHeight;
+  }
+})();
+</script>

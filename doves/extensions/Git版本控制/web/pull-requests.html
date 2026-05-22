@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pull Requests</title>
+<link rel="stylesheet" href="/css/style.css">
+<style>
+  .config-row { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+  .config-row label { font-size: 13px; color: var(--text-secondary); min-width: 50px; }
+  .config-row select, .config-row input { padding: 6px 10px; border: 1px solid var(--border); border-radius: var(--radius-sm); font-size: 13px; background: var(--bg-input); color: var(--text); }
+  .config-row input { width: 180px; }
+
+  .pr-card { border: 1px solid var(--border); border-radius: var(--radius); padding: 12px; margin-bottom: 8px; display: flex; gap: 12px; align-items: center; transition: background 0.15s; }
+  .pr-card:hover { background: var(--bg-input); }
+  .pr-icon { font-size: 20px; flex-shrink: 0; }
+  .pr-info { flex: 1; }
+  .pr-title { font-weight: 600; color: var(--text); margin-bottom: 4px; font-size: 14px; }
+  .pr-meta { font-size: 12px; color: var(--text-secondary); }
+  .pr-state { padding: 3px 10px; border-radius: 12px; font-size: 12px; font-weight: 600; }
+  .state-open { background: rgba(40, 167, 69, 0.1); color: var(--success); }
+  .state-closed { background: rgba(220, 53, 69, 0.1); color: var(--error); }
+  .state-merged { background: rgba(var(--primary), 0.1); color: var(--primary); }
+
+  .template-tabs { display: flex; gap: 8px; margin-bottom: 12px; }
+  .template-tab { padding: 6px 14px; border: 1px solid var(--border); border-radius: var(--radius); cursor: pointer; font-size: 13px; background: var(--bg-card); transition: all 0.15s; }
+  .template-tab.active { background: var(--primary); color: #fff; border-color: var(--primary); }
+  .template-preview { background: var(--bg-input); border-radius: var(--radius); padding: 16px; font-family: monospace; font-size: 13px; white-space: pre-wrap; line-height: 1.6; }
+</style>
+</head>
+<body>
+  <div class="page-header">
+    <h1 class="page-title">Pull Requests</h1>
+  </div>
+
+  <!-- 仓库配置 -->
+  <div class="card">
+    <h3 style="margin-bottom: 12px;">仓库配置</h3>
+    <div class="config-row">
+      <label>平台:</label>
+      <select id="platform">
+        <option value="github">GitHub</option>
+        <option value="gitlab">GitLab</option>
+        <option value="gitee">Gitee</option>
+      </select>
+      <label>仓库:</label>
+      <input class="input" id="repo" placeholder="owner/repo">
+      <label>Token:</label>
+      <input class="input" id="token" type="password" placeholder="访问令牌">
+      <button class="btn btn-sm" onclick="autoDetect()">自动检测</button>
+    </div>
+  </div>
+
+  <!-- PR列表 -->
+  <div class="card">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+      <h3>PR列表</h3>
+      <div style="display: flex; gap: 8px; align-items: center;">
+        <select id="prState" class="input" style="width: auto; padding: 4px 8px; font-size: 12px;">
+          <option value="open">Open</option>
+          <option value="closed">Closed</option>
+          <option value="all">All</option>
+        </select>
+        <button class="btn btn-sm" onclick="loadPRs()">刷新</button>
+      </div>
+    </div>
+    <div id="prList">
+      <div class="empty-state">配置仓库后点击"刷新"查看PR列表</div>
+    </div>
+  </div>
+
+  <!-- PR模板 -->
+  <div class="card">
+    <h3 style="margin-bottom: 12px;">PR模板生成</h3>
+    <div class="template-tabs">
+      <div class="template-tab active" onclick="switchTemplate('default', this)">默认</div>
+      <div class="template-tab" onclick="switchTemplate('bugfix', this)">Bug修复</div>
+      <div class="template-tab" onclick="switchTemplate('feature', this)">新功能</div>
+      <div class="template-tab" onclick="switchTemplate('breaking', this)">破坏性变更</div>
+    </div>
+    <div class="template-preview" id="templatePreview">点击上方标签生成PR模板</div>
+    <div style="margin-top: 12px;">
+      <button class="btn btn-sm" onclick="generateTemplate()">生成模板</button>
+    </div>
+  </div>
+
+<script src="/js/sdk.js"></script>
+<script>
+DoveSDK.init('Git版本控制');
+
+async function callSkill(action, args = {}) {
+  return DoveSDK.callSkill('pr_manager', action, args);
+}
+
+async function autoDetect() {
+  try {
+    const result = await callSkill('branch_info');
+    if (result.success) {
+      const data = result.data;
+      if (data.platform) document.getElementById('platform').value = data.platform;
+      if (data.repo) document.getElementById('repo').value = data.repo;
+      DoveSDK.notify('success', '检测完成');
+    }
+  } catch (e) {
+    DoveSDK.notify('error', '检测失败: ' + e.message);
+  }
+}
+
+async function loadPRs() {
+  const platform = document.getElementById('platform').value;
+  const repo = document.getElementById('repo').value;
+  const token = document.getElementById('token').value;
+  const state = document.getElementById('prState').value;
+
+  if (!repo) {
+    document.getElementById('prList').innerHTML = '<div class="empty-state" style="color:var(--error)">请输入仓库名</div>';
+    return;
+  }
+
+  const list = document.getElementById('prList');
+  list.innerHTML = '<div class="empty-state loading">加载中...</div>';
+
+  try {
+    const result = await DoveSDK.callTool('git_pr_list', { platform, repo, state, token }, { extension: 'Git版本控制' });
+    if (!result.success) {
+      list.innerHTML = '<div class="empty-state" style="color:var(--error)">' + (result.error || '加载失败') + '</div>';
+      return;
+    }
+    const data = result.data;
+    const prs = data.prs || [];
+    if (prs.length === 0) {
+      list.innerHTML = '<div class="empty-state">没有找到PR</div>';
+      return;
+    }
+
+    list.innerHTML = prs.map(pr => {
+      const stateClass = pr.state === 'open' ? 'state-open' : pr.state === 'merged' ? 'state-merged' : 'state-closed';
+      const icon = pr.state === 'open' ? '&#9899;' : pr.state === 'merged' ? '&#128995;' : '&#128308;';
+      return `
+        <div class="pr-card">
+          <div class="pr-icon">${icon}</div>
+          <div class="pr-info">
+            <div class="pr-title">#${pr.number} ${escapeHtml(pr.title)}</div>
+            <div class="pr-meta">${pr.head || ''} -> ${pr.base || ''} | ${pr.user || ''} | ${pr.created_at || ''}</div>
+          </div>
+          <span class="pr-state ${stateClass}">${pr.state}</span>
+        </div>
+      `;
+    }).join('');
+  } catch (e) {
+    list.innerHTML = '<div class="empty-state" style="color:var(--error)">错误: ' + e.message + '</div>';
+  }
+}
+
+let currentTemplateType = 'default';
+
+function switchTemplate(type, el) {
+  currentTemplateType = type;
+  document.querySelectorAll('.template-tab').forEach(t => t.classList.remove('active'));
+  el.classList.add('active');
+  generateTemplate();
+}
+
+async function generateTemplate() {
+  try {
+    const result = await callSkill('template_generate', { templateType: currentTemplateType });
+    if (result.success) {
+      document.getElementById('templatePreview').textContent = result.data.template;
+    }
+  } catch (e) {
+    DoveSDK.notify('error', '生成模板失败: ' + e.message);
+  }
+}
+
+function escapeHtml(text) {
+  const div = document.createElement('div');
+  div.textContent = text || '';
+  return div.innerHTML;
+}
+
+// 初始化时自动检测
+autoDetect();
+</script>
+</body>
+</html>

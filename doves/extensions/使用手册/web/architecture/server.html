@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Server 数据网关 - 白鸽文档</title>
+  <link rel="stylesheet" href="../css/style.css">
+</head>
+<body>
+  <div id="app">
+    <header id="site-header"></header>
+    <div class="layout">
+      <aside id="sidebar"></aside>
+      <main class="content">
+        <article>
+          <h1>Server 数据网关</h1>
+          <p>Server 是白鸽系统的纯数据网关，职责边界清晰：认证、数据代理、任务入队。不调用 LLM，不推送任务，不 import Doves 代码。</p>
+
+          <div class="info">
+            <p><strong>核心定位：</strong>Server 只做数据的搬运工，不理解任务内容，不感知 Doves 执行逻辑。</p>
+          </div>
+
+          <h2>端口与协议</h2>
+          <div class="table-wrapper">
+            <table>
+              <thead>
+                <tr>
+                  <th>项目</th>
+                  <th>说明</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>对外端口</td>
+                  <td>3003（唯一）</td>
+                </tr>
+                <tr>
+                  <td>对外协议</td>
+                  <td>Noise NX 加密 TCP</td>
+                </tr>
+                <tr>
+                  <td>内部 Express</td>
+                  <td>绑定在随机 localhost 端口，外部不可访问</td>
+                </tr>
+                <tr>
+                  <td>明文 HTTP</td>
+                  <td>无，不暴露任何明文端口</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <h2>启动链</h2>
+<pre><code>启动流程：
+1. 验证密钥（JWT_SECRET, HASH_SECRET, OFFICIAL_DEV_SIGNING_KEY）
+   └─ 不满足要求 → process.exit(1)
+2. 连接 MongoDB（doves_admin + doves_user_data）
+3. 创建索引（确保查询性能）
+4. 启动事件调度器（定时任务 + Change Stream）
+5. 绑定 Noise NX 加密 TCP 端口 3003
+   └─ 开始接受连接</code></pre>
+
+          <div class="warning">
+            <p><strong>启动硬性要求：</strong>JWT_SECRET >= 32 字符，HASH_SECRET >= 32 字符，OFFICIAL_DEV_SIGNING_KEY >= 40 字符。任一不满足，进程拒绝启动。</p>
+          </div>
+
+          <h2>路由分类</h2>
+          <div class="table-wrapper">
+            <table>
+              <thead>
+                <tr>
+                  <th>类别</th>
+                  <th>认证要求</th>
+                  <th>说明</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>Public</td>
+                  <td>无</td>
+                  <td>健康检查、协议文档、注册/登录</td>
+                </tr>
+                <tr>
+                  <td>Authenticated</td>
+                  <td>JWT Token</td>
+                  <td>用户业务操作（DB代理、文件、任务管理等）</td>
+                </tr>
+                <tr>
+                  <td>Dove</td>
+                  <td>API Key</td>
+                  <td>鸽子认领任务、提交结果、心跳</td>
+                </tr>
+                <tr>
+                  <td>Admin</td>
+                  <td>JWT + admin 角色 + IP 白名单</td>
+                  <td>系统管理、指标监控</td>
+                </tr>
+                <tr>
+                  <td>High-Performance Direct</td>
+                  <td>视接口而定</td>
+                  <td>绕过通用中间件的高性能直连路径</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <h2>数据库代理</h2>
+          <p>Server 提供统一的 MongoDB 代理接口（<code>/db/*</code>），实现多租户数据隔离。</p>
+
+          <div class="card-grid">
+            <div class="card">
+              <h3>白名单机制</h3>
+              <p>只允许访问预定义的集合和操作类型。未在白名单中的请求直接拒绝。</p>
+            </div>
+            <div class="card">
+              <h3>自动注入 userId</h3>
+              <p>所有查询自动注入当前用户 ID，确保用户只能访问自己的数据，实现多租户隔离。</p>
+            </div>
+          </div>
+
+          <h2>IM 通道</h2>
+          <p>Server 支持多个即时通讯平台接入，功能与 CLI 等价。</p>
+          <div class="table-wrapper">
+            <table>
+              <thead>
+                <tr>
+                  <th>平台</th>
+                  <th>Webhook 路径</th>
+                  <th>说明</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>微信</td>
+                  <td>/api/im/wechat/webhook</td>
+                  <td>消息收发、媒体处理</td>
+                </tr>
+                <tr>
+                  <td>钉钉</td>
+                  <td>/api/im/dingtalk/webhook</td>
+                  <td>消息收发</td>
+                </tr>
+                <tr>
+                  <td>飞书</td>
+                  <td>/api/im/feishu/webhook</td>
+                  <td>消息收发</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div class="tip">
+            <p>IM 与 CLI 的区别仅为：来源标记不同（<code>source: "wechat"</code> vs <code>source: "cli"</code>），以及 IM 通道支持 Server 主动推送通知。</p>
+          </div>
+
+          <h2>事件调度器</h2>
+          <p>Server 内置事件调度系统，支持多种触发方式：</p>
+          <div class="table-wrapper">
+            <table>
+              <thead>
+                <tr>
+                  <th>触发类型</th>
+                  <th>说明</th>
+                  <th>示例</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>cron</td>
+                  <td>定时触发</td>
+                  <td>每天 3:00 执行任务归档</td>
+                </tr>
+                <tr>
+                  <td>data_change</td>
+                  <td>MongoDB Change Stream 触发</td>
+                  <td>任务状态变更时触发通知</td>
+                </tr>
+                <tr>
+                  <td>external</td>
+                  <td>外部系统调用触发</td>
+                  <td>Webhook 回调</td>
+                </tr>
+                <tr>
+                  <td>semantic</td>
+                  <td>语义判断触发（LLM 判定）</td>
+                  <td>条件满足时自动触发</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <h2>安全机制</h2>
+          <div class="card-grid">
+            <div class="card">
+              <h3>JWT 验证</h3>
+              <p>用户请求携带 JWT Token，Server 验证签名和有效期（7天）。</p>
+            </div>
+            <div class="card">
+              <h3>API Key 认证</h3>
+              <p>Doves 使用 API Key（格式 <code>sk_{keyId}_{secret}</code>），Server 用 bcrypt 验证。</p>
+            </div>
+            <div class="card">
+              <h3>登录锁定</h3>
+              <p>5 次失败尝试 → 锁定 30 分钟。防止暴力破解。</p>
+            </div>
+            <div class="card">
+              <h3>速率限制</h3>
+              <p>API 默认 100 req/min/IP，登录/注册有独立更严格的限制。</p>
+            </div>
+          </div>
+
+          <h2>审计日志</h2>
+          <p>Server 记录所有关键操作的审计日志，存储在 MongoDB 中，TTL 90 天自动清理。</p>
+<pre><code>审计日志结构：
+{
+  时间戳,
+  用户ID,
+  操作类型,
+  操作目标,
+  请求来源IP,
+  操作结果,
+  详情
+}
+
+TTL: 90 天后 MongoDB 自动删除</code></pre>
+
+          <h2>职责边界总结</h2>
+          <div class="table-wrapper">
+            <table>
+              <thead>
+                <tr>
+                  <th>Server 做的</th>
+                  <th>Server 不做的</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>认证（JWT + API Key）</td>
+                  <td>调用 LLM</td>
+                </tr>
+                <tr>
+                  <td>数据代理（MongoDB + OSS）</td>
+                  <td>推送任务给 Doves</td>
+                </tr>
+                <tr>
+                  <td>任务入队</td>
+                  <td>import Doves 代码</td>
+                </tr>
+                <tr>
+                  <td>IM Webhook 接入</td>
+                  <td>理解任务内容</td>
+                </tr>
+                <tr>
+                  <td>事件调度</td>
+                  <td>执行任务逻辑</td>
+                </tr>
+                <tr>
+                  <td>审计日志</td>
+                  <td>暴露明文 HTTP</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+        </article>
+      </main>
+    </div>
+  </div>
+  <script src="../js/components.js"></script>
+  <script src="../js/nav.js"></script>
+  <script src="../js/search.js"></script>
+</body>
+</html>

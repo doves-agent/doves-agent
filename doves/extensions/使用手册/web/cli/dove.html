@@ -1,0 +1,416 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>鸽子管理 - 白鸽文档</title>
+  <link rel="stylesheet" href="../css/style.css">
+</head>
+<body>
+  <div id="app">
+    <header id="site-header"></header>
+    <div class="layout">
+      <aside id="sidebar"></aside>
+      <main class="content">
+        <article>
+          <h1>鸽子管理</h1>
+          <p>鸽子（Dove）是白鸽系统的智能 Agent 实例。通过鸽子管理命令可以注册、配置、查看和管理 Agent 的生命周期及能力。</p>
+
+          <!-- dove dove -->
+          <h2 id="dove-dove">dove dove</h2>
+          <p>Agent 注册与管理命令，控制鸽子的注册、配置、密钥和通道权限。</p>
+
+          <div class="synopsis">
+            <span class="cmd">dove</span> <span class="arg">dove</span> <span class="opt">[action]</span> <span class="opt">[options]</span>
+          </div>
+
+          <h3>Actions</h3>
+          <div class="table-wrapper">
+            <table>
+              <thead>
+                <tr>
+                  <th>Action</th>
+                  <th>Description</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><code>register</code></td>
+                  <td>注册新鸽子</td>
+                </tr>
+                <tr>
+                  <td><code>list</code> / <code>ls</code></td>
+                  <td>列出所有鸽子</td>
+                </tr>
+                <tr>
+                  <td><code>info &lt;id&gt;</code></td>
+                  <td>查看鸽子详情</td>
+                </tr>
+                <tr>
+                  <td><code>delete</code> / <code>rm &lt;id&gt;</code></td>
+                  <td>删除鸽子</td>
+                </tr>
+                <tr>
+                  <td><code>key &lt;action&gt;</code></td>
+                  <td>密钥管理（generate/show/rotate）</td>
+                </tr>
+                <tr>
+                  <td><code>config &lt;key&gt; [value]</code></td>
+                  <td>查看/修改鸽子配置</td>
+                </tr>
+                <tr>
+                  <td><code>use &lt;id&gt;</code></td>
+                  <td>切换当前使用的鸽子</td>
+                </tr>
+                <tr>
+                  <td><code>current</code></td>
+                  <td>显示当前鸽子</td>
+                </tr>
+                <tr>
+                  <td><code>mcp &lt;action&gt;</code></td>
+                  <td>MCP 服务器管理</td>
+                </tr>
+                <tr>
+                  <td><code>capability</code> / <code>cap</code></td>
+                  <td>能力管理（快捷方式）</td>
+                </tr>
+                <tr>
+                  <td><code>channel-permission</code> / <code>cp</code></td>
+                  <td>通道权限管理</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <h3>选项</h3>
+          <div class="table-wrapper">
+            <table>
+              <thead>
+                <tr>
+                  <th>Flag</th>
+                  <th>Description</th>
+                  <th>Default</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><code>-n, --name &lt;name&gt;</code></td>
+                  <td>鸽子名称</td>
+                  <td>-</td>
+                </tr>
+                <tr>
+                  <td><code>-t, --type &lt;type&gt;</code></td>
+                  <td>鸽子类型</td>
+                  <td>general</td>
+                </tr>
+                <tr>
+                  <td><code>-c, --capabilities &lt;list&gt;</code></td>
+                  <td>能力列表（逗号分隔）</td>
+                  <td>-</td>
+                </tr>
+                <tr>
+                  <td><code>--id &lt;id&gt;</code></td>
+                  <td>指定鸽子 ID</td>
+                  <td>-</td>
+                </tr>
+                <tr>
+                  <td><code>--force</code></td>
+                  <td>强制执行（跳过确认）</td>
+                  <td>false</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <h4>MCP 选项</h4>
+          <div class="table-wrapper">
+            <table>
+              <thead>
+                <tr>
+                  <th>Flag</th>
+                  <th>Description</th>
+                  <th>Default</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><code>--mcp-add &lt;name&gt;</code></td>
+                  <td>添加 MCP 服务器</td>
+                  <td>-</td>
+                </tr>
+                <tr>
+                  <td><code>--mcp-remove &lt;name&gt;</code></td>
+                  <td>移除 MCP 服务器</td>
+                  <td>-</td>
+                </tr>
+                <tr>
+                  <td><code>--mcp-url &lt;url&gt;</code></td>
+                  <td>MCP 服务器地址</td>
+                  <td>-</td>
+                </tr>
+                <tr>
+                  <td><code>--mcp-cmd &lt;command&gt;</code></td>
+                  <td>MCP 启动命令</td>
+                  <td>-</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <h4>通道权限选项</h4>
+          <div class="table-wrapper">
+            <table>
+              <thead>
+                <tr>
+                  <th>Flag</th>
+                  <th>Description</th>
+                  <th>Default</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><code>--channel &lt;name&gt;</code></td>
+                  <td>通道名称（wechat, cli, api）</td>
+                  <td>-</td>
+                </tr>
+                <tr>
+                  <td><code>--grant</code></td>
+                  <td>授予权限</td>
+                  <td>-</td>
+                </tr>
+                <tr>
+                  <td><code>--revoke</code></td>
+                  <td>撤销权限</td>
+                  <td>-</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <h3>示例</h3>
+          <pre><code># 注册新鸽子
+dove dove register -n "数据分析师" -t analyst -c "数据分析,Python,可视化"
+
+# 列出所有鸽子
+dove dove ls
+
+# 查看鸽子详情
+dove dove info dove_abc123
+
+# 切换当前鸽子
+dove dove use dove_abc123
+
+# 查看当前鸽子
+dove dove current
+
+# 生成新密钥
+dove dove key generate --id dove_abc123
+
+# 修改鸽子配置
+dove dove config max_concurrency 5
+
+# 添加 MCP 服务器
+dove dove mcp add --mcp-add weather --mcp-url "http://localhost:8080"
+
+# 设置通道权限
+dove dove cp --channel wechat --grant --id dove_abc123
+
+# 删除鸽子
+dove dove rm dove_abc123 --force</code></pre>
+
+          <!-- dove capability -->
+          <h2 id="dove-capability">dove capability</h2>
+          <p>能力管理命令（别名：<code>cap</code>）。查看和刷新鸽子的能力声明，用于任务分配匹配。</p>
+
+          <div class="synopsis">
+            <span class="cmd">dove</span> <span class="arg">capability</span> <span class="opt">[action]</span> <span class="opt">[options]</span>
+          </div>
+
+          <h3>Actions</h3>
+          <div class="table-wrapper">
+            <table>
+              <thead>
+                <tr>
+                  <th>Action</th>
+                  <th>Description</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><code>refresh</code></td>
+                  <td>刷新能力声明（重新检测）</td>
+                </tr>
+                <tr>
+                  <td><code>list</code> / <code>ls</code></td>
+                  <td>列出当前能力</td>
+                </tr>
+                <tr>
+                  <td><code>info &lt;name&gt;</code></td>
+                  <td>查看能力详情</td>
+                </tr>
+                <tr>
+                  <td><code>report</code></td>
+                  <td>生成能力报告</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <h3>选项</h3>
+          <div class="table-wrapper">
+            <table>
+              <thead>
+                <tr>
+                  <th>Flag</th>
+                  <th>Description</th>
+                  <th>Default</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><code>-d, --dove &lt;id&gt;</code></td>
+                  <td>指定鸽子 ID</td>
+                  <td>当前鸽子</td>
+                </tr>
+                <tr>
+                  <td><code>-a, --all</code></td>
+                  <td>显示所有鸽子的能力</td>
+                  <td>false</td>
+                </tr>
+                <tr>
+                  <td><code>--json</code></td>
+                  <td>JSON 格式输出</td>
+                  <td>false</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <h3>示例</h3>
+          <pre><code># 刷新当前鸽子能力
+dove cap refresh
+
+# 列出所有鸽子的能力
+dove cap ls -a
+
+# 查看指定鸽子的能力
+dove cap ls -d dove_abc123
+
+# 查看特定能力详情
+dove cap info "视频处理"
+
+# 生成能力报告
+dove cap report --json</code></pre>
+
+          <!-- dove skill -->
+          <h2 id="dove-skill">dove skill</h2>
+          <p>技能管理命令（别名：<code>skills</code>）。启用或禁用鸽子的技能模块。</p>
+
+          <div class="synopsis">
+            <span class="cmd">dove</span> <span class="arg">skill</span> <span class="opt">[action]</span> <span class="opt">[target]</span> <span class="opt">[options]</span>
+          </div>
+
+          <h3>Actions</h3>
+          <div class="table-wrapper">
+            <table>
+              <thead>
+                <tr>
+                  <th>Action</th>
+                  <th>Description</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><code>list</code> / <code>ls</code></td>
+                  <td>列出可用技能</td>
+                </tr>
+                <tr>
+                  <td><code>enable &lt;name&gt;</code></td>
+                  <td>启用技能</td>
+                </tr>
+                <tr>
+                  <td><code>disable &lt;name&gt;</code></td>
+                  <td>禁用技能</td>
+                </tr>
+                <tr>
+                  <td><code>status &lt;name&gt;</code></td>
+                  <td>查看技能状态</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <h3>选项</h3>
+          <div class="table-wrapper">
+            <table>
+              <thead>
+                <tr>
+                  <th>Flag</th>
+                  <th>Description</th>
+                  <th>Default</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><code>-c, --category &lt;cat&gt;</code></td>
+                  <td>按分类过滤</td>
+                  <td>全部</td>
+                </tr>
+                <tr>
+                  <td><code>-a, --all</code></td>
+                  <td>包含远程技能市场</td>
+                  <td>false</td>
+                </tr>
+                <tr>
+                  <td><code>--json</code></td>
+                  <td>JSON 格式输出</td>
+                  <td>false</td>
+                </tr>
+                <tr>
+                  <td><code>--remote</code></td>
+                  <td>仅显示远程技能</td>
+                  <td>false</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <h3>示例</h3>
+          <pre><code># 列出已安装技能
+dove skill ls
+
+# 列出所有技能（含远程市场）
+dove skill ls -a
+
+# 按分类查看
+dove skill ls -c "数据处理"
+
+# 启用技能
+dove skill enable "网页抓取"
+
+# 禁用技能
+dove skill disable "网页抓取"
+
+# 查看技能状态
+dove skill status "视频处理"</code></pre>
+
+          <div class="tip">
+            <p><strong>提示</strong>：技能启用后，鸽子的能力声明会自动更新，无需手动刷新。</p>
+          </div>
+
+          <h2>相关命令</h2>
+          <ul>
+            <li><a href="task.html#dove-task">dove task</a> - 任务会根据鸽子能力自动分配</li>
+            <li><a href="config.html#dove-config">dove config</a> - 鸽子全局配置</li>
+            <li><a href="integrations.html#dove-app">dove app</a> - 扩展应用（提供额外技能）</li>
+          </ul>
+
+        </article>
+      </main>
+    </div>
+  </div>
+  <script src="../js/components.js"></script>
+  <script src="../js/nav.js"></script>
+  <script src="../js/search.js"></script>
+</body>
+</html>

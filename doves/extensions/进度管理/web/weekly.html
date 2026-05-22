@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>周报</title>
+<link rel="stylesheet" href="/css/style.css">
+<style>
+  .tip { background: var(--bg-card); border: 1px solid var(--warning); border-radius: var(--radius); padding: 12px; margin-bottom: 16px; font-size: 13px; color: var(--text-secondary); }
+  .section { margin-bottom: 16px; }
+  .section h3 { font-size: 15px; margin-bottom: 12px; color: var(--text-secondary); }
+  .source-list { font-size: 14px; line-height: 1.8; color: var(--text-secondary); }
+  .source-list strong { color: var(--text); }
+  .btn-group { display: flex; gap: 8px; flex-wrap: wrap; }
+</style>
+</head>
+<body>
+  <div class="page-header">
+    <h1 class="page-title">周报</h1>
+  </div>
+  <div class="tip">自动从 Git 提交/任务/对话记录中提取本周工作，生成周报</div>
+  <div class="card">
+    <div class="section">
+      <h3>快速生成</h3>
+      <div class="btn-group">
+        <button class="btn" onclick="sendCmd('生成本周周报')">本周周报</button>
+        <button class="btn btn-outline" onclick="sendCmd('生成上周周报')">上周周报</button>
+      </div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="section">
+      <h3>周报内容来源</h3>
+      <div class="source-list">
+        <strong>Git 提交</strong> — 自动提取本周所有 commit，按类型分组<br>
+        <strong>任务状态</strong> — 本周创建/完成/阻塞的任务<br>
+        <strong>对话记录</strong> — 重要决策和讨论摘要<br>
+        <strong>下周计划</strong> — 基于待办和优先级自动推荐
+      </div>
+    </div>
+  </div>
+<script src="/js/sdk.js"></script>
+<script>
+DoveSDK.init('进度管理');
+
+function sendCmd(text) {
+  DoveSDK.cmd(text);
+  DoveSDK.navigateTo('chat');
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>任务看板</title>
+<link rel="stylesheet" href="/css/style.css">
+<style>
+  .kanban { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+  .kanban-col { background: var(--bg-input); border-radius: var(--radius); padding: 12px; }
+  .kanban-col h3 { font-size: 14px; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; }
+  .kanban-col .count { background: var(--primary); color: #fff; border-radius: 10px; padding: 1px 8px; font-size: 12px; }
+  .kanban-item { background: var(--bg-card); border-radius: var(--radius-sm); padding: 10px; margin-bottom: 8px; box-shadow: 0 1px 2px rgba(0,0,0,0.06); cursor: pointer; transition: box-shadow 0.2s; }
+  .kanban-item:hover { box-shadow: 0 2px 6px rgba(0,0,0,0.12); }
+  .kanban-item .title { font-size: 13px; font-weight: 600; color: var(--text); }
+  .kanban-item .meta { font-size: 11px; color: var(--text-secondary); margin-top: 4px; }
+  .priority-high { border-left: 3px solid var(--error); }
+  .priority-medium { border-left: 3px solid var(--warning); }
+  .priority-low { border-left: 3px solid var(--success); }
+  .tip { background: var(--bg-card); border: 1px solid var(--warning); border-radius: var(--radius); padding: 12px; margin-bottom: 16px; font-size: 13px; color: var(--text-secondary); }
+  .toolbar { margin-bottom: 12px; }
+  @media (max-width: 600px) { .kanban { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body>
+  <div class="page-header">
+    <h1 class="page-title">任务看板</h1>
+  </div>
+  <div class="tip">点击任务卡片跳转到对话查看详情，或直接输入自然语言管理任务</div>
+  <div class="toolbar">
+    <button class="btn" onclick="sendCmd('创建新任务')">新建任务</button>
+  </div>
+  <div class="kanban">
+    <div class="kanban-col">
+      <h3>待处理 <span class="count">-</span></h3>
+      <div class="kanban-item priority-medium" onclick="sendCmd('查看待处理任务列表')">
+        <div class="title">通过对话查看</div>
+        <div class="meta">点击跳转到对话</div>
+      </div>
+    </div>
+    <div class="kanban-col">
+      <h3>进行中 <span class="count">-</span></h3>
+      <div class="kanban-item priority-high" onclick="sendCmd('查看进行中的任务')">
+        <div class="title">通过对话查看</div>
+        <div class="meta">点击跳转到对话</div>
+      </div>
+    </div>
+    <div class="kanban-col">
+      <h3>已完成 <span class="count">-</span></h3>
+      <div class="kanban-item priority-low" onclick="sendCmd('查看已完成的任务')">
+        <div class="title">通过对话查看</div>
+        <div class="meta">点击跳转到对话</div>
+      </div>
+    </div>
+  </div>
+<script src="/js/sdk.js"></script>
+<script>
+DoveSDK.init('进度管理');
+
+function sendCmd(text) {
+  DoveSDK.cmd(text);
+  DoveSDK.navigateTo('chat');
+}
+</script>
+</body>
+</html>

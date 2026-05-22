@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>MySQL 概览</title>
+<link rel="stylesheet" href="/css/style.css">
+<style>
+  .config-row { display: flex; gap: 10px; align-items: center; margin-bottom: 12px; flex-wrap: wrap; }
+  .config-row label { font-size: 13px; color: var(--text-secondary); min-width: 50px; }
+  .config-row input { padding: 7px 12px; border: 1px solid var(--border); border-radius: var(--radius-sm); font-size: 13px; background: var(--bg-input); color: var(--text); }
+  .config-row input:focus { outline: none; border-color: var(--primary); }
+  .config-row input[type="text"] { flex: 1; min-width: 120px; }
+  .config-row input[type="number"] { width: 80px; }
+  .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 10px; margin-bottom: 12px; }
+  .stat-card { text-align: center; padding: 16px; background: var(--bg-input); border-radius: var(--radius); }
+  .stat-card .val { font-size: 24px; font-weight: 700; color: var(--primary); }
+  .stat-card .lbl { font-size: 12px; color: var(--text-secondary); margin-top: 2px; }
+  .table-list { list-style: none; padding: 0; margin: 0; }
+  .table-list li { padding: 10px 14px; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 8px; cursor: pointer; transition: background 0.15s; }
+  .table-list li:hover { background: var(--bg-input); }
+  .table-list li .name { flex: 1; font-weight: 600; font-size: 13px; font-family: 'Consolas', monospace; color: var(--text); }
+  .table-list li .rows { font-size: 12px; color: var(--text-secondary); }
+  .table-list li .engine { font-size: 12px; color: var(--text-secondary); }
+  .section-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+  .section-header h3 { font-size: 15px; color: var(--text); margin: 0; }
+</style>
+</head>
+<body>
+  <div class="page-header">
+    <h1 class="page-title">MySQL 数据库概览</h1>
+  </div>
+
+  <div class="card">
+    <div class="section-header">
+      <h3>连接配置</h3>
+    </div>
+    <div class="config-row">
+      <label>主机:</label>
+      <input type="text" id="hostInput" value="localhost" style="width:120px">
+      <label>端口:</label>
+      <input type="number" id="portInput" value="3306" style="width:80px">
+      <label>用户:</label>
+      <input type="text" id="userInput" value="root" style="width:100px">
+      <label>密码:</label>
+      <input type="password" id="passInput" placeholder="密码" style="width:120px">
+      <label>数据库:</label>
+      <input type="text" id="dbInput" placeholder="数据库名">
+      <button class="btn btn-sm" onclick="connectDB()">连接</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="section-header">
+      <h3>数据库状态</h3>
+      <button class="btn btn-sm btn-outline" onclick="loadStats()">刷新</button>
+    </div>
+    <div class="stats-grid">
+      <div class="stat-card"><div class="val" id="dbCount">-</div><div class="lbl">数据库</div></div>
+      <div class="stat-card"><div class="val" id="tableCount">-</div><div class="lbl">数据表</div></div>
+      <div class="stat-card"><div class="val" id="totalRows">-</div><div class="lbl">总行数</div></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="section-header">
+      <h3>表列表</h3>
+    </div>
+    <ul class="table-list" id="tableList">
+      <li class="empty-state">请先连接数据库</li>
+    </ul>
+  </div>
+
+<script src="/js/sdk.js"></script>
+<script>
+DoveSDK.init('MySQL');
+
+function getConnInfo() {
+  return {
+    host: document.getElementById('hostInput').value || 'localhost',
+    port: document.getElementById('portInput').value || '3306',
+    user: document.getElementById('userInput').value || 'root',
+    db: document.getElementById('dbInput').value.trim()
+  };
+}
+
+async function connectDB() {
+  const info = getConnInfo();
+  const list = document.getElementById('tableList');
+  list.innerHTML = '<li class="empty-state">连接中...</li>';
+  try {
+    await DoveSDK.cmd('chat send', { message: `请帮我连接 MySQL 数据库：${info.host}:${info.port}，数据库 ${info.db}，用户 ${info.user}，列出所有表及其行数` });
+    list.innerHTML = '<li class="empty-state">已发起连接请求，请查看对话面板的回复</li>';
+  } catch (e) {
+    list.innerHTML = `<li class="empty-state">连接失败: ${e.message}</li>`;
+  }
+}
+
+async function loadStats() {
+  try {
+    await DoveSDK.cmd('chat send', { message: '请列出当前连接的 MySQL 数据库的状态信息：数据库数量、表数量、总行数' });
+  } catch (e) { /* ignore */ }
+}
+</script>
+</body>
+</html>

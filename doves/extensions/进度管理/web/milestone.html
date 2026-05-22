@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>里程碑</title>
+<link rel="stylesheet" href="/css/style.css">
+<style>
+  .tip { background: var(--bg-card); border: 1px solid var(--warning); border-radius: var(--radius); padding: 12px; margin-bottom: 16px; font-size: 13px; color: var(--text-secondary); }
+  .toolbar { margin-bottom: 12px; display: flex; gap: 8px; }
+  .section h3 { font-size: 15px; margin-bottom: 12px; color: var(--text-secondary); }
+  .milestone-item { display: flex; align-items: center; padding: 10px; border-left: 3px solid var(--primary); margin-bottom: 8px; background: var(--bg-input); border-radius: 0 var(--radius-sm) var(--radius-sm) 0; }
+  .milestone-item .dot { width: 12px; height: 12px; border-radius: 50%; margin-right: 12px; flex-shrink: 0; }
+  .milestone-item .info { flex: 1; }
+  .milestone-item .name { font-weight: 600; color: var(--text); font-size: 14px; }
+  .milestone-item .date { font-size: 12px; color: var(--text-secondary); }
+  .dot-done { background: var(--success); }
+  .dot-active { background: var(--warning); }
+  .dot-planned { background: var(--border); }
+</style>
+</head>
+<body>
+  <div class="page-header">
+    <h1 class="page-title">里程碑</h1>
+  </div>
+  <div class="tip">通过对话管理项目里程碑和关键节点</div>
+  <div class="toolbar">
+    <button class="btn" onclick="sendCmd('查看项目里程碑')">查看里程碑</button>
+    <button class="btn btn-outline" onclick="sendCmd('创建新里程碑')">新建里程碑</button>
+  </div>
+  <div class="card">
+    <div class="section">
+      <h3>状态说明</h3>
+      <div class="milestone-item">
+        <div class="dot dot-done"></div>
+        <div class="info"><div class="name">已完成</div><div class="date">目标日期已到达且任务全部完成</div></div>
+      </div>
+      <div class="milestone-item">
+        <div class="dot dot-active"></div>
+        <div class="info"><div class="name">进行中</div><div class="date">当前冲刺中的里程碑</div></div>
+      </div>
+      <div class="milestone-item">
+        <div class="dot dot-planned"></div>
+        <div class="info"><div class="name">计划中</div><div class="date">未来里程碑</div></div>
+      </div>
+    </div>
+  </div>
+<script src="/js/sdk.js"></script>
+<script>
+DoveSDK.init('进度管理');
+
+function sendCmd(text) {
+  DoveSDK.cmd(text);
+  DoveSDK.navigateTo('chat');
+}
+</script>
+</body>
+</html>

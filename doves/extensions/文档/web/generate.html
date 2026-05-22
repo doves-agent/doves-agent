@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>生成文档</title>
+<link rel="stylesheet" href="/css/style.css">
+<style>
+  .tip { background: var(--bg-card); border: 1px solid var(--warning); border-radius: var(--radius); padding: 12px; margin-bottom: 16px; font-size: 13px; color: var(--text-secondary); }
+  .card-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; }
+  .action-card { background: var(--bg-input); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px; cursor: pointer; transition: transform 0.2s, border-color 0.2s; }
+  .action-card:hover { transform: translateY(-2px); border-color: var(--primary); }
+  .action-card .icon { font-size: 24px; margin-bottom: 8px; }
+  .action-card .title { font-weight: 600; color: var(--text); margin-bottom: 4px; }
+  .action-card .desc { font-size: 12px; color: var(--text-secondary); }
+</style>
+</head>
+<body>
+  <div class="page-header">
+    <h1 class="page-title">文档生成</h1>
+  </div>
+  <div class="tip">点击卡片快速发起文档生成，支持 API文档/架构文档/README/Changelog</div>
+  <div class="card-grid">
+    <div class="action-card" onclick="sendCmd('帮我生成API文档')">
+      <div class="icon">&#x1F50C;</div>
+      <div class="title">API 文档</div>
+      <div class="desc">扫描代码生成 OpenAPI 格式文档</div>
+    </div>
+    <div class="action-card" onclick="sendCmd('帮我生成架构文档')">
+      <div class="icon">&#x1F3D7;&#xFE0F;</div>
+      <div class="title">架构文档</div>
+      <div class="desc">模块说明/数据流/部署架构</div>
+    </div>
+    <div class="action-card" onclick="sendCmd('帮我生成README')">
+      <div class="icon">&#x1F4D6;</div>
+      <div class="title">README</div>
+      <div class="desc">项目介绍/安装/使用/配置</div>
+    </div>
+    <div class="action-card" onclick="sendCmd('帮我检查文档是否需要同步')">
+      <div class="icon">&#x1F504;</div>
+      <div class="title">文档同步</div>
+      <div class="desc">检查代码变更与文档是否一致</div>
+    </div>
+  </div>
+<script src="/js/sdk.js"></script>
+<script>
+DoveSDK.init('文档');
+
+function sendCmd(text) {
+  DoveSDK.cmd(text);
+  DoveSDK.navigateTo('chat');
+}
+</script>
+</body>
+</html>

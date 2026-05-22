@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>快速上手 - 白鸽文档</title>
+  <link rel="stylesheet" href="../css/style.css">
+</head>
+<body>
+  <div id="app">
+    <header id="site-header"></header>
+    <div class="layout">
+      <aside id="sidebar"></aside>
+      <main class="content">
+        <article>
+          <h1>快速上手</h1>
+
+          <p class="synopsis">
+            从零开始创建一个扩展，走完开发、验证、沙箱测试的完整流程。
+            预计用时：10 分钟。
+          </p>
+
+          <h2>开发者工作流总览</h2>
+
+<pre><code>dove app create  →  开发  →  dove app validate  →  dove app dev  →  dove app publish
+     ↑                                                    ↑
+   脚手架生成                                         沙箱测试</code></pre>
+
+          <h2>第一步：创建扩展脚手架</h2>
+
+<pre><code>dove app create 天气查询 --description "查询全球城市天气信息"</code></pre>
+
+          <p>命令执行后，在 <code>doves/extensions/</code> 下生成如下目录结构：</p>
+
+<pre><code>天气查询/
+├── manifest.js        # 扩展清单：名称、版本、权限声明
+├── intent.js          # 意图识别：LLM 如何判断用户想用此扩展
+├── strategy.js        # 执行策略：如何编排多步骤任务
+├── roles.js           # 角色定义：LLM 扮演的角色设定
+├── tools/             # 工具目录：原子操作
+│   └── .gitkeep
+├── skills/            # 技能目录：高级执行逻辑
+│   └── .gitkeep
+├── web/               # Web 资源：前端页面（可选）
+│   └── .gitkeep
+└── README.md          # 扩展说明文档</code></pre>
+
+          <h2>第二步：编辑 manifest.js</h2>
+
+          <p>打开 <code>天气查询/manifest.js</code>，填写基本信息和权限：</p>
+
+<pre><code>export default {
+  name: '天气查询',
+  version: '1.0.0',
+  description: '查询全球城市天气信息，支持实时天气和未来预报',
+  abilities: ['天气', '气象', '温度'],
+
+  intent: './intent.js',
+  strategy: './strategy.js',
+  roles: './roles.js',
+  tools: './tools',
+  skills: './skills',
+
+  permissions: {
+    externalUrls: [
+      {
+        url: 'https://api.weatherapi.com/*',
+        actions: ['fetch'],
+        description: '调用天气 API 获取数据'
+      }
+    ],
+    databases: [
+      {
+        db: 'user_data',
+        collection: '天气收藏',
+        scope: 'user_scoped',
+        userField: '用户ID',
+        actions: ['find', 'insertOne', 'deleteOne']
+      }
+    ]
+  }
+};</code></pre>
+
+          <h2>第三步：添加工具</h2>
+
+          <p>在 <code>tools/</code> 目录下创建 <code>查询天气.js</code>：</p>
+
+<pre><code>export default {
+  name: '查询天气',
+  description: '查询指定城市的实时天气信息',
+  safetyLevel: 'safe',
+
+  parameters: {
+    type: 'object',
+    properties: {
+      城市: {
+        type: 'string',
+        description: '要查询天气的城市名称'
+      },
+      单位: {
+        type: 'string',
+        enum: ['celsius', 'fahrenheit'],
+        description: '温度单位',
+        default: 'celsius'
+      }
+    },
+    required: ['城市']
+  },
+
+  execute: async (params, ctx) => {
+    const { 城市, 单位 = 'celsius' } = params;
+
+    // 通过 ctx.fetch 发起网络请求（受权限控制）
+    const response = await ctx.fetch(
+      `https://api.weatherapi.com/v1/current.json?q=${encodeURIComponent(城市)}`
+    );
+
+    if (!response.ok) {
+      throw new Error(`天气查询失败: ${response.status}`);
+    }
+
+    const data = await response.json();
+    const temp = 单位 === 'celsius'
+      ? data.current.temp_c
+      : data.current.temp_f;
+
+    return {
+      城市: data.location.name,
+      温度: `${temp}°${单位 === 'celsius' ? 'C' : 'F'}`,
+      天气: data.current.condition.text,
+      湿度: `${data.current.humidity}%`,
+      风速: `${data.current.wind_kph} km/h`
+    };
+  }
+};</code></pre>
+
+          <h2>第四步：验证扩展</h2>
+
+<pre><code>dove app validate 天气查询</code></pre>
+
+          <p>验证器会检查：</p>
+          <ul>
+            <li>manifest.js 格式是否正确</li>
+            <li>所有引用的文件是否存在</li>
+            <li>权限声明是否完整</li>
+            <li>工具定义是否符合规范</li>
+            <li>无安全违规（如直接 import 系统模块）</li>
+          </ul>
+
+          <div class="tip">
+            <p>验证通过后会输出绿色的 <code>✓ 验证通过</code>。如有问题，会给出具体的错误位置和修复建议。</p>
+          </div>
+
+          <h2>第五步：沙箱测试</h2>
+
+<pre><code>dove app dev 天气查询</code></pre>
+
+          <p>沙箱模式的特点：</p>
+
+          <div class="info">
+            <p>沙箱使用内存模拟（mock）替代真实系统组件：</p>
+            <ul>
+              <li><strong>数据库</strong>：内存 MongoDB mock，数据不持久化</li>
+              <li><strong>存储</strong>：内存 OSS mock</li>
+              <li><strong>事件</strong>：内存事件总线</li>
+              <li><strong>网络</strong>：可配置的 fetch mock（默认放行声明的 URL）</li>
+            </ul>
+            <p>沙箱中扩展的权限自动限制为 <code>user_scoped</code>，防止开发阶段误操作生产数据。</p>
+          </div>
+
+          <p>进入沙箱后，你可以直接对话测试：</p>
+
+<pre><code>&gt; 查询北京今天的天气
+鸽子正在调用 [天气查询.查询天气] ...
+
+结果：
+  城市: 北京
+  温度: 28°C
+  天气: 晴
+  湿度: 45%
+  风速: 12 km/h</code></pre>
+
+          <h2>第六步：发布</h2>
+
+          <p>测试通过后，发布到扩展市场：</p>
+
+<pre><code>dove app publish 天气查询</code></pre>
+
+          <p>详细的发布流程参见 <a href="publishing.html">发布与安装</a>。</p>
+
+          <h2>完整开发流程图</h2>
+
+<pre><code>┌─────────────┐
+│ dove app    │
+│ create      │  ← 生成脚手架
+└──────┬──────┘
+       ▼
+┌─────────────┐
+│   开发      │  ← 编写 manifest、tools、skills
+│             │
+└──────┬──────┘
+       ▼
+┌─────────────┐
+│ dove app    │
+│ validate    │  ← 静态检查
+└──────┬──────┘
+       ▼
+┌─────────────┐
+│ dove app    │
+│ dev         │  ← 沙箱交互测试
+└──────┬──────┘
+       ▼
+┌─────────────┐
+│ dove app    │
+│ publish     │  ← 发布到市场
+└──────┬──────┘
+       ▼
+┌─────────────┐
+│ dove app    │
+│ install     │  ← 用户安装使用
+└─────────────┘</code></pre>
+
+          <h2>下一步</h2>
+
+          <ul>
+            <li><a href="manifest.html">manifest.js 规范</a> — 详细了解每个字段</li>
+            <li><a href="permissions.html">权限体系</a> — 理解权限模型和安全机制</li>
+            <li><a href="tools.html">工具开发</a> — 深入学习工具编写</li>
+          </ul>
+
+        </article>
+      </main>
+    </div>
+  </div>
+  <script src="../js/components.js"></script>
+  <script src="../js/nav.js"></script>
+  <script src="../js/search.js"></script>
+</body>
+</html>

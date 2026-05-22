@@ -1,0 +1,441 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>服务命令 - 白鸽文档</title>
+  <link rel="stylesheet" href="../css/style.css">
+</head>
+<body>
+  <div id="app">
+    <header id="site-header"></header>
+    <div class="layout">
+      <aside id="sidebar"></aside>
+      <main class="content">
+        <article>
+          <h1>服务命令</h1>
+          <p>服务命令管理白鸽系统的后台进程、Web 面板、运行日志和用量统计。</p>
+
+          <!-- dove service -->
+          <h2 id="dove-service">dove service</h2>
+          <p>服务生命周期管理命令，控制 Server 和 Doves 进程的启停与开机自启。</p>
+
+          <div class="synopsis">
+            <span class="cmd">dove</span> <span class="arg">service</span> <span class="opt">[action]</span> <span class="opt">[options]</span>
+          </div>
+
+          <h3>Actions</h3>
+          <div class="table-wrapper">
+            <table>
+              <thead>
+                <tr>
+                  <th>Action</th>
+                  <th>Description</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><code>start</code></td>
+                  <td>启动服务</td>
+                </tr>
+                <tr>
+                  <td><code>stop</code></td>
+                  <td>停止服务</td>
+                </tr>
+                <tr>
+                  <td><code>restart</code></td>
+                  <td>重启服务</td>
+                </tr>
+                <tr>
+                  <td><code>status</code></td>
+                  <td>查看服务状态</td>
+                </tr>
+                <tr>
+                  <td><code>logs</code></td>
+                  <td>查看服务日志</td>
+                </tr>
+                <tr>
+                  <td><code>startup</code></td>
+                  <td>管理开机自启</td>
+                </tr>
+                <tr>
+                  <td><code>check</code></td>
+                  <td>检查服务健康</td>
+                </tr>
+                <tr>
+                  <td><code>save</code></td>
+                  <td>保存当前进程列表</td>
+                </tr>
+                <tr>
+                  <td><code>web</code></td>
+                  <td>启动 Web 管理面板</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <h3>选项</h3>
+          <div class="table-wrapper">
+            <table>
+              <thead>
+                <tr>
+                  <th>Flag</th>
+                  <th>Description</th>
+                  <th>Default</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><code>-t, --type &lt;type&gt;</code></td>
+                  <td>服务类型：server 或 dove</td>
+                  <td>全部</td>
+                </tr>
+                <tr>
+                  <td><code>-p, --prod</code></td>
+                  <td>生产模式启动</td>
+                  <td>false</td>
+                </tr>
+                <tr>
+                  <td><code>--lines &lt;n&gt;</code></td>
+                  <td>日志行数</td>
+                  <td>50</td>
+                </tr>
+                <tr>
+                  <td><code>--json</code></td>
+                  <td>JSON 格式输出</td>
+                  <td>false</td>
+                </tr>
+                <tr>
+                  <td><code>-a, --all</code></td>
+                  <td>所有服务</td>
+                  <td>false</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <h4>Startup 子选项</h4>
+          <div class="table-wrapper">
+            <table>
+              <thead>
+                <tr>
+                  <th>Flag</th>
+                  <th>Description</th>
+                  <th>Default</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><code>--enable</code></td>
+                  <td>启用开机自启</td>
+                  <td>-</td>
+                </tr>
+                <tr>
+                  <td><code>--disable</code></td>
+                  <td>禁用开机自启</td>
+                  <td>-</td>
+                </tr>
+                <tr>
+                  <td><code>--status</code></td>
+                  <td>查看开机自启状态</td>
+                  <td>-</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <h3>示例</h3>
+          <pre><code># 启动所有服务
+dove service start
+
+# 仅启动 Server
+dove service start -t server
+
+# 生产模式启动
+dove service start -p
+
+# 查看状态
+dove service status
+
+# JSON 格式状态（便于监控脚本）
+dove service status --json
+
+# 重启鸽子服务
+dove service restart -t dove
+
+# 停止所有服务
+dove service stop -a
+
+# 查看服务日志
+dove service logs -t server --lines 100
+
+# 检查健康
+dove service check
+
+# 启用开机自启
+dove service startup --enable
+
+# 查看自启状态
+dove service startup --status
+
+# 保存当前进程列表
+dove service save</code></pre>
+
+          <!-- dove web -->
+          <h2 id="dove-web">dove web</h2>
+          <p>启动 Web 管理面板，提供图形化界面管理白鸽系统。</p>
+
+          <div class="synopsis">
+            <span class="cmd">dove</span> <span class="arg">web</span> <span class="opt">[options]</span>
+          </div>
+
+          <h3>选项</h3>
+          <div class="table-wrapper">
+            <table>
+              <thead>
+                <tr>
+                  <th>Flag</th>
+                  <th>Description</th>
+                  <th>Default</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><code>-p, --port &lt;port&gt;</code></td>
+                  <td>监听端口</td>
+                  <td>5173</td>
+                </tr>
+                <tr>
+                  <td><code>--host &lt;host&gt;</code></td>
+                  <td>绑定地址</td>
+                  <td>127.0.0.1</td>
+                </tr>
+                <tr>
+                  <td><code>--no-open</code></td>
+                  <td>不自动打开浏览器</td>
+                  <td>false</td>
+                </tr>
+                <tr>
+                  <td><code>--dev</code></td>
+                  <td>开发模式（热更新）</td>
+                  <td>false</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <h3>示例</h3>
+          <pre><code># 默认启动 Web 面板
+dove web
+
+# 指定端口且不自动打开浏览器
+dove web -p 8080 --no-open
+
+# 允许局域网访问
+dove web --host 0.0.0.0
+
+# 开发模式
+dove web --dev</code></pre>
+
+          <div class="info">
+            <p>Web 面板提供对话管理、任务监控、鸽子状态、配置编辑等图形化功能，适合不熟悉命令行的用户。</p>
+          </div>
+
+          <!-- dove log -->
+          <h2 id="dove-log">dove log</h2>
+          <p>日志查看命令，实时跟踪各模块的运行日志。</p>
+
+          <div class="synopsis">
+            <span class="cmd">dove</span> <span class="arg">log</span> <span class="opt">[module]</span> <span class="opt">[options]</span>
+          </div>
+
+          <h3>Modules</h3>
+          <div class="table-wrapper">
+            <table>
+              <thead>
+                <tr>
+                  <th>Module</th>
+                  <th>Description</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><code>server</code></td>
+                  <td>Server 端日志</td>
+                </tr>
+                <tr>
+                  <td><code>doves</code></td>
+                  <td>鸽子运行日志</td>
+                </tr>
+                <tr>
+                  <td><code>llm</code></td>
+                  <td>LLM 调用日志</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <h3>选项</h3>
+          <div class="table-wrapper">
+            <table>
+              <thead>
+                <tr>
+                  <th>Flag</th>
+                  <th>Description</th>
+                  <th>Default</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><code>-n, --lines &lt;n&gt;</code></td>
+                  <td>显示行数</td>
+                  <td>50</td>
+                </tr>
+                <tr>
+                  <td><code>-f, --follow</code></td>
+                  <td>实时跟踪（类似 tail -f）</td>
+                  <td>false</td>
+                </tr>
+                <tr>
+                  <td><code>-e, --error</code></td>
+                  <td>仅显示错误</td>
+                  <td>false</td>
+                </tr>
+                <tr>
+                  <td><code>--json</code></td>
+                  <td>JSON 格式输出</td>
+                  <td>false</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <h4>子命令：clean</h4>
+          <div class="synopsis">
+            <span class="cmd">dove</span> <span class="arg">log</span> <span class="arg">clean</span> <span class="opt">[--days &lt;n&gt;]</span>
+          </div>
+          <p>清理过期日志文件。</p>
+
+          <h3>示例</h3>
+          <pre><code># 查看 Server 日志
+dove log server
+
+# 实时跟踪鸽子日志
+dove log doves -f
+
+# 仅查看 LLM 错误日志
+dove log llm -e
+
+# 查看最近 200 行
+dove log server -n 200
+
+# 清理 7 天前的日志
+dove log clean --days 7
+
+# JSON 格式（便于日志分析工具）
+dove log server --json -n 100</code></pre>
+
+          <!-- dove stats -->
+          <h2 id="dove-stats">dove stats</h2>
+          <p>Token 用量统计面板，查看各维度的 LLM 调用消耗。</p>
+
+          <div class="synopsis">
+            <span class="cmd">dove</span> <span class="arg">stats</span> <span class="opt">[options]</span>
+          </div>
+
+          <h3>选项</h3>
+          <div class="table-wrapper">
+            <table>
+              <thead>
+                <tr>
+                  <th>Flag</th>
+                  <th>Description</th>
+                  <th>Default</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><code>--by-model</code></td>
+                  <td>按模型分组统计</td>
+                  <td>false</td>
+                </tr>
+                <tr>
+                  <td><code>--by-provider</code></td>
+                  <td>按提供商分组统计</td>
+                  <td>false</td>
+                </tr>
+                <tr>
+                  <td><code>--by-day</code></td>
+                  <td>按天分组统计</td>
+                  <td>false</td>
+                </tr>
+                <tr>
+                  <td><code>--today</code></td>
+                  <td>仅统计今天</td>
+                  <td>false</td>
+                </tr>
+                <tr>
+                  <td><code>--week</code></td>
+                  <td>最近一周</td>
+                  <td>false</td>
+                </tr>
+                <tr>
+                  <td><code>--month</code></td>
+                  <td>最近一月</td>
+                  <td>false</td>
+                </tr>
+                <tr>
+                  <td><code>--from &lt;date&gt;</code></td>
+                  <td>起始日期（YYYY-MM-DD）</td>
+                  <td>-</td>
+                </tr>
+                <tr>
+                  <td><code>--to &lt;date&gt;</code></td>
+                  <td>结束日期（YYYY-MM-DD）</td>
+                  <td>-</td>
+                </tr>
+                <tr>
+                  <td><code>--all</code></td>
+                  <td>所有时间</td>
+                  <td>false</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <h3>示例</h3>
+          <pre><code># 查看今日用量
+dove stats --today
+
+# 按模型统计本周
+dove stats --week --by-model
+
+# 按提供商统计本月
+dove stats --month --by-provider
+
+# 按天查看趋势
+dove stats --by-day --from 2026-05-01 --to 2026-05-21
+
+# 全量统计
+dove stats --all --by-model --by-provider</code></pre>
+
+          <div class="tip">
+            <p><strong>提示</strong>：<code>dove stats</code> 是免认证命令，即使登录过期也可以查看本地缓存的统计数据。</p>
+          </div>
+
+          <h2>相关命令</h2>
+          <ul>
+            <li><a href="auth.html#dove-status">dove status</a> - 查看系统整体状态</li>
+            <li><a href="auth.html#dove-ping">dove ping</a> - 测试服务连通性</li>
+            <li><a href="config.html#dove-config">dove config</a> - 服务相关配置</li>
+          </ul>
+
+        </article>
+      </main>
+    </div>
+  </div>
+  <script src="../js/components.js"></script>
+  <script src="../js/nav.js"></script>
+  <script src="../js/search.js"></script>
+</body>
+</html>

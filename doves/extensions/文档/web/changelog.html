@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>变更日志</title>
+<link rel="stylesheet" href="/css/style.css">
+<style>
+  .section { margin-bottom: 16px; }
+  .section h3 { font-size: 15px; margin-bottom: 12px; color: var(--text-secondary); }
+  .config-row { display: flex; gap: 12px; align-items: center; margin-bottom: 12px; flex-wrap: wrap; }
+  .config-row label { font-size: 13px; color: var(--text-secondary); min-width: 30px; }
+  .config-row input, .config-row select { padding: 6px 10px; border: 1px solid var(--border); border-radius: var(--radius-sm); font-size: 13px; background: var(--bg-input); color: var(--text); }
+  .changelog-content { background: var(--bg-input); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 16px; font-family: monospace; font-size: 13px; white-space: pre-wrap; line-height: 1.6; max-height: 600px; overflow-y: auto; }
+  .changelog-group { margin-bottom: 16px; }
+  .changelog-group h4 { font-size: 14px; color: var(--text-secondary); margin-bottom: 6px; padding-bottom: 4px; border-bottom: 1px solid var(--border); }
+  .changelog-item { padding: 4px 0; font-size: 13px; color: var(--text); }
+</style>
+</head>
+<body>
+  <div class="page-header">
+    <h1 class="page-title">变更日志</h1>
+  </div>
+
+  <div class="card">
+    <div class="section">
+      <h3>生成配置</h3>
+      <div class="config-row">
+        <label>从:</label>
+        <input class="input" id="fromRef" placeholder="起始ref（如 v1.0.0 或 tag）" style="width:180px">
+        <label>到:</label>
+        <input class="input" id="toRef" value="HEAD" style="width:120px">
+        <label>格式:</label>
+        <select id="format" class="input">
+          <option value="markdown">Markdown</option>
+          <option value="json">JSON</option>
+        </select>
+        <button class="btn btn-sm" onclick="generateChangelog()">生成</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="section">
+      <h3>变更日志内容</h3>
+      <div class="changelog-content" id="changelogContent">
+        <div class="empty-state">配置起始ref后点击"生成"</div>
+      </div>
+    </div>
+  </div>
+
+<script src="/js/sdk.js"></script>
+<script>
+DoveSDK.init('文档');
+
+async function generateChangelog() {
+  const from = document.getElementById('fromRef').value;
+  const to = document.getElementById('toRef').value || 'HEAD';
+  const format = document.getElementById('format').value;
+  const content = document.getElementById('changelogContent');
+
+  if (!from) {
+    content.innerHTML = '<div class="empty-state" style="color:var(--error)">请输入起始ref</div>';
+    return;
+  }
+
+  content.innerHTML = '<div class="loading">生成中...</div>';
+
+  try {
+    const result = await DoveSDK.callSkill('changelog', 'generate', { from, to, format });
+    if (result.success) {
+      const data = result.data;
+      if (data.changelog) {
+        content.textContent = data.changelog;
+      } else if (data.分组) {
+        const typeTitles = {
+          feature: '新功能',
+          bugfix: '修复',
+          refactor: '重构',
+          docs: '文档',
+          test: '测试',
+          config: '配置',
+          style: '样式',
+          perf: '性能',
+          other: '其他'
+        };
+        let html = '<p>共 ' + (data.提交数 || 0) + ' 个提交</p>';
+        for (const [type, commits] of Object.entries(data.分组)) {
+          html += '<div class="changelog-group"><h4>' + (typeTitles[type] || type) + '</h4>';
+          for (const c of commits) {
+            html += '<div class="changelog-item">- <code>' + escapeHtml(c.hash) + '</code> ' + escapeHtml(c.subject) + ' (@' + escapeHtml(c.author || '') + ')</div>';
+          }
+          html += '</div>';
+        }
+        content.innerHTML = html;
+      }
+    } else {
+      content.innerHTML = '<div class="empty-state" style="color:var(--error)">' + (result.error || '生成失败') + '</div>';
+    }
+  } catch (e) {
+    content.innerHTML = '<div class="empty-state" style="color:var(--error)">错误: ' + e.message + '</div>';
+  }
+}
+
+function escapeHtml(text) {
+  const div = document.createElement('div');
+  div.textContent = text || '';
+  return div.innerHTML;
+}
+</script>
+</body>
+</html>

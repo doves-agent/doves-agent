@@ -1,0 +1,411 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>权限体系 - 白鸽文档</title>
+  <link rel="stylesheet" href="../css/style.css">
+</head>
+<body>
+  <div id="app">
+    <header id="site-header"></header>
+    <div class="layout">
+      <aside id="sidebar"></aside>
+      <main class="content">
+        <article>
+          <h1>权限体系</h1>
+
+          <p class="synopsis">
+            白鸽的权限体系确保扩展只能访问其声明的资源，实现多租户隔离和最小权限原则。
+            所有资源访问通过 <code>DoveAppContext (ctx)</code> 代理，运行时强制执行权限检查。
+          </p>
+
+          <h2>为什么需要权限</h2>
+
+          <ul>
+            <li><strong>安全性</strong>：防止恶意或有缺陷的扩展越权访问系统资源</li>
+            <li><strong>多租户隔离</strong>：确保用户 A 的扩展无法读取用户 B 的数据</li>
+            <li><strong>透明度</strong>：用户安装扩展前可以清楚地看到它需要哪些权限</li>
+            <li><strong>可审计</strong>：所有权限使用都有记录，便于安全审计</li>
+          </ul>
+
+          <h2>四种权限作用域（Scope）</h2>
+
+          <div class="table-wrapper">
+            <table>
+              <thead>
+                <tr>
+                  <th>作用域</th>
+                  <th>标识</th>
+                  <th>数据可见范围</th>
+                  <th>典型场景</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>全局共享</td>
+                  <td><code>shared</code></td>
+                  <td>所有数据，无用户过滤</td>
+                  <td>系统配置、公共知识库、全局统计</td>
+                </tr>
+                <tr>
+                  <td>用户隔离</td>
+                  <td><code>user_scoped</code></td>
+                  <td>仅当前用户的数据</td>
+                  <td>用户笔记、个人设置、历史记录</td>
+                </tr>
+                <tr>
+                  <td>任务隔离</td>
+                  <td><code>task_scoped</code></td>
+                  <td>仅当前任务/根任务的数据</td>
+                  <td>任务中间状态、临时缓存</td>
+                </tr>
+                <tr>
+                  <td>扩展私有</td>
+                  <td><code>extension</code></td>
+                  <td>仅本扩展内部可访问</td>
+                  <td>扩展配置、内部缓存、运行状态</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <h3>作用域示例</h3>
+
+<pre><code>// shared — 所有用户可见的公共数据
+{
+  db: 'system',
+  collection: '公告',
+  scope: 'shared',
+  actions: ['find']
+}
+
+// user_scoped — 自动按用户 ID 过滤
+{
+  db: 'user_data',
+  collection: '笔记',
+  scope: 'user_scoped',
+  userField: '用户ID',      // 系统自动注入过滤条件
+  actions: ['find', 'insertOne', 'updateOne', 'deleteOne']
+}
+
+// task_scoped — 自动按任务 ID 过滤
+{
+  db: 'task_data',
+  collection: '执行步骤',
+  scope: 'task_scoped',
+  actions: ['find', 'insertOne']
+}
+
+// extension — 扩展私有命名空间
+{
+  db: 'extensions',
+  collection: '天气查询_缓存',
+  scope: 'extension',
+  actions: ['find', 'insertOne', 'deleteMany']
+}</code></pre>
+
+          <div class="warning">
+            <p><code>user_scoped</code> 必须声明 <code>userField</code>，系统会在每次查询时自动注入
+            <code>{ [userField]: 当前用户ID }</code> 过滤条件。扩展代码无法绕过此限制。</p>
+          </div>
+
+          <h2>六种权限类别</h2>
+
+          <h3>1. databases — 数据库访问</h3>
+
+          <p>声明对 MongoDB 集合的访问权限，精确到操作级别。</p>
+
+<pre><code>databases: [
+  {
+    db: 'user_data',             // 数据库名
+    collection: '任务',          // 集合名
+    scope: 'user_scoped',        // 作用域
+    userField: '用户ID',         // scope 为 user_scoped 时必填
+    actions: [                   // 允许的操作
+      'find',
+      'findOne',
+      'insertOne',
+      'insertMany',
+      'updateOne',
+      'updateMany',
+      'deleteOne',
+      'deleteMany',
+      'aggregate',
+      'countDocuments'
+    ]
+  }
+]</code></pre>
+
+          <div class="table-wrapper">
+            <table>
+              <thead>
+                <tr>
+                  <th>操作</th>
+                  <th>说明</th>
+                  <th>安全等级</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr><td><code>find</code></td><td>查询多条文档</td><td>读取</td></tr>
+                <tr><td><code>findOne</code></td><td>查询单条文档</td><td>读取</td></tr>
+                <tr><td><code>countDocuments</code></td><td>统计文档数量</td><td>读取</td></tr>
+                <tr><td><code>aggregate</code></td><td>聚合管道查询</td><td>读取</td></tr>
+                <tr><td><code>insertOne</code></td><td>插入单条</td><td>写入</td></tr>
+                <tr><td><code>insertMany</code></td><td>批量插入</td><td>写入</td></tr>
+                <tr><td><code>updateOne</code></td><td>更新单条</td><td>写入</td></tr>
+                <tr><td><code>updateMany</code></td><td>批量更新</td><td>写入</td></tr>
+                <tr><td><code>deleteOne</code></td><td>删除单条</td><td>危险</td></tr>
+                <tr><td><code>deleteMany</code></td><td>批量删除</td><td>危险</td></tr>
+              </tbody>
+            </table>
+          </div>
+
+          <h3>2. storage — 存储访问</h3>
+
+          <p>声明对 OSS 对象存储和 git-storage 的访问权限。</p>
+
+<pre><code>storage: [
+  // OSS 存储
+  {
+    type: 'oss',
+    path: '用户文件/${userId}/*',   // 支持变量替换
+    actions: ['read', 'write', 'delete', 'list']
+  },
+  // Git 存储
+  {
+    type: 'git-storage',
+    repo: '知识库',
+    actions: ['read', 'write']
+  },
+  // 记忆存储
+  {
+    type: 'memory',
+    namespace: '天气偏好',
+    actions: ['read', 'write']
+  }
+]</code></pre>
+
+          <h3>3. apis — 内部 API 访问</h3>
+
+          <p>声明对系统内部 API 的访问权限。</p>
+
+<pre><code>apis: [
+  {
+    path: '/api/user/profile',
+    actions: ['read']           // read = GET, write = POST/PUT/DELETE
+  },
+  {
+    path: '/api/tasks/*',
+    actions: ['read', 'write']
+  }
+]</code></pre>
+
+          <h3>4. events — 事件订阅/发布</h3>
+
+          <p>声明对系统事件的订阅和发布权限。</p>
+
+<pre><code>events: [
+  {
+    name: '任务.完成',
+    actions: ['subscribe']       // 订阅此事件
+  },
+  {
+    name: '天气.告警',
+    actions: ['publish']         // 发布此事件
+  },
+  {
+    name: '数据.变更.*',         // 支持通配符
+    actions: ['subscribe']
+  }
+]</code></pre>
+
+          <h3>5. extensions — 扩展间通信</h3>
+
+          <p>声明与其他扩展的交互权限。</p>
+
+<pre><code>extensions: [
+  {
+    name: '通知',
+    actions: ['call']            // 调用通知扩展的方法
+  },
+  {
+    name: '数据分析',
+    actions: ['read']            // 读取数据分析扩展的公开数据
+  },
+  {
+    name: '文档',
+    actions: ['call', 'read', 'write']
+  }
+]</code></pre>
+
+          <div class="table-wrapper">
+            <table>
+              <thead>
+                <tr>
+                  <th>动作</th>
+                  <th>说明</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr><td><code>call</code></td><td>调用目标扩展暴露的方法</td></tr>
+                <tr><td><code>read</code></td><td>读取目标扩展的公开数据</td></tr>
+                <tr><td><code>write</code></td><td>向目标扩展写入数据</td></tr>
+              </tbody>
+            </table>
+          </div>
+
+          <h3>6. externalUrls — 外部网络访问</h3>
+
+          <p>声明扩展需要访问的外部 URL，这是最敏感的权限类别之一。</p>
+
+<pre><code>externalUrls: [
+  {
+    url: 'https://api.openai.com/*',
+    actions: ['fetch'],              // HTTP 请求
+    description: '调用 OpenAI API'   // 必须说明用途
+  },
+  {
+    url: 'wss://realtime.example.com',
+    actions: ['connect'],            // WebSocket 连接
+    description: '实时数据推送'
+  },
+  {
+    url: 'https://cdn.example.com/*',
+    actions: ['iframe'],             // 嵌入 iframe
+    description: '加载 CDN 资源'
+  }
+]</code></pre>
+
+          <div class="table-wrapper">
+            <table>
+              <thead>
+                <tr>
+                  <th>动作</th>
+                  <th>说明</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr><td><code>fetch</code></td><td>HTTP/HTTPS 请求（GET、POST 等）</td></tr>
+                <tr><td><code>connect</code></td><td>WebSocket 或持久连接</td></tr>
+                <tr><td><code>iframe</code></td><td>在 Web 页面中嵌入 iframe</td></tr>
+              </tbody>
+            </table>
+          </div>
+
+          <h2>DoveAppContext 权限执行</h2>
+
+          <p>扩展的所有系统访问都通过 <code>DoveAppContext (ctx)</code> 代理，ctx 在每次操作前检查权限：</p>
+
+<pre><code>// 扩展代码中
+export default {
+  execute: async (params, ctx) => {
+    // ctx.db — 数据库操作（自动注入 scope 过滤）
+    const 笔记列表 = await ctx.db.find('user_data', '笔记', { 标签: '重要' });
+    // ↑ 如果 scope 是 user_scoped，实际查询会变成:
+    // { 标签: '重要', 用户ID: '当前用户ID' }
+
+    // ctx.storage — 存储操作
+    const 文件 = await ctx.storage.read('用户文件/report.pdf');
+
+    // ctx.fetch — 外部网络请求（检查 externalUrls 权限）
+    const resp = await ctx.fetch('https://api.example.com/data');
+
+    // ctx.events — 事件操作
+    await ctx.events.publish('数据.更新', { id: '123' });
+
+    // ctx.extensions — 扩展间调用
+    await ctx.extensions.call('通知', '发送', { 内容: '处理完成' });
+  }
+};</code></pre>
+
+          <div class="tip">
+            <p>如果扩展尝试访问未声明的权限，<code>ctx</code> 会立即抛出
+            <code>PermissionDeniedError</code>，包含详细的权限缺失信息。</p>
+          </div>
+
+          <h2>授权模式</h2>
+
+          <div class="table-wrapper">
+            <table>
+              <thead>
+                <tr>
+                  <th>模式</th>
+                  <th>适用场景</th>
+                  <th>权限限制</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><code>official</code></td>
+                  <td>官方扩展</td>
+                  <td>可使用所有 scope，包括 <code>shared</code></td>
+                </tr>
+                <tr>
+                  <td><code>production</code></td>
+                  <td>已审核的第三方扩展</td>
+                  <td>可使用 <code>user_scoped</code>、<code>task_scoped</code>、<code>extension</code></td>
+                </tr>
+                <tr>
+                  <td><code>dev</code></td>
+                  <td>开发中的扩展（沙箱）</td>
+                  <td>仅限 <code>user_scoped</code>，且使用 mock 后端</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div class="info">
+            <p>开发模式（<code>dove app dev</code>）下，所有权限自动降级为 <code>user_scoped</code>，
+            并且后端服务替换为内存 mock。这确保开发阶段不会影响生产数据。</p>
+          </div>
+
+          <h2>安装确认流程</h2>
+
+          <p>用户安装扩展时，系统会展示权限摘要：</p>
+
+<pre><code>$ dove app install 天气查询
+
+┌─────────────────────────────────────────────┐
+│  扩展：天气查询 v1.0.0                       │
+│  作者：dev_a1b2c3d4                         │
+│                                             │
+│  请求的权限：                                │
+│                                             │
+│  📂 数据库                                   │
+│    · user_data.天气收藏 [读/写/删] (用户隔离) │
+│                                             │
+│  🌐 外部网络                                 │
+│    · api.weatherapi.com [HTTP请求]           │
+│      用途：调用天气 API 获取数据              │
+│                                             │
+│  确认安装？[y/N]                             │
+└─────────────────────────────────────────────┘</code></pre>
+
+          <h2>最佳实践</h2>
+
+          <ul>
+            <li><strong>最小权限</strong>：只申请实际需要的权限，不要「预留」</li>
+            <li><strong>优先 user_scoped</strong>：除非确实需要跨用户数据，否则使用 user_scoped</li>
+            <li><strong>说明用途</strong>：<code>externalUrls</code> 必须填写 <code>description</code>，其他类别也建议加注释</li>
+            <li><strong>粒度适当</strong>：按功能拆分权限，避免一个大集合包揽所有数据</li>
+            <li><strong>避免 deleteMany</strong>：除非确实需要批量删除，否则只申请 <code>deleteOne</code></li>
+          </ul>
+
+          <h2>相关页面</h2>
+
+          <ul>
+            <li><a href="manifest.html">manifest.js 规范</a> — 权限在 manifest 中的位置</li>
+            <li><a href="tools.html">工具开发</a> — ctx 在工具中的使用</li>
+            <li><a href="publishing.html">发布与安装</a> — 权限审核流程</li>
+          </ul>
+
+        </article>
+      </main>
+    </div>
+  </div>
+  <script src="../js/components.js"></script>
+  <script src="../js/nav.js"></script>
+  <script src="../js/search.js"></script>
+</body>
+</html>

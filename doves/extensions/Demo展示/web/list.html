@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html><head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Demo 列表</title>
+<link rel="stylesheet" href="/css/style.css">
+<style>
+  .tip-box {
+    background: var(--bg-card); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 12px 16px;
+    margin-bottom: 20px; font-size: 13px; color: var(--text-secondary);
+  }
+  .actions-row {
+    display: flex; gap: 8px; flex-wrap: wrap;
+  }
+  #demoList { margin-top: 20px; }
+  .demo-item {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 12px 16px; margin-bottom: 8px;
+  }
+  .demo-item .demo-info { flex: 1; }
+  .demo-item .demo-title { font-weight: 600; color: var(--text); margin-bottom: 2px; }
+  .demo-item .demo-meta { font-size: 12px; color: var(--text-secondary); }
+  .status-badge {
+    display: inline-block; padding: 2px 8px;
+    border-radius: var(--radius-sm); font-size: 12px;
+  }
+  .status-active { background: var(--success); color: #fff; }
+  .status-draft { background: var(--warning); color: #fff; }
+  .status-expired { background: var(--text-secondary); color: #fff; }
+</style>
+</head><body>
+<div class="page-header">
+  <h1 class="page-title">Demo 列表</h1>
+</div>
+
+<div class="tip-box">管理已创建的 Demo，支持查询、搜索和清理操作</div>
+
+<div class="card">
+  <div class="actions-row">
+    <button class="btn" data-cmd="列出所有Demo">查看全部</button>
+    <button class="btn btn-outline" data-cmd="搜索Demo">搜索</button>
+    <button class="btn btn-outline" data-cmd="清理过期Demo">清理过期</button>
+  </div>
+</div>
+
+<div id="demoList"></div>
+
+<script src="/js/sdk.js"></script>
+<script>
+DoveSDK.init('Demo展示');
+
+function sendCmd(text) {
+  DoveSDK.cmd(text);
+  DoveSDK.navigateTo('chat');
+}
+
+document.querySelectorAll('[data-cmd]').forEach(el => {
+  el.addEventListener('click', () => {
+    sendCmd(el.dataset.cmd);
+  });
+});
+
+async function loadDemos() {
+  const container = document.getElementById('demoList');
+  container.innerHTML = '<div class="loading">加载中...</div>';
+  try {
+    const result = await DoveSDK.callTool('Demo列表', {});
+    if (result && Array.isArray(result.data) && result.data.length > 0) {
+      container.innerHTML = result.data.map(demo => `
+        <div class="card demo-item">
+          <div class="demo-info">
+            <div class="demo-title">${demo.title || '未命名'}</div>
+            <div class="demo-meta">${demo.type || ''} - ${demo.createdAt || ''}</div>
+          </div>
+          <span class="status-badge status-${demo.status || 'draft'}">${demo.status || '草稿'}</span>
+        </div>
+      `).join('');
+    } else {
+      container.innerHTML = '<div class="empty-state">暂无 Demo，点击上方按钮通过对话创建</div>';
+    }
+  } catch (e) {
+    container.innerHTML = '<div class="empty-state">通过对话管理 Demo 列表</div>';
+  }
+}
+
+loadDemos();
+</script>
+</body></html>

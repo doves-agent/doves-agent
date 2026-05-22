@@ -1,0 +1,8 @@
+node_modules/
+dist/
+tools/bun-windows-x64/
+.env
+*.log
+logs/
+.DS_Store
+Thumbs.db

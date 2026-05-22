@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>词汇颜色渲染 - 预览与测试</title>
+<link rel="stylesheet" href="/css/style.css">
+<style>
+  .page-nav { display: flex; gap: 4px; margin-bottom: 16px; background: var(--bg-card); border-radius: var(--radius); padding: 6px; border: 1px solid var(--border); }
+  .page-nav a { padding: 6px 16px; border-radius: var(--radius-sm); font-size: 13px; color: var(--text-secondary); text-decoration: none; transition: all 0.15s; }
+  .page-nav a:hover { background: var(--bg-input); color: var(--text); }
+  .page-nav a.active { background: var(--primary); color: #fff; }
+
+  .toolbar { display: flex; align-items: center; gap: 12px; margin-bottom: 24px; flex-wrap: wrap; padding: 12px; background: var(--bg-card); border-radius: var(--radius); border: 1px solid var(--border); }
+  .toolbar label { font-size: 13px; color: var(--text-secondary); font-weight: 600; }
+  .mode-btns { display: flex; gap: 4px; }
+  .mode-btns button { padding: 6px 16px; border: 1px solid var(--border); background: var(--bg-card); border-radius: var(--radius-sm); cursor: pointer; font-size: 13px; color: var(--text-secondary); transition: all 0.2s; }
+  .mode-btns button.active { background: var(--primary); color: #fff; border-color: var(--primary); }
+  .mode-btns button:hover:not(.active) { border-color: var(--primary); color: var(--primary); }
+  .template-select { padding: 6px 12px; border: 1px solid var(--border); border-radius: var(--radius-sm); font-size: 13px; outline: none; cursor: pointer; background: var(--bg-input); color: var(--text); }
+  .color-preview { display: flex; gap: 3px; align-items: center; }
+  .color-dot { width: 16px; height: 16px; border-radius: 50%; border: 1px solid rgba(0,0,0,0.1); }
+
+  .word-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px; margin-bottom: 32px; }
+  .word-card { background: var(--bg-card); border-radius: var(--radius); padding: 20px; border: 1px solid var(--border); transition: box-shadow 0.2s; }
+  .word-card:hover { box-shadow: 0 4px 16px rgba(0,0,0,0.08); }
+
+  .colored-word-md { font-size: 28px; font-weight: 700; letter-spacing: 0.5px; line-height: 1.3; margin-bottom: 4px; }
+  .phonetic { font-size: 15px; color: var(--text-secondary); margin-bottom: 4px; }
+  .meaning { font-size: 13px; color: var(--text-secondary); margin-top: 6px; }
+  .legend { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 8px; }
+  .legend-item { display: flex; align-items: center; gap: 3px; font-size: 11px; color: var(--text-secondary); }
+  .legend-dot { width: 8px; height: 8px; border-radius: 50%; }
+
+  .showcase { background: var(--bg-card); border-radius: var(--radius); padding: 32px; border: 1px solid var(--border); margin-bottom: 32px; text-align: center; }
+  .showcase-title { font-size: 13px; color: var(--text-secondary); margin-bottom: 8px; text-transform: uppercase; letter-spacing: 2px; }
+  .showcase-word { font-size: 64px; font-weight: 700; letter-spacing: 3px; line-height: 1.2; margin-bottom: 8px; }
+  .showcase-phonetic { font-size: 22px; color: var(--text-secondary); margin-bottom: 12px; }
+  .showcase-legend { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; margin-top: 12px; }
+  .showcase-legend .legend-item { font-size: 14px; }
+  .showcase-legend .legend-dot { width: 12px; height: 12px; }
+
+  .test-section { background: var(--bg-card); border-radius: var(--radius); padding: 20px; border: 1px solid var(--border); margin-top: 32px; }
+  .test-section h3 { font-size: 15px; margin-bottom: 12px; }
+  .test-result { padding: 6px 0; border-bottom: 1px solid var(--border); font-size: 13px; display: flex; gap: 8px; align-items: baseline; }
+  .test-result:last-child { border-bottom: none; }
+  .test-pass { color: var(--success); }
+  .test-fail { color: var(--error); }
+  .test-name { font-weight: 600; }
+  .test-detail { color: var(--text-secondary); }
+</style>
+</head>
+<body>
+  <div class="page-header">
+    <h1 class="page-title">词汇颜色渲染 - 预览与测试</h1>
+    <p style="font-size: 14px; color: var(--text-secondary);">独立页面，使用模拟数据验证所有渲染效果</p>
+  </div>
+
+  <div class="page-nav">
+    <a href="#" onclick="DoveSDK.navigateTo('vocabulary-learn');return false">学习</a>
+    <a href="#" onclick="DoveSDK.navigateTo('vocabulary-review');return false">复习</a>
+    <a href="#" onclick="DoveSDK.navigateTo('vocabulary-import');return false">录入</a>
+    <a href="#" onclick="DoveSDK.navigateTo('vocabulary-stats');return false">统计</a>
+    <a href="#" class="active" onclick="return false">预览</a>
+  </div>
+
+  <div class="toolbar">
+    <label>着色模式:</label>
+    <div class="mode-btns">
+      <button class="mode-btn active" data-mode="syllable" onclick="switchMode('syllable')">音节</button>
+      <button class="mode-btn" data-mode="root" onclick="switchMode('root')">词根</button>
+      <button class="mode-btn" data-mode="vowel" onclick="switchMode('vowel')">元音</button>
+    </div>
+    <label>配色:</label>
+    <select class="template-select" id="templateSelect"></select>
+    <div class="color-preview" id="colorPreview"></div>
+  </div>
+
+  <div class="showcase" id="showcase"></div>
+  <div class="word-grid" id="wordGrid"></div>
+
+  <div class="test-section">
+    <h3>渲染逻辑单元测试</h3>
+    <div id="testResults"></div>
+  </div>
+
+<script src="/js/sdk.js"></script>
+<script src="vocab-common.js"></script>
+<script>
+DoveSDK.init('背单词');
+
+// ==================== 模拟数据 ====================
+
+const MOCK_WORDS = [
+  {
+    word: 'elaborate', phonetic: '/ɪˈlæb.ər.ət/',
+    syllables: [{ text: 'e', stress: false }, { text: 'lab', stress: true }, { text: 'o', stress: false }, { text: 'rate', stress: false }],
+    vowel_segments: [{ text: 'e', is_vowel: true }, { text: 'l', is_vowel: false }, { text: 'a', is_vowel: true }, { text: 'b', is_vowel: false }, { text: 'o', is_vowel: true }, { text: 'r', is_vowel: false }, { text: 'a', is_vowel: true }, { text: 't', is_vowel: false }, { text: 'e', is_vowel: true }],
+    roots: { prefix: 'e', root: 'labor', suffix: 'ate', explanation: 'e-出 + labor-劳动 + -ate动词后缀 → 精心劳作 → 精心制作的' },
+    definitions: [{ pos: 'adj.', meaning_cn: '精心制作的；详尽的' }, { pos: 'v.', meaning_cn: '详细阐述；精心制作' }],
+  },
+  {
+    word: 'uncomfortable', phonetic: '/ʌnˈkʌm.fər.tə.bəl/',
+    syllables: [{ text: 'un', stress: false }, { text: 'com', stress: true }, { text: 'for', stress: false }, { text: 'ta', stress: false }, { text: 'ble', stress: false }],
+    roots: { prefix: 'un', root: 'comfort', suffix: 'able', explanation: 'un-不 + comfort-舒适 + -able能…的 → 不舒适的' },
+    definitions: [{ pos: 'adj.', meaning_cn: '不舒服的；不自在的' }],
+  },
+  {
+    word: 'prediction', phonetic: '/prɪˈdɪk.ʃən/',
+    syllables: [{ text: 'pre', stress: false }, { text: 'dic', stress: true }, { text: 'tion', stress: false }],
+    roots: { prefix: 'pre', root: 'dict', suffix: 'ion', explanation: 'pre-预先 + dict-说 + -ion名词后缀 → 预先说出来 → 预言' },
+    definitions: [{ pos: 'n.', meaning_cn: '预言；预测' }],
+  },
+  {
+    word: 'international', phonetic: '/ˌɪn.tərˈnæʃ.ən.əl/',
+    syllables: [{ text: 'in', stress: false }, { text: 'ter', stress: false }, { text: 'na', stress: true }, { text: 'tion', stress: false }, { text: 'al', stress: false }],
+    roots: { prefix: 'inter', root: 'nation', suffix: 'al', explanation: 'inter-在…之间 + nation-国家 + -al形容词后缀 → 国家之间的 → 国际的' },
+    definitions: [{ pos: 'adj.', meaning_cn: '国际的；世界的' }],
+  },
+  {
+    word: 'biology', phonetic: '/baɪˈɒl.ə.dʒi/',
+    syllables: [{ text: 'bi', stress: false }, { text: 'ol', stress: true }, { text: 'o', stress: false }, { text: 'gy', stress: false }],
+    roots: { prefix: '', root: 'bio', suffix: 'logy', explanation: 'bio-生命 + -logy…学 → 生物学' },
+    definitions: [{ pos: 'n.', meaning_cn: '生物学' }],
+  },
+  {
+    word: 'reconstruct', phonetic: '/ˌriː.kənˈstrʌkt/',
+    syllables: [{ text: 're', stress: false }, { text: 'con', stress: false }, { text: 'struct', stress: true }],
+    roots: { prefix: 're', root: 'construct', suffix: '', explanation: 're-再次 + construct-建造 → 重建' },
+    definitions: [{ pos: 'v.', meaning_cn: '重建；重构' }],
+  },
+];
+
+// ==================== 状态 ====================
+
+let currentMode = 'syllable';
+
+// ==================== 初始化 ====================
+
+VocTemplates.load('templateSelect', 'colorPreview', () => renderAll());
+
+function switchMode(mode) {
+  currentMode = mode;
+  document.querySelectorAll('.mode-btn').forEach(btn => btn.classList.toggle('active', btn.dataset.mode === mode));
+  renderAll();
+}
+
+// ==================== 页面渲染 ====================
+
+function renderAll() {
+  renderShowcase();
+  renderGrid();
+}
+
+function renderShowcase() {
+  const w = MOCK_WORDS[0];
+  const c = VocTemplates.getColors();
+  const legend = VocRender.legend(w, currentMode);
+
+  document.getElementById('showcase').innerHTML =
+    '<div class="showcase-title">大字展示</div>' +
+    '<div class="showcase-word">' + VocRender.coloredWord(w, currentMode, c) + '</div>' +
+    '<div class="showcase-phonetic">' + VocRender.coloredPhonetic(w.phonetic, w, currentMode, c) + '</div>' +
+    '<div class="showcase-legend">' + legend.replace(/class="legend"/g, 'class="showcase-legend"') + '</div>';
+}
+
+function renderGrid() {
+  const c = VocTemplates.getColors();
+  const grid = document.getElementById('wordGrid');
+  grid.innerHTML = MOCK_WORDS.map(w => {
+    const legend = VocRender.legend(w, currentMode);
+    const meanings = w.definitions?.map(d => d.pos + ' ' + d.meaning_cn).join('; ') || '';
+    return '<div class="word-card">' +
+      '<div class="colored-word-md">' + VocRender.coloredWord(w, currentMode, c) + '</div>' +
+      '<div class="phonetic">' + VocRender.coloredPhonetic(w.phonetic, w, currentMode, c) + '</div>' +
+      legend +
+      '<div class="meaning">' + meanings + '</div>' +
+    '</div>';
+  }).join('');
+}
+
+// ==================== 单元测试 ====================
+
+function runTests() {
+  const results = [];
+  const c = VocTemplates.defaultColors;
+
+  // 音节模式基本渲染
+  {
+    const w = { word: 'hello', syllables: [{ text: 'hel', stress: false }, { text: 'lo', stress: true }] };
+    const html = VocRender.coloredWord(w, 'syllable', c);
+    results.push({ name: '音节模式-基本渲染', pass: html.includes('hel') && html.includes('lo'), detail: html });
+  }
+
+  // 音节模式重音加粗
+  {
+    const w = { word: 'hello', syllables: [{ text: 'hel', stress: false }, { text: 'lo', stress: true }] };
+    const html = VocRender.coloredWord(w, 'syllable', c);
+    const hasBold = html.includes('font-weight:700');
+    results.push({ name: '音节模式-重音加粗', pass: hasBold, detail: hasBold ? 'lo 应有 font-weight:700' : '缺少 font-weight:700' });
+  }
+
+  // 词根模式-完全匹配
+  {
+    const w = { word: 'uncomfortable', roots: { prefix: 'un', root: 'comfort', suffix: 'able' } };
+    const html = VocRender.coloredWord(w, 'root', c);
+    results.push({ name: '词根模式-拼接完全匹配', pass: html.includes('un') && html.includes('comfort') && html.includes('able'), detail: html });
+  }
+
+  // 词根模式-无后缀
+  {
+    const w = { word: 'reconstruct', roots: { prefix: 're', root: 'construct', suffix: '' } };
+    const html = VocRender.coloredWord(w, 'root', c);
+    results.push({ name: '词根模式-无后缀', pass: html.includes('re') && html.includes('construct'), detail: html });
+  }
+
+  // 词根模式-无前缀
+  {
+    const w = { word: 'biology', roots: { prefix: '', root: 'bio', suffix: 'logy' } };
+    const html = VocRender.coloredWord(w, 'root', c);
+    results.push({ name: '词根模式-无前缀', pass: html.includes('bio') && html.includes('logy'), detail: html });
+  }
+
+  // 元音模式-服务端数据
+  {
+    const w = { word: 'test', vowel_segments: [{ text: 't', is_vowel: false }, { text: 'e', is_vowel: true }, { text: 'st', is_vowel: false }] };
+    const html = VocRender.coloredWord(w, 'vowel', c);
+    results.push({ name: '元音模式-服务端数据', pass: html.includes('t') && html.includes('e') && html.includes('st'), detail: html });
+  }
+
+  // 元音模式-本地fallback
+  {
+    const w = { word: 'apple' };
+    const html = VocRender.coloredWord(w, 'vowel', c);
+    results.push({ name: '元音模式-本地分段', pass: html.includes('a') && html.includes('ppl'), detail: html });
+  }
+
+  // 无数据回退
+  {
+    const w = { word: 'xyz' };
+    const html = VocRender.coloredWord(w, 'syllable', c);
+    results.push({ name: '无音节/词根数据回退', pass: html.includes('xyz'), detail: html });
+  }
+
+  // 音节拼接校验
+  {
+    const w = { word: 'different', syllables: [{ text: 'dif', stress: false }, { text: 'fer', stress: true }] };
+    const html = VocRender.coloredWord(w, 'syllable', c);
+    results.push({ name: '音节拼接不匹配时回退', pass: html.includes('different') && !html.includes('dif'), detail: '拼接不匹配应回退为整体渲染' });
+  }
+
+  // 音标渲染
+  {
+    const w = { word: 'prediction', phonetic: '/prɪˈdɪk.ʃən/', roots: { prefix: 'pre', root: 'dict', suffix: 'ion' } };
+    const html = VocRender.coloredPhonetic(w.phonetic, w, 'root', c);
+    results.push({ name: '音标-词根模式分段着色', pass: html.includes('prɪˈdɪk') && html.includes('ʃən'), detail: html });
+  }
+
+  // VocAPI 通信协议
+  {
+    const hasCall = typeof VocAPI?.call === 'function';
+    results.push({ name: 'VocAPI.call 存在', pass: hasCall, detail: hasCall ? 'OK' : 'vocab-common.js 未加载' });
+  }
+
+  // 渲染测试结果
+  const container = document.getElementById('testResults');
+  const passed = results.filter(r => r.pass).length;
+  const total = results.length;
+  container.innerHTML = '<div style="margin-bottom:12px;font-weight:600;font-size:14px;">结果: ' + passed + '/' + total + ' 通过</div>' +
+    results.map(r => '<div class="test-result"><span class="' + (r.pass ? 'test-pass' : 'test-fail') + '">' + (r.pass ? 'PASS' : 'FAIL') + '</span><span class="test-name">' + r.name + '</span><span class="test-detail">' + (r.pass ? 'OK' : r.detail) + '</span></div>').join('');
+}
+
+// 初始化
+renderAll();
+runTests();
+</script>
+</body>
+</html>

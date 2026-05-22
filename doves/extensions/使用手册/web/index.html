@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>白鸽文档 - 分布式智能体系统</title>
+  <link rel="stylesheet" href="./css/style.css">
+</head>
+<body>
+  <div id="app">
+    <header id="site-header"></header>
+    <div class="layout">
+      <aside id="sidebar"></aside>
+      <main class="content">
+        <article>
+          <div class="hero">
+            <h1>白鸽系统</h1>
+            <p>分布式智能体任务执行框架 — 通过 CLI 发起任务，由自主运行的 Doves 智能体拉取并执行，全链路 Noise NX 加密。</p>
+            <div class="hero-actions">
+              <a href="./guide/quick-start.html" class="btn btn-primary">快速开始</a>
+              <a href="./cli/index.html" class="btn btn-outline">CLI 命令参考</a>
+              <a href="./extensions/index.html" class="btn btn-outline">扩展开发</a>
+            </div>
+          </div>
+
+          <h2>核心特性</h2>
+          <div class="card-grid">
+            <a class="card" href="./architecture/index.html">
+              <h3>全链路加密</h3>
+              <p>所有组件间通信统一 Noise NX 加密 TCP，无明文 HTTP，单端口 3003。</p>
+            </a>
+            <a class="card" href="./architecture/doves-engine.html">
+              <h3>自主智能体</h3>
+              <p>Doves 自主轮询拉取任务、调用 LLM 执行、多实例并发，支持扩展能力插件。</p>
+            </a>
+            <a class="card" href="./cli/chat.html">
+              <h3>自然语言交互</h3>
+              <p>通过 CLI 或 IM 通道（微信/钉钉/飞书）用自然语言下达任务。</p>
+            </a>
+            <a class="card" href="./extensions/index.html">
+              <h3>扩展生态</h3>
+              <p>16+ 官方扩展，涵盖编码、文档、视频处理、数据分析等能力，支持自定义扩展开发。</p>
+            </a>
+            <a class="card" href="./architecture/task-queue.html">
+              <h3>分布式任务队列</h3>
+              <p>MongoDB 原子锁任务获取，支持依赖阻塞、检查点恢复、自动重试。</p>
+            </a>
+            <a class="card" href="./architecture/llm-providers.html">
+              <h3>多模型支持</h3>
+              <p>百炼、DeepSeek、智谱 GLM 官方接入，支持自定义 Claude/GPT/Gemini 代理。</p>
+            </a>
+          </div>
+
+          <h2>系统架构</h2>
+          <pre><code>CLI ══加密TCP══▶ Server (:3003) ◀══加密TCP══ Doves
+ │                    │                         ▲
+ │                    ▼                         │
+ │            MongoDB / OSS / 向量记忆           │
+ │            (仅 Server 有权直接访问)           │
+ │                                              │
+ └══════加密TCP（同账号直连：管理/扩展）═════════┘</code></pre>
+          <p>三条通信线路全部为 Noise NX 加密 TCP。Server 是纯数据网关（不调用 LLM），Doves 是自主执行引擎（拉取任务、调用 LLM），CLI 是用户入口。</p>
+
+          <h2>快速导航</h2>
+          <div class="card-grid">
+            <a class="card" href="./guide/quick-start.html">
+              <h3>安装与配置</h3>
+              <p>5 分钟完成安装，发起第一次对话。</p>
+            </a>
+            <a class="card" href="./cli/index.html">
+              <h3>CLI 完整命令</h3>
+              <p>30+ 命令详细参考，含选项、示例。</p>
+            </a>
+            <a class="card" href="./extensions/getting-started.html">
+              <h3>开发第一个扩展</h3>
+              <p>从零创建白鸽扩展，注册工具和技能。</p>
+            </a>
+            <a class="card" href="./api/index.html">
+              <h3>Server API</h3>
+              <p>50+ 路由端点速查表。</p>
+            </a>
+          </div>
+        </article>
+      </main>
+    </div>
+  </div>
+  <script src="./js/components.js"></script>
+  <script src="./js/nav.js"></script>
+  <script src="./js/search.js"></script>
+</body>
+</html>

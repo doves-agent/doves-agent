@@ -1,0 +1,198 @@
+[
+  {
+    "url": "/index.html",
+    "title": "首页",
+    "section": "白鸽文档",
+    "headings": ["核心特性", "系统架构", "快速导航"],
+    "keywords": ["白鸽", "dove", "智能体", "分布式", "加密", "LLM", "任务执行"]
+  },
+  {
+    "url": "/guide/quick-start.html",
+    "title": "快速开始",
+    "section": "快速入门",
+    "headings": ["环境要求", "安装", "Docker部署", "裸机部署", "初始化配置", "启动服务", "第一次对话"],
+    "keywords": ["安装", "install", "setup", "init", "开始", "入门", "docker", "npm"]
+  },
+  {
+    "url": "/guide/installation.html",
+    "title": "安装部署",
+    "section": "快速入门",
+    "headings": ["系统要求", "Docker部署", "裸机部署", "Windows部署", "环境变量", "服务管理", "开机自启", "健康检查"],
+    "keywords": ["安装", "部署", "docker", "PM2", "bare-metal", "Windows", "Linux", "service", "startup"]
+  },
+  {
+    "url": "/guide/configuration.html",
+    "title": "配置指南",
+    "section": "快速入门",
+    "headings": ["配置文件", "Gateway配置", "API Key", "模型配置", "环境变量", "执行档案", "多网关"],
+    "keywords": ["配置", "config", "API Key", "模型", "model", "gateway", "环境变量", "profile", "百炼", "DeepSeek", "GLM"]
+  },
+  {
+    "url": "/cli/index.html",
+    "title": "CLI 概览",
+    "section": "CLI 命令参考",
+    "headings": ["命令模式", "交互模式", "全局选项", "命令索引", "免认证命令"],
+    "keywords": ["CLI", "命令行", "dove", "commander", "交互", "命令", "帮助"]
+  },
+  {
+    "url": "/cli/chat.html",
+    "title": "对话命令",
+    "section": "CLI 命令参考",
+    "headings": ["dove chat", "dove conv", "dove session", "流式对话", "对话管理", "长连接"],
+    "keywords": ["chat", "对话", "聊天", "conv", "session", "流式", "SSE", "WebSocket", "消息", "模型"]
+  },
+  {
+    "url": "/cli/task.html",
+    "title": "任务命令",
+    "section": "CLI 命令参考",
+    "headings": ["dove task", "task list", "task create", "task publish", "task status", "task result", "task watch", "task cancel", "task trace"],
+    "keywords": ["task", "任务", "创建", "取消", "监控", "追踪", "结果", "状态"]
+  },
+  {
+    "url": "/cli/dove.html",
+    "title": "鸽子管理",
+    "section": "CLI 命令参考",
+    "headings": ["dove dove", "dove register", "dove list", "dove info", "dove key", "dove mcp", "dove capability", "dove skill"],
+    "keywords": ["dove", "鸽子", "注册", "能力", "capability", "skill", "技能", "MCP", "管理"]
+  },
+  {
+    "url": "/cli/config.html",
+    "title": "配置命令",
+    "section": "CLI 命令参考",
+    "headings": ["dove config", "dove model", "dove profile", "API Key管理", "模型配置", "执行档案"],
+    "keywords": ["config", "配置", "model", "模型", "profile", "档案", "key", "gateway"]
+  },
+  {
+    "url": "/cli/storage.html",
+    "title": "存储命令",
+    "section": "CLI 命令参考",
+    "headings": ["dove file", "dove storage", "dove memory", "文件操作", "OSS", "Git存储", "向量记忆"],
+    "keywords": ["file", "文件", "storage", "存储", "memory", "记忆", "OSS", "upload", "download", "git"]
+  },
+  {
+    "url": "/cli/service.html",
+    "title": "服务命令",
+    "section": "CLI 命令参考",
+    "headings": ["dove service", "dove web", "dove log", "dove stats", "PM2管理", "Web界面", "日志", "统计"],
+    "keywords": ["service", "服务", "start", "stop", "restart", "web", "log", "日志", "stats", "统计", "PM2"]
+  },
+  {
+    "url": "/cli/auth.html",
+    "title": "认证命令",
+    "section": "CLI 命令参考",
+    "headings": ["dove login", "dove logout", "dove setup", "dove init", "dove status", "dove ping", "权限矩阵"],
+    "keywords": ["login", "登录", "logout", "登出", "setup", "init", "status", "ping", "认证", "注册", "JWT"]
+  },
+  {
+    "url": "/cli/integrations.html",
+    "title": "集成命令",
+    "section": "CLI 命令参考",
+    "headings": ["dove wechat", "dove event", "dove notify", "dove team", "dove app", "微信", "事件", "通知", "团队", "扩展管理"],
+    "keywords": ["wechat", "微信", "event", "事件", "notify", "通知", "team", "团队", "app", "扩展", "安装", "发布"]
+  },
+  {
+    "url": "/extensions/index.html",
+    "title": "扩展系统概述",
+    "section": "扩展开发",
+    "headings": ["设计哲学", "能力层次", "官方扩展", "扩展与应用", "能力管理器"],
+    "keywords": ["扩展", "extension", "能力", "插件", "plugin", "官方", "编码", "文档", "视频"]
+  },
+  {
+    "url": "/extensions/getting-started.html",
+    "title": "快速上手",
+    "section": "扩展开发",
+    "headings": ["创建扩展", "目录结构", "编辑manifest", "添加工具", "校验", "沙盒测试", "开发流程"],
+    "keywords": ["创建", "create", "scaffold", "脚手架", "开发", "validate", "dev", "沙盒", "测试"]
+  },
+  {
+    "url": "/extensions/manifest.html",
+    "title": "manifest.js 规范",
+    "section": "扩展开发",
+    "headings": ["基本信息", "能力声明", "LLM层", "工具层", "开发者", "权限", "Web"],
+    "keywords": ["manifest", "规范", "name", "version", "abilities", "intent", "strategy", "roles", "tools", "skills", "permissions"]
+  },
+  {
+    "url": "/extensions/permissions.html",
+    "title": "权限体系",
+    "section": "扩展开发",
+    "headings": ["权限作用域", "shared", "user_scoped", "task_scoped", "extension", "数据库权限", "存储权限", "API权限", "事件权限", "扩展间权限", "外部URL", "DoveAppContext", "授权模式"],
+    "keywords": ["permissions", "权限", "scope", "shared", "user_scoped", "task_scoped", "databases", "storage", "apis", "events", "externalUrls", "ctx", "DoveAppContext"]
+  },
+  {
+    "url": "/extensions/tools.html",
+    "title": "工具开发",
+    "section": "扩展开发",
+    "headings": ["工具定义", "安全等级", "safe", "caution", "dangerous", "参数声明", "execute函数", "ctx对象", "工具组", "load_tool_group"],
+    "keywords": ["tool", "工具", "safe", "caution", "dangerous", "execute", "parameters", "ctx", "tool_group", "原子操作"]
+  },
+  {
+    "url": "/extensions/skills.html",
+    "title": "技能开发",
+    "section": "扩展开发",
+    "headings": ["技能定义", "技能模式", "管道模式", "条件模式", "迭代模式", "编排模式", "注册"],
+    "keywords": ["skill", "技能", "pipeline", "conditional", "iterative", "orchestration", "执行逻辑"]
+  },
+  {
+    "url": "/extensions/lifecycle.html",
+    "title": "生命周期",
+    "section": "扩展开发",
+    "headings": ["加载流程", "14步注册", "权限验证", "身份校验", "意图注册", "角色注册", "工具注册", "能力注册", "卸载", "错误处理", "热重载"],
+    "keywords": ["lifecycle", "生命周期", "加载", "卸载", "注册", "onInit", "onDestroy", "热重载", "reload"]
+  },
+  {
+    "url": "/extensions/publishing.html",
+    "title": "发布与安装",
+    "section": "扩展开发",
+    "headings": ["开发者注册", "签名", "校验", "发布", "安装", "卸载", "审核", "版本更新"],
+    "keywords": ["publish", "发布", "install", "安装", "uninstall", "卸载", "review", "审核", "签名", "hmac", "marketplace"]
+  },
+  {
+    "url": "/architecture/index.html",
+    "title": "架构总览",
+    "section": "架构设计",
+    "headings": ["系统概览", "三组件", "通信线路", "依赖规则", "数据访问", "设计原则"],
+    "keywords": ["架构", "architecture", "CLI", "Server", "Doves", "加密", "Noise NX", "TCP", "3003"]
+  },
+  {
+    "url": "/architecture/server.html",
+    "title": "Server 数据网关",
+    "section": "架构设计",
+    "headings": ["职责", "启动链", "路由分类", "DB代理", "IM通道", "事件调度", "安全机制", "审计日志"],
+    "keywords": ["server", "服务端", "网关", "gateway", "Express", "路由", "认证", "IM", "微信", "钉钉", "飞书"]
+  },
+  {
+    "url": "/architecture/doves-engine.html",
+    "title": "Doves 执行引擎",
+    "section": "架构设计",
+    "headings": ["鸽群架构", "共享资源", "KISS执行器", "工具组", "监工", "异常检测", "DovesProxy"],
+    "keywords": ["doves", "执行", "engine", "KISS", "鸽群", "flock", "LLM", "tool", "监工", "supervisor"]
+  },
+  {
+    "url": "/architecture/task-queue.html",
+    "title": "任务队列",
+    "section": "架构设计",
+    "headings": ["拉取模式", "任务状态", "原子获取", "机器亲和", "轮询策略", "子任务", "检查点", "重试", "归档"],
+    "keywords": ["task", "任务", "队列", "queue", "状态", "claim", "atomic", "polling", "checkpoint", "retry", "MongoDB"]
+  },
+  {
+    "url": "/architecture/security.html",
+    "title": "安全体系",
+    "section": "架构设计",
+    "headings": ["加密通信", "Noise NX", "JWT认证", "API Key认证", "密码策略", "登录保护", "限流", "数据隔离", "权限沙箱", "审计"],
+    "keywords": ["security", "安全", "加密", "Noise NX", "JWT", "API Key", "bcrypt", "限流", "rate limit", "隔离", "审计"]
+  },
+  {
+    "url": "/architecture/llm-providers.html",
+    "title": "LLM 提供商",
+    "section": "架构设计",
+    "headings": ["提供商客户端", "调用模式", "百炼", "DeepSeek", "GLM", "自定义", "模型角色", "优先级", "熔断器", "重试", "Token统计"],
+    "keywords": ["LLM", "模型", "provider", "百炼", "DeepSeek", "GLM", "Claude", "GPT", "Gemini", "Qwen", "熔断", "circuit breaker"]
+  },
+  {
+    "url": "/api/index.html",
+    "title": "Server API 路由速查",
+    "section": "API 参考",
+    "headings": ["公开接口", "用户认证接口", "Dove认证接口", "管理员接口", "认证方式"],
+    "keywords": ["API", "路由", "route", "endpoint", "REST", "接口", "ping", "auth", "db", "task", "dove", "admin"]
+  }
+]

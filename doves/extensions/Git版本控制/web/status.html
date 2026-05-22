@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Git 仓库状态</title>
+<link rel="stylesheet" href="/css/style.css">
+<style>
+  .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 12px; margin-bottom: 20px; }
+  .stat-card { background: var(--bg-card); border-radius: var(--radius); padding: 16px; text-align: center; border: 1px solid var(--border); }
+  .stat-card .value { font-size: 28px; font-weight: 700; color: var(--primary); }
+  .stat-card .label { font-size: 12px; color: var(--text-secondary); margin-top: 4px; }
+  .file-list { list-style: none; padding: 0; margin: 0; }
+  .file-list li { padding: 10px 12px; border-bottom: 1px solid var(--border); font-size: 14px; display: flex; justify-content: space-between; align-items: center; }
+  .file-list li:last-child { border-bottom: none; }
+  .file-path { font-family: monospace; font-weight: 600; color: var(--text); word-break: break-all; }
+  .file-status { font-size: 12px; padding: 2px 8px; border-radius: var(--radius-sm); font-weight: 600; }
+  .status-modified { background: #fff3cd; color: #856404; }
+  .status-added { background: #d4edda; color: #155724; }
+  .status-deleted { background: #f8d7da; color: #721c24; }
+  .status-untracked { background: #e2e3e5; color: #383d41; }
+  .file-actions { display: flex; gap: 4px; }
+  .branch-badge { background: var(--primary); color: #fff; padding: 4px 12px; border-radius: var(--radius-sm); font-size: 13px; font-weight: 600; font-family: monospace; }
+  .section-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+</style>
+</head>
+<body>
+  <div class="page-header">
+    <h1 class="page-title">仓库状态</h1>
+    <button class="btn btn-sm" onclick="loadStatus()">刷新</button>
+  </div>
+
+  <div class="stats-grid" id="statsGrid">
+    <div class="stat-card"><div class="value" id="statBranches">-</div><div class="label">分支数</div></div>
+    <div class="stat-card"><div class="value" id="statCommits">-</div><div class="label">提交数</div></div>
+    <div class="stat-card"><div class="value" id="statContributors">-</div><div class="label">贡献者</div></div>
+    <div class="stat-card"><div class="value" id="statBranch">-</div><div class="label">当前分支</div></div>
+  </div>
+
+  <div class="card">
+    <div class="section-header">
+      <h3>变更文件</h3>
+      <div>
+        <button class="btn btn-sm" onclick="stageAll()">全部暂存</button>
+        <button class="btn btn-sm btn-outline" onclick="unstageAll()">全部取消</button>
+      </div>
+    </div>
+    <ul class="file-list" id="fileList">
+      <li class="empty-state">加载中...</li>
+    </ul>
+  </div>
+
+<script src="/js/sdk.js"></script>
+<script>
+DoveSDK.init('Git版本控制');
+
+async function loadStatus() {
+  try {
+    const data = await DoveSDK.cmd('git status');
+    if (data.success) {
+      const s = data.data || {};
+      document.getElementById('statBranches').textContent = s.branches || '-';
+      document.getElementById('statCommits').textContent = s.commits || '-';
+      document.getElementById('statContributors').textContent = s.contributors || '-';
+      document.getElementById('statBranch').textContent = s.currentBranch || '-';
+
+      const files = s.files || [];
+      const list = document.getElementById('fileList');
+      if (files.length === 0) {
+        list.innerHTML = '<li class="empty-state">工作区干净，没有变更</li>';
+        return;
+      }
+      list.innerHTML = files.map(f => {
+        const statusClass = f.status === 'modified' ? 'status-modified'
+          : f.status === 'added' ? 'status-added'
+          : f.status === 'deleted' ? 'status-deleted'
+          : 'status-untracked';
+        const statusText = f.status === 'modified' ? '已修改'
+          : f.status === 'added' ? '新增'
+          : f.status === 'deleted' ? '已删除'
+          : '未跟踪';
+        return `<li>
+          <span class="file-path">${escapeHtml(f.path)}</span>
+          <div class="file-actions">
+            <span class="file-status ${statusClass}">${statusText}</span>
+            ${f.staged
+              ? '<button class="btn btn-sm btn-outline" onclick="unstageFile(\'' + escapeAttr(f.path) + '\')">取消暂存</button>'
+              : '<button class="btn btn-sm" onclick="stageFile(\'' + escapeAttr(f.path) + '\')">暂存</button>'
+            }
+          </div>
+        </li>`;
+      }).join('');
+    }
+  } catch (e) {
+    document.getElementById('fileList').innerHTML = '<li class="empty-state">请通过对话使用 Git 工具查看详情</li>';
+  }
+}
+
+async function stageFile(path) {
+  try {
+    await DoveSDK.callTool('git_stage', { path });
+    DoveSDK.notify('success', '已暂存: ' + path);
+    loadStatus();
+  } catch (e) {
+    DoveSDK.notify('error', '暂存失败: ' + e.message);
+  }
+}
+
+async function unstageFile(path) {
+  try {
+    await DoveSDK.callTool('git_unstage', { path });
+    DoveSDK.notify('success', '已取消暂存: ' + path);
+    loadStatus();
+  } catch (e) {
+    DoveSDK.notify('error', '取消暂存失败: ' + e.message);
+  }
+}
+
+async function stageAll() {
+  try {
+    await DoveSDK.callTool('git_stage', { path: '.' });
+    DoveSDK.notify('success', '已暂存所有文件');
+    loadStatus();
+  } catch (e) {
+    DoveSDK.notify('error', '暂存失败: ' + e.message);
+  }
+}
+
+async function unstageAll() {
+  try {
+    await DoveSDK.callTool('git_unstage', { path: '.' });
+    DoveSDK.notify('success', '已取消暂存所有文件');
+    loadStatus();
+  } catch (e) {
+    DoveSDK.notify('error', '取消暂存失败: ' + e.message);
+  }
+}
+
+function escapeHtml(text) {
+  const div = document.createElement('div');
+  div.textContent = text || '';
+  return div.innerHTML;
+}
+
+function escapeAttr(text) {
+  return (text || '').replace(/'/g, "\\'").replace(/"/g, '&quot;');
+}
+
+loadStatus();
+</script>
+</body>
+</html>

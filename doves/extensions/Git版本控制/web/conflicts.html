@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Git 冲突解决</title>
+<link rel="stylesheet" href="/css/style.css">
+<style>
+  .stats-row { display: flex; gap: 12px; margin-bottom: 16px; }
+  .stat-item { flex: 1; background: var(--bg-card); border-radius: var(--radius); padding: 12px; text-align: center; border: 1px solid var(--border); }
+  .stat-item .value { font-size: 24px; font-weight: 700; color: var(--error); }
+  .stat-item .label { font-size: 12px; color: var(--text-secondary); margin-top: 2px; }
+  .stat-item.resolved .value { color: var(--success); }
+
+  .conflict-file { border: 1px solid var(--border); border-radius: var(--radius); padding: 12px; margin-bottom: 8px; }
+  .conflict-file .file-path { font-family: monospace; font-weight: 600; color: var(--text); margin-bottom: 8px; display: flex; align-items: center; gap: 8px; }
+  .conflict-file .badge { background: var(--error); color: #fff; padding: 2px 8px; border-radius: var(--radius-sm); font-size: 11px; font-weight: normal; }
+  .conflict-block { background: var(--bg-input); border-left: 3px solid var(--error); padding: 10px; margin: 8px 0; border-radius: 0 var(--radius-sm) var(--radius-sm) 0; }
+  .conflict-block .label { font-size: 12px; color: var(--text-secondary); margin-bottom: 4px; }
+  .conflict-block.ours { border-left-color: var(--primary); }
+  .conflict-block.theirs { border-left-color: var(--warning); }
+  .conflict-actions { display: flex; gap: 8px; margin-top: 8px; }
+  .success-banner { background: rgba(40, 167, 69, 0.1); color: var(--success); padding: 12px; border-radius: var(--radius); margin-bottom: 12px; text-align: center; border: 1px solid var(--success); }
+  pre { background: var(--bg-input); padding: 8px; border-radius: var(--radius-sm); overflow-x: auto; font-size: 12px; line-height: 1.5; }
+</style>
+</head>
+<body>
+  <div class="page-header">
+    <h1 class="page-title">冲突解决</h1>
+    <div>
+      <button class="btn btn-sm" onclick="analyzeConflicts()">扫描冲突</button>
+      <button class="btn btn-sm btn-outline" onclick="autoMergeAll()">自动合并</button>
+    </div>
+  </div>
+
+  <div class="stats-row">
+    <div class="stat-item"><div class="value" id="totalFiles">0</div><div class="label">冲突文件</div></div>
+    <div class="stat-item"><div class="value" id="totalConflicts">0</div><div class="label">冲突区块</div></div>
+    <div class="stat-item resolved"><div class="value" id="resolvedCount">0</div><div class="label">已解决</div></div>
+  </div>
+
+  <div class="card">
+    <h3 style="margin-bottom: 12px;">冲突文件列表</h3>
+    <div id="conflictList">
+      <div class="empty-state">点击"扫描冲突"检测当前冲突</div>
+    </div>
+  </div>
+
+<script src="/js/sdk.js"></script>
+<script>
+DoveSDK.init('Git版本控制');
+
+async function callSkill(action, args = {}) {
+  return DoveSDK.callSkill('conflict_resolver', action, args);
+}
+
+async function analyzeConflicts() {
+  const list = document.getElementById('conflictList');
+  list.innerHTML = '<div class="empty-state loading">扫描中...</div>';
+
+  try {
+    const result = await callSkill('analyze');
+    if (!result.success) {
+      list.innerHTML = '<div class="empty-state" style="color:var(--error)">' + (result.error || '扫描失败') + '</div>';
+      return;
+    }
+
+    const data = result.data;
+    if (data.message) {
+      list.innerHTML = '<div class="success-banner">' + data.message + '</div>';
+      document.getElementById('totalFiles').textContent = '0';
+      document.getElementById('totalConflicts').textContent = '0';
+      return;
+    }
+
+    document.getElementById('totalFiles').textContent = data.totalFiles || 0;
+    document.getElementById('totalConflicts').textContent = data.totalConflicts || 0;
+
+    if (!data.files || data.files.length === 0) {
+      list.innerHTML = '<div class="success-banner">没有发现冲突</div>';
+      return;
+    }
+
+    list.innerHTML = data.files.map((f, fi) => `
+      <div class="conflict-file" id="file-${fi}">
+        <div class="file-path">
+          ${escapeHtml(f.path)}
+          <span class="badge">${f.conflictCount} 个冲突</span>
+        </div>
+        ${(f.conflicts || []).map((c, ci) => `
+          <div class="conflict-block">
+            <div class="label">冲突 #${ci + 1} (行 ${c.startLine}-${c.endLine})</div>
+            <div class="conflict-block ours">
+              <div class="label">我方 (${c.oursLabel || 'ours'}):</div>
+              <pre>${escapeHtml(c.ours)}</pre>
+            </div>
+            <div class="conflict-block theirs">
+              <div class="label">对方 (${c.theirsLabel || 'theirs'}):</div>
+              <pre>${escapeHtml(c.theirs)}</pre>
+            </div>
+            <div class="conflict-actions">
+              <button class="btn btn-sm" onclick="resolveConflict('${escapeAttr(f.path)}', ${ci}, 'keep_ours')">保留我方</button>
+              <button class="btn btn-sm btn-outline" onclick="resolveConflict('${escapeAttr(f.path)}', ${ci}, 'keep_theirs')">保留对方</button>
+              <button class="btn btn-sm btn-outline" onclick="resolveConflict('${escapeAttr(f.path)}', ${ci}, 'merge')">融合双方</button>
+            </div>
+          </div>
+        `).join('')}
+      </div>
+    `).join('');
+  } catch (e) {
+    list.innerHTML = '<div class="empty-state" style="color:var(--error)">错误: ' + e.message + '</div>';
+  }
+}
+
+async function resolveConflict(path, conflictIndex, strategy) {
+  try {
+    const result = await callSkill('resolve', { path, resolution: [{ conflictIndex, strategy }] });
+    if (result.success) {
+      DoveSDK.notify('success', '冲突已解决: ' + strategy);
+      analyzeConflicts();
+    } else {
+      DoveSDK.notify('error', '解决失败: ' + (result.error || ''));
+    }
+  } catch (e) {
+    DoveSDK.notify('error', '错误: ' + e.message);
+  }
+}
+
+async function autoMergeAll() {
+  const confirmed = await DoveSDK.confirm('自动合并', '确定要自动合并所有冲突吗？');
+  if (!confirmed) return;
+
+  try {
+    const result = await callSkill('batch_resolve');
+    if (result.success) {
+      const data = result.data;
+      DoveSDK.notify('success', '自动合并完成: 已解决 ' + data.已自动解决 + '/' + data.总文件数 + ' 个文件');
+      analyzeConflicts();
+    } else {
+      DoveSDK.notify('error', '自动合并失败: ' + (result.error || ''));
+    }
+  } catch (e) {
+    DoveSDK.notify('error', '错误: ' + e.message);
+  }
+}
+
+function escapeHtml(text) {
+  const div = document.createElement('div');
+  div.textContent = text || '';
+  return div.innerHTML;
+}
+
+function escapeAttr(text) {
+  return (text || '').replace(/'/g, "\\'").replace(/"/g, '&quot;');
+}
+</script>
+</body>
+</html>

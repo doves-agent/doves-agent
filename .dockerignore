@@ -1,0 +1,9 @@
+node_modules
+logs
+.git
+.github
+.env
+*.md
+.vscode
+.qoder
+model-cache.json

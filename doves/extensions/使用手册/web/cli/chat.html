@@ -1,0 +1,357 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>对话命令 - 白鸽文档</title>
+  <link rel="stylesheet" href="../css/style.css">
+</head>
+<body>
+  <div id="app">
+    <header id="site-header"></header>
+    <div class="layout">
+      <aside id="sidebar"></aside>
+      <main class="content">
+        <article>
+          <h1>对话命令</h1>
+          <p>对话命令是白鸽 CLI 的核心功能，支持流式对话、会话管理和长连接模式。</p>
+
+          <!-- dove chat -->
+          <h2 id="dove-chat">dove chat</h2>
+          <p>核心对话命令，支持流式输出、多轮会话、并发分解等高级特性。发送消息给鸽子并实时接收响应。</p>
+
+          <div class="synopsis">
+            <span class="cmd">dove</span> <span class="arg">chat</span> <span class="opt">[message]</span> <span class="opt">[options]</span>
+          </div>
+
+          <h3>选项</h3>
+          <div class="table-wrapper">
+            <table>
+              <thead>
+                <tr>
+                  <th>Flag</th>
+                  <th>Description</th>
+                  <th>Default</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><code>-c, --conversation &lt;id&gt;</code></td>
+                  <td>指定会话 ID，继续已有对话</td>
+                  <td>新建会话</td>
+                </tr>
+                <tr>
+                  <td><code>-l, --list</code></td>
+                  <td>列出最近会话</td>
+                  <td>false</td>
+                </tr>
+                <tr>
+                  <td><code>--select</code></td>
+                  <td>交互式选择会话继续</td>
+                  <td>false</td>
+                </tr>
+                <tr>
+                  <td><code>-m, --model &lt;model&gt;</code></td>
+                  <td>指定使用的模型</td>
+                  <td>配置默认值</td>
+                </tr>
+                <tr>
+                  <td><code>-s, --stream</code></td>
+                  <td>启用流式输出</td>
+                  <td>true</td>
+                </tr>
+                <tr>
+                  <td><code>-p, --profile &lt;name&gt;</code></td>
+                  <td>使用指定人设配置</td>
+                  <td>默认人设</td>
+                </tr>
+                <tr>
+                  <td><code>--no-split</code></td>
+                  <td>禁用任务自动分解</td>
+                  <td>false</td>
+                </tr>
+                <tr>
+                  <td><code>--no-parallel</code></td>
+                  <td>禁用并发执行</td>
+                  <td>false</td>
+                </tr>
+                <tr>
+                  <td><code>--no-flash</code></td>
+                  <td>禁用 Flash 快速模式</td>
+                  <td>false</td>
+                </tr>
+                <tr>
+                  <td><code>--max-concurrency &lt;n&gt;</code></td>
+                  <td>最大并发数</td>
+                  <td>自动</td>
+                </tr>
+                <tr>
+                  <td><code>--max-depth &lt;n&gt;</code></td>
+                  <td>最大递归深度</td>
+                  <td>自动</td>
+                </tr>
+                <tr>
+                  <td><code>--execution-mode &lt;mode&gt;</code></td>
+                  <td>执行模式：decomposition_first | interleaved | pipeline | direct</td>
+                  <td>自动选择</td>
+                </tr>
+                <tr>
+                  <td><code>--plan-first</code></td>
+                  <td>先规划再执行（等同 decomposition_first）</td>
+                  <td>false</td>
+                </tr>
+                <tr>
+                  <td><code>--tool-level &lt;level&gt;</code></td>
+                  <td>工具权限等级：safe | caution | dangerous</td>
+                  <td>safe</td>
+                </tr>
+                <tr>
+                  <td><code>--enable-ability &lt;name&gt;</code></td>
+                  <td>启用指定能力</td>
+                  <td>-</td>
+                </tr>
+                <tr>
+                  <td><code>--disable-ability &lt;name&gt;</code></td>
+                  <td>禁用指定能力</td>
+                  <td>-</td>
+                </tr>
+                <tr>
+                  <td><code>--disable-tool &lt;name&gt;</code></td>
+                  <td>禁用指定工具</td>
+                  <td>-</td>
+                </tr>
+                <tr>
+                  <td><code>--gateway</code></td>
+                  <td>使用网关路由</td>
+                  <td>false</td>
+                </tr>
+                <tr>
+                  <td><code>--async</code></td>
+                  <td>异步模式，提交后立即返回</td>
+                  <td>false</td>
+                </tr>
+                <tr>
+                  <td><code>--ws</code></td>
+                  <td>使用 WebSocket 通信</td>
+                  <td>false</td>
+                </tr>
+                <tr>
+                  <td><code>--direct</code></td>
+                  <td>直连鸽子（同账号）</td>
+                  <td>false</td>
+                </tr>
+                <tr>
+                  <td><code>--no-direct</code></td>
+                  <td>强制走 Server 中转</td>
+                  <td>false</td>
+                </tr>
+                <tr>
+                  <td><code>--debug</code></td>
+                  <td>显示调试信息</td>
+                  <td>false</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <h3>执行模式说明</h3>
+          <div class="info">
+            <ul>
+              <li><strong>decomposition_first</strong> - 先将任务完整分解为子任务，再依次执行</li>
+              <li><strong>interleaved</strong> - 分解与执行交替进行，边分析边执行</li>
+              <li><strong>pipeline</strong> - 流水线模式，前一步输出作为后一步输入</li>
+              <li><strong>direct</strong> - 直接执行，不做任何分解</li>
+            </ul>
+          </div>
+
+          <h3>示例</h3>
+          <pre><code># 简单对话
+dove chat "今天天气怎么样"
+
+# 继续已有会话
+dove chat -c abc123 "接着上面的话题"
+
+# 使用指定模型并启用计划优先模式
+dove chat -m claude-opus-4-20250514 --plan-first "帮我分析这个项目的架构"
+
+# 异步提交复杂任务
+dove chat --async "整理并翻译这份文档"
+
+# 直连鸽子，绕过 Server
+dove chat --direct "查看当前鸽子状态"
+
+# 限制并发和深度
+dove chat --max-concurrency 3 --max-depth 2 "并行处理这三个文件"
+
+# 使用危险工具等级（需确认）
+dove chat --tool-level dangerous "清理临时文件"</code></pre>
+
+          <!-- dove conv -->
+          <h2 id="dove-conv">dove conv</h2>
+          <p>会话管理命令，查看和管理历史对话记录。</p>
+
+          <div class="synopsis">
+            <span class="cmd">dove</span> <span class="arg">conv</span> <span class="opt">[action]</span> <span class="opt">[options]</span>
+          </div>
+
+          <h3>Actions</h3>
+          <div class="table-wrapper">
+            <table>
+              <thead>
+                <tr>
+                  <th>Action</th>
+                  <th>Description</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><code>list</code> / <code>ls</code></td>
+                  <td>列出会话（默认 action）</td>
+                </tr>
+                <tr>
+                  <td><code>info &lt;id&gt;</code></td>
+                  <td>查看指定会话详情</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <h3>选项</h3>
+          <div class="table-wrapper">
+            <table>
+              <thead>
+                <tr>
+                  <th>Flag</th>
+                  <th>Description</th>
+                  <th>Default</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><code>-l, --limit &lt;n&gt;</code></td>
+                  <td>列出条数限制</td>
+                  <td>20</td>
+                </tr>
+                <tr>
+                  <td><code>--json</code></td>
+                  <td>JSON 格式输出</td>
+                  <td>false</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <h3>示例</h3>
+          <pre><code># 列出最近会话
+dove conv list
+
+# 查看指定会话详情
+dove conv info 6478a3f2e1b
+
+# JSON 格式输出（便于脚本处理）
+dove conv ls --json | jq '.[] | .id'</code></pre>
+
+          <!-- dove session -->
+          <h2 id="dove-session">dove session</h2>
+          <p>WebSocket 长连接模式，保持持久连接，支持实时任务推送和交互式命令。适合需要长时间交互的场景。</p>
+
+          <div class="synopsis">
+            <span class="cmd">dove</span> <span class="arg">session</span> <span class="opt">[options]</span>
+          </div>
+
+          <h3>选项</h3>
+          <div class="table-wrapper">
+            <table>
+              <thead>
+                <tr>
+                  <th>Flag</th>
+                  <th>Description</th>
+                  <th>Default</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><code>-g, --gateway</code></td>
+                  <td>通过网关建立连接</td>
+                  <td>false</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <h3>Session 内部命令</h3>
+          <div class="table-wrapper">
+            <table>
+              <thead>
+                <tr>
+                  <th>命令</th>
+                  <th>说明</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><code>/help</code></td>
+                  <td>显示帮助信息</td>
+                </tr>
+                <tr>
+                  <td><code>/task [id]</code></td>
+                  <td>查看任务状态</td>
+                </tr>
+                <tr>
+                  <td><code>/tasks</code></td>
+                  <td>列出所有活跃任务</td>
+                </tr>
+                <tr>
+                  <td><code>/conv [id]</code></td>
+                  <td>切换/查看会话</td>
+                </tr>
+                <tr>
+                  <td><code>/new</code></td>
+                  <td>开启新会话</td>
+                </tr>
+                <tr>
+                  <td><code>/status</code></td>
+                  <td>显示连接状态</td>
+                </tr>
+                <tr>
+                  <td><code>/clear</code></td>
+                  <td>清屏</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <h3>示例</h3>
+          <pre><code># 进入 session 模式
+dove session
+
+# 通过网关连接
+dove session -g
+
+# session 内操作示例
+&gt; 你好，帮我查看今天的任务
+&gt; /tasks
+&gt; /conv abc123
+&gt; /new
+&gt; /status</code></pre>
+
+          <div class="tip">
+            <p><strong>提示</strong>：Session 模式下连接断开会自动重连，未完成的任务不会丢失。</p>
+          </div>
+
+          <h2>相关命令</h2>
+          <ul>
+            <li><a href="task.html">任务命令</a> - 管理对话产生的异步任务</li>
+            <li><a href="config.html#dove-profile">dove profile</a> - 管理对话人设</li>
+            <li><a href="config.html#dove-model">dove model</a> - 管理可用模型</li>
+          </ul>
+
+        </article>
+      </main>
+    </div>
+  </div>
+  <script src="../js/components.js"></script>
+  <script src="../js/nav.js"></script>
+  <script src="../js/search.js"></script>
+</body>
+</html>

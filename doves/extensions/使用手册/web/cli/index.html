@@ -1,0 +1,355 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CLI 概览 - 白鸽文档</title>
+  <link rel="stylesheet" href="../css/style.css">
+</head>
+<body>
+  <div id="app">
+    <header id="site-header"></header>
+    <div class="layout">
+      <aside id="sidebar"></aside>
+      <main class="content">
+        <article>
+          <h1>CLI 命令参考</h1>
+
+          <p>白鸽 CLI 基于 Commander.js 构建，二进制名称为 <code>dove</code>，提供 30+ 命令覆盖对话、任务、鸽子管理、存储、服务运维等全部功能。</p>
+
+          <h2 id="two-modes">两种使用模式</h2>
+
+          <div class="info">
+            <p><strong>命令行模式</strong>：直接执行命令，如 <code>dove chat "你好"</code>，适合脚本和快速操作。</p>
+            <p><strong>交互模式</strong>：直接运行 <code>dove</code> 进入交互式 Shell，支持命令补全和历史记录。</p>
+          </div>
+
+          <pre><code># 命令行模式
+dove chat "帮我总结今天的工作"
+
+# 交互模式
+dove
+&gt; chat 帮我总结今天的工作
+&gt; task list
+&gt; exit</code></pre>
+
+          <h2 id="global-options">全局选项</h2>
+
+          <div class="table-wrapper">
+            <table>
+              <thead>
+                <tr>
+                  <th>Flag</th>
+                  <th>Description</th>
+                  <th>Default</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><code>--wait</code></td>
+                  <td>等待异步任务完成后再返回</td>
+                  <td>false</td>
+                </tr>
+                <tr>
+                  <td><code>--debug</code></td>
+                  <td>启用调试输出，显示详细日志</td>
+                  <td>false</td>
+                </tr>
+                <tr>
+                  <td><code>--version</code></td>
+                  <td>显示当前版本号</td>
+                  <td>-</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <h2 id="command-index">命令索引</h2>
+
+          <h3>对话与会话</h3>
+          <div class="table-wrapper">
+            <table>
+              <thead>
+                <tr>
+                  <th>命令</th>
+                  <th>说明</th>
+                  <th>详情</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><code>dove chat</code></td>
+                  <td>流式对话，核心命令</td>
+                  <td><a href="chat.html#dove-chat">查看</a></td>
+                </tr>
+                <tr>
+                  <td><code>dove conv</code></td>
+                  <td>会话管理（列表、详情）</td>
+                  <td><a href="chat.html#dove-conv">查看</a></td>
+                </tr>
+                <tr>
+                  <td><code>dove session</code></td>
+                  <td>WebSocket 长连接模式</td>
+                  <td><a href="chat.html#dove-session">查看</a></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <h3>任务管理</h3>
+          <div class="table-wrapper">
+            <table>
+              <thead>
+                <tr>
+                  <th>命令</th>
+                  <th>说明</th>
+                  <th>详情</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><code>dove task</code></td>
+                  <td>任务生命周期管理（创建、监控、取消、追踪）</td>
+                  <td><a href="task.html#dove-task">查看</a></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <h3>鸽子管理</h3>
+          <div class="table-wrapper">
+            <table>
+              <thead>
+                <tr>
+                  <th>命令</th>
+                  <th>说明</th>
+                  <th>详情</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><code>dove dove</code></td>
+                  <td>Agent 注册、配置、管理</td>
+                  <td><a href="dove.html#dove-dove">查看</a></td>
+                </tr>
+                <tr>
+                  <td><code>dove capability</code></td>
+                  <td>能力刷新与查看</td>
+                  <td><a href="dove.html#dove-capability">查看</a></td>
+                </tr>
+                <tr>
+                  <td><code>dove skill</code></td>
+                  <td>技能启用/禁用管理</td>
+                  <td><a href="dove.html#dove-skill">查看</a></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <h3>配置管理</h3>
+          <div class="table-wrapper">
+            <table>
+              <thead>
+                <tr>
+                  <th>命令</th>
+                  <th>说明</th>
+                  <th>详情</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><code>dove config</code></td>
+                  <td>通用配置管理（网关、密钥、模型）</td>
+                  <td><a href="config.html#dove-config">查看</a></td>
+                </tr>
+                <tr>
+                  <td><code>dove model</code></td>
+                  <td>模型刷新与组织</td>
+                  <td><a href="config.html#dove-model">查看</a></td>
+                </tr>
+                <tr>
+                  <td><code>dove profile</code></td>
+                  <td>人设配置管理</td>
+                  <td><a href="config.html#dove-profile">查看</a></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <h3>存储与记忆</h3>
+          <div class="table-wrapper">
+            <table>
+              <thead>
+                <tr>
+                  <th>命令</th>
+                  <th>说明</th>
+                  <th>详情</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><code>dove file</code></td>
+                  <td>文件读写与上传下载</td>
+                  <td><a href="storage.html#dove-file">查看</a></td>
+                </tr>
+                <tr>
+                  <td><code>dove storage</code></td>
+                  <td>Git 仓储、OSS 临时空间、目录管理</td>
+                  <td><a href="storage.html#dove-storage">查看</a></td>
+                </tr>
+                <tr>
+                  <td><code>dove memory</code></td>
+                  <td>向量记忆检索与管理</td>
+                  <td><a href="storage.html#dove-memory">查看</a></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <h3>服务与运维</h3>
+          <div class="table-wrapper">
+            <table>
+              <thead>
+                <tr>
+                  <th>命令</th>
+                  <th>说明</th>
+                  <th>详情</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><code>dove service</code></td>
+                  <td>服务启停、状态、开机自启</td>
+                  <td><a href="service.html#dove-service">查看</a></td>
+                </tr>
+                <tr>
+                  <td><code>dove web</code></td>
+                  <td>启动 Web 管理面板</td>
+                  <td><a href="service.html#dove-web">查看</a></td>
+                </tr>
+                <tr>
+                  <td><code>dove log</code></td>
+                  <td>查看运行日志</td>
+                  <td><a href="service.html#dove-log">查看</a></td>
+                </tr>
+                <tr>
+                  <td><code>dove stats</code></td>
+                  <td>Token 用量统计面板</td>
+                  <td><a href="service.html#dove-stats">查看</a></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <h3>认证与初始化</h3>
+          <div class="table-wrapper">
+            <table>
+              <thead>
+                <tr>
+                  <th>命令</th>
+                  <th>说明</th>
+                  <th>详情</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><code>dove login</code></td>
+                  <td>登录认证</td>
+                  <td><a href="auth.html#dove-login">查看</a></td>
+                </tr>
+                <tr>
+                  <td><code>dove logout</code></td>
+                  <td>退出登录</td>
+                  <td><a href="auth.html#dove-logout">查看</a></td>
+                </tr>
+                <tr>
+                  <td><code>dove setup</code></td>
+                  <td>系统安装/卸载</td>
+                  <td><a href="auth.html#dove-setup">查看</a></td>
+                </tr>
+                <tr>
+                  <td><code>dove init</code></td>
+                  <td>三步初始化向导</td>
+                  <td><a href="auth.html#dove-init">查看</a></td>
+                </tr>
+                <tr>
+                  <td><code>dove status</code></td>
+                  <td>系统状态检查</td>
+                  <td><a href="auth.html#dove-status">查看</a></td>
+                </tr>
+                <tr>
+                  <td><code>dove ping</code></td>
+                  <td>连通性测试</td>
+                  <td><a href="auth.html#dove-ping">查看</a></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <h3>集成与扩展</h3>
+          <div class="table-wrapper">
+            <table>
+              <thead>
+                <tr>
+                  <th>命令</th>
+                  <th>说明</th>
+                  <th>详情</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><code>dove wechat</code></td>
+                  <td>微信绑定与消息监听</td>
+                  <td><a href="integrations.html#dove-wechat">查看</a></td>
+                </tr>
+                <tr>
+                  <td><code>dove event</code></td>
+                  <td>事件调度（定时、语义、外部）</td>
+                  <td><a href="integrations.html#dove-event">查看</a></td>
+                </tr>
+                <tr>
+                  <td><code>dove notify</code></td>
+                  <td>通知管理</td>
+                  <td><a href="integrations.html#dove-notify">查看</a></td>
+                </tr>
+                <tr>
+                  <td><code>dove team</code></td>
+                  <td>团队模型配置</td>
+                  <td><a href="integrations.html#dove-team">查看</a></td>
+                </tr>
+                <tr>
+                  <td><code>dove app</code></td>
+                  <td>扩展应用管理</td>
+                  <td><a href="integrations.html#dove-app">查看</a></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <h2 id="auth-free">免认证命令</h2>
+
+          <div class="tip">
+            <p>以下命令无需登录即可执行，适合初次安装和故障排查：</p>
+          </div>
+
+          <ul>
+            <li><code>dove login</code> / <code>dove logout</code> - 登录登出</li>
+            <li><code>dove setup</code> - 系统安装</li>
+            <li><code>dove init</code> - 初始化向导</li>
+            <li><code>dove ping</code> - 连通性测试</li>
+            <li><code>dove info</code> - 系统信息</li>
+            <li><code>dove log</code> - 日志查看</li>
+            <li><code>dove service</code> - 服务管理</li>
+            <li><code>dove test</code> - 测试命令</li>
+            <li><code>dove app create</code> / <code>dove app validate</code> / <code>dove app dev</code> - 扩展开发</li>
+          </ul>
+
+        </article>
+      </main>
+    </div>
+  </div>
+  <script src="../js/components.js"></script>
+  <script src="../js/nav.js"></script>
+  <script src="../js/search.js"></script>
+</body>
+</html>

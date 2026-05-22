@@ -1,0 +1,484 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>认证命令 - 白鸽文档</title>
+  <link rel="stylesheet" href="../css/style.css">
+</head>
+<body>
+  <div id="app">
+    <header id="site-header"></header>
+    <div class="layout">
+      <aside id="sidebar"></aside>
+      <main class="content">
+        <article>
+          <h1>认证命令</h1>
+          <p>认证命令管理用户登录、系统初始化和状态检查。这些命令大部分无需登录即可执行。</p>
+
+          <!-- dove login -->
+          <h2 id="dove-login">dove login</h2>
+          <p>用户登录认证，支持多种认证模式。</p>
+
+          <div class="synopsis">
+            <span class="cmd">dove</span> <span class="arg">login</span> <span class="opt">[options]</span>
+          </div>
+
+          <h3>选项</h3>
+          <div class="table-wrapper">
+            <table>
+              <thead>
+                <tr>
+                  <th>Flag</th>
+                  <th>Description</th>
+                  <th>Default</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><code>-a, --anonymous</code></td>
+                  <td>匿名登录（受限功能）</td>
+                  <td>false</td>
+                </tr>
+                <tr>
+                  <td><code>-r, --register</code></td>
+                  <td>注册新账号并登录</td>
+                  <td>false</td>
+                </tr>
+                <tr>
+                  <td><code>--admin</code></td>
+                  <td>管理员登录</td>
+                  <td>false</td>
+                </tr>
+                <tr>
+                  <td><code>-v, --verify</code></td>
+                  <td>验证当前登录状态</td>
+                  <td>false</td>
+                </tr>
+                <tr>
+                  <td><code>--refresh</code></td>
+                  <td>刷新认证 Token</td>
+                  <td>false</td>
+                </tr>
+                <tr>
+                  <td><code>-g, --gateway &lt;url&gt;</code></td>
+                  <td>指定网关地址</td>
+                  <td>默认网关</td>
+                </tr>
+                <tr>
+                  <td><code>-u, --username &lt;name&gt;</code></td>
+                  <td>用户名</td>
+                  <td>交互输入</td>
+                </tr>
+                <tr>
+                  <td><code>-p, --password &lt;pwd&gt;</code></td>
+                  <td>密码</td>
+                  <td>交互输入</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <h3>示例</h3>
+          <pre><code># 交互式登录
+dove login
+
+# 指定用户名密码登录
+dove login -u admin -p mypassword
+
+# 注册新账号
+dove login -r
+
+# 匿名登录
+dove login -a
+
+# 管理员登录
+dove login --admin
+
+# 验证登录状态
+dove login -v
+
+# 刷新 Token
+dove login --refresh
+
+# 通过指定网关登录
+dove login -g "tcp://gateway.example.com:3003"</code></pre>
+
+          <!-- dove logout -->
+          <h2 id="dove-logout">dove logout</h2>
+          <p>退出当前登录会话，清除本地认证凭据。</p>
+
+          <div class="synopsis">
+            <span class="cmd">dove</span> <span class="arg">logout</span> <span class="opt">[options]</span>
+          </div>
+
+          <h3>选项</h3>
+          <div class="table-wrapper">
+            <table>
+              <thead>
+                <tr>
+                  <th>Flag</th>
+                  <th>Description</th>
+                  <th>Default</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><code>-f, --force</code></td>
+                  <td>强制退出（即使无法通知 Server）</td>
+                  <td>false</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <h3>示例</h3>
+          <pre><code># 正常退出
+dove logout
+
+# 强制退出（网络不可达时使用）
+dove logout -f</code></pre>
+
+          <!-- dove setup -->
+          <h2 id="dove-setup">dove setup</h2>
+          <p>系统安装/卸载命令，配置环境依赖和系统服务。</p>
+
+          <div class="synopsis">
+            <span class="cmd">dove</span> <span class="arg">setup</span> <span class="opt">[options]</span>
+          </div>
+
+          <h3>选项</h3>
+          <div class="table-wrapper">
+            <table>
+              <thead>
+                <tr>
+                  <th>Flag</th>
+                  <th>Description</th>
+                  <th>Default</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><code>-u, --uninstall</code></td>
+                  <td>卸载白鸽系统</td>
+                  <td>false</td>
+                </tr>
+                <tr>
+                  <td><code>-s, --status</code></td>
+                  <td>查看安装状态</td>
+                  <td>false</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <h3>示例</h3>
+          <pre><code># 安装白鸽系统
+dove setup
+
+# 查看安装状态
+dove setup -s
+
+# 卸载
+dove setup -u</code></pre>
+
+          <!-- dove init -->
+          <h2 id="dove-init">dove init</h2>
+          <p>三步初始化向导，引导用户完成 Server 地址配置、账号设置和 LLM 密钥配置。</p>
+
+          <div class="synopsis">
+            <span class="cmd">dove</span> <span class="arg">init</span>
+          </div>
+
+          <div class="info">
+            <p><strong>初始化三步骤：</strong></p>
+            <ol>
+              <li><strong>Server URL</strong> - 配置 Server 连接地址（默认 tcp://localhost:3003）</li>
+              <li><strong>账号</strong> - 登录或注册账号</li>
+              <li><strong>LLM 密钥</strong> - 配置至少一个 LLM 提供商的 API 密钥</li>
+            </ol>
+          </div>
+
+          <h3>示例</h3>
+          <pre><code># 运行初始化向导
+dove init
+
+# 典型输出：
+# 步骤 1/3：Server 地址
+# ? 请输入 Server 地址 (tcp://localhost:3003): ▌
+#
+# 步骤 2/3：账号配置
+# ? 登录还是注册？ (登录/注册): ▌
+#
+# 步骤 3/3：LLM 密钥
+# ? 请选择提供商 (Anthropic/OpenAI/DeepSeek): ▌
+# ? 请输入 API Key: ▌
+#
+# ✓ 初始化完成！</code></pre>
+
+          <!-- dove status -->
+          <h2 id="dove-status">dove status</h2>
+          <p>系统状态检查命令，查看连接状态、认证信息和服务健康。</p>
+
+          <div class="synopsis">
+            <span class="cmd">dove</span> <span class="arg">status</span> <span class="opt">[options]</span>
+          </div>
+
+          <h3>选项</h3>
+          <div class="table-wrapper">
+            <table>
+              <thead>
+                <tr>
+                  <th>Flag</th>
+                  <th>Description</th>
+                  <th>Default</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><code>-j, --json</code></td>
+                  <td>JSON 格式输出</td>
+                  <td>false</td>
+                </tr>
+                <tr>
+                  <td><code>-g, --gateway</code></td>
+                  <td>显示网关信息</td>
+                  <td>false</td>
+                </tr>
+                <tr>
+                  <td><code>-a, --all</code></td>
+                  <td>显示全部信息</td>
+                  <td>false</td>
+                </tr>
+                <tr>
+                  <td><code>--uid</code></td>
+                  <td>仅显示用户 ID</td>
+                  <td>false</td>
+                </tr>
+                <tr>
+                  <td><code>--admin</code></td>
+                  <td>显示管理员信息</td>
+                  <td>false</td>
+                </tr>
+                <tr>
+                  <td><code>--secret</code></td>
+                  <td>显示敏感信息（密钥完整值）</td>
+                  <td>false</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <h4>子命令</h4>
+          <div class="table-wrapper">
+            <table>
+              <thead>
+                <tr>
+                  <th>Subcommand</th>
+                  <th>Description</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><code>ping</code></td>
+                  <td>测试 Server 连通性</td>
+                </tr>
+                <tr>
+                  <td><code>test</code></td>
+                  <td>测试全链路（Server + LLM）</td>
+                </tr>
+                <tr>
+                  <td><code>info</code></td>
+                  <td>显示系统详细信息</td>
+                </tr>
+                <tr>
+                  <td><code>show</code></td>
+                  <td>显示当前配置概览</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <h3>示例</h3>
+          <pre><code># 查看状态
+dove status
+
+# 完整状态信息
+dove status -a
+
+# JSON 格式（监控脚本用）
+dove status -j
+
+# 仅获取 UID
+dove status --uid
+
+# 查看网关信息
+dove status -g
+
+# 测试全链路
+dove status test
+
+# 查看系统详细信息
+dove status info</code></pre>
+
+          <!-- dove ping -->
+          <h2 id="dove-ping">dove ping</h2>
+          <p>连通性测试命令，测量 Server 响应延迟。</p>
+
+          <div class="synopsis">
+            <span class="cmd">dove</span> <span class="arg">ping</span> <span class="opt">[options]</span>
+          </div>
+
+          <h3>选项</h3>
+          <div class="table-wrapper">
+            <table>
+              <thead>
+                <tr>
+                  <th>Flag</th>
+                  <th>Description</th>
+                  <th>Default</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><code>-c, --count &lt;n&gt;</code></td>
+                  <td>发送次数</td>
+                  <td>3</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <h3>示例</h3>
+          <pre><code># 默认 ping 3 次
+dove ping
+
+# 输出示例：
+# PING tcp://localhost:3003
+# 回复: 序号=1 时间=12ms
+# 回复: 序号=2 时间=8ms
+# 回复: 序号=3 时间=9ms
+# --- 统计 ---
+# 3 次发送, 3 次接收, 0% 丢包
+# 延迟 最小/平均/最大 = 8/9.7/12 ms
+
+# 发送 10 次
+dove ping -c 10</code></pre>
+
+          <!-- 权限矩阵 -->
+          <h2 id="permission-matrix">权限矩阵</h2>
+          <p>不同角色对系统功能的访问权限：</p>
+
+          <div class="table-wrapper">
+            <table>
+              <thead>
+                <tr>
+                  <th>功能</th>
+                  <th>匿名</th>
+                  <th>普通用户</th>
+                  <th>管理员</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>ping / status</td>
+                  <td>可</td>
+                  <td>可</td>
+                  <td>可</td>
+                </tr>
+                <tr>
+                  <td>login / logout</td>
+                  <td>可</td>
+                  <td>可</td>
+                  <td>可</td>
+                </tr>
+                <tr>
+                  <td>setup / init</td>
+                  <td>可</td>
+                  <td>可</td>
+                  <td>可</td>
+                </tr>
+                <tr>
+                  <td>chat（基本）</td>
+                  <td>受限</td>
+                  <td>可</td>
+                  <td>可</td>
+                </tr>
+                <tr>
+                  <td>chat（高级选项）</td>
+                  <td>不可</td>
+                  <td>可</td>
+                  <td>可</td>
+                </tr>
+                <tr>
+                  <td>task 管理</td>
+                  <td>不可</td>
+                  <td>自己的</td>
+                  <td>全部</td>
+                </tr>
+                <tr>
+                  <td>dove 注册/删除</td>
+                  <td>不可</td>
+                  <td>可</td>
+                  <td>可</td>
+                </tr>
+                <tr>
+                  <td>config 修改</td>
+                  <td>不可</td>
+                  <td>自己的</td>
+                  <td>全局</td>
+                </tr>
+                <tr>
+                  <td>storage 管理</td>
+                  <td>不可</td>
+                  <td>自己的配额</td>
+                  <td>全部</td>
+                </tr>
+                <tr>
+                  <td>memory 访问</td>
+                  <td>不可</td>
+                  <td>自己的</td>
+                  <td>全部</td>
+                </tr>
+                <tr>
+                  <td>service 管理</td>
+                  <td>查看</td>
+                  <td>查看</td>
+                  <td>全部</td>
+                </tr>
+                <tr>
+                  <td>用户管理</td>
+                  <td>不可</td>
+                  <td>不可</td>
+                  <td>可</td>
+                </tr>
+                <tr>
+                  <td>app 审核/发布</td>
+                  <td>不可</td>
+                  <td>不可</td>
+                  <td>可</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div class="warning">
+            <p><strong>安全提示</strong>：管理员登录建议仅在受信任的终端环境中使用，避免在共享机器上保留管理员会话。</p>
+          </div>
+
+          <h2>相关命令</h2>
+          <ul>
+            <li><a href="service.html#dove-service">dove service</a> - 服务状态管理</li>
+            <li><a href="config.html#dove-config">dove config</a> - 配置管理</li>
+            <li><a href="index.html#auth-free">免认证命令列表</a> - 无需登录的命令</li>
+          </ul>
+
+        </article>
+      </main>
+    </div>
+  </div>
+  <script src="../js/components.js"></script>
+  <script src="../js/nav.js"></script>
+  <script src="../js/search.js"></script>
+</body>
+</html>

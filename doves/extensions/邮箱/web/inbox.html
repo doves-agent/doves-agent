@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>收件箱</title>
+<link rel="stylesheet" href="/css/style.css">
+<style>
+  .email-list { list-style: none; padding: 0; margin: 0; }
+  .email-item { padding: 12px 14px; border-bottom: 1px solid var(--border); cursor: pointer; display: flex; align-items: flex-start; gap: 12px; transition: background 0.15s; }
+  .email-item:hover { background: var(--bg-input); }
+  .email-item.unread { border-left: 3px solid var(--primary); background: color-mix(in srgb, var(--primary) 5%, var(--bg)); }
+  .email-item .email-meta { flex: 1; min-width: 0; }
+  .email-item .from { font-weight: 600; font-size: 13px; color: var(--text); }
+  .email-item .subject { font-size: 13px; color: var(--text-secondary); margin: 2px 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .email-item .summary { font-size: 12px; color: var(--text-secondary); opacity: 0.7; }
+  .email-item .time { font-size: 11px; color: var(--text-secondary); white-space: nowrap; }
+  .stats-row { display: flex; gap: 12px; margin-bottom: 16px; flex-wrap: wrap; }
+  .stats-row .stat-chip { background: var(--bg-input); padding: 6px 12px; border-radius: var(--radius-sm); font-size: 13px; color: var(--text-secondary); }
+  .toolbar { display: flex; gap: 8px; margin-bottom: 12px; flex-wrap: wrap; align-items: center; }
+  .toolbar .input { flex: 1; min-width: 180px; }
+  .detail-panel { display: none; }
+  .detail-panel.show { display: block; }
+  .detail-field { margin-bottom: 10px; }
+  .detail-field .label { font-size: 12px; color: var(--text-secondary); margin-bottom: 2px; }
+  .detail-field .value { font-size: 14px; color: var(--text); }
+  .detail-body { background: var(--bg-input); border-radius: var(--radius); padding: 14px; font-size: 13px; line-height: 1.7; white-space: pre-wrap; margin-top: 10px; }
+  .detail-actions { display: flex; gap: 8px; margin-top: 12px; }
+</style>
+</head>
+<body>
+  <div class="page-header">
+    <h1 class="page-title">收件箱</h1>
+  </div>
+
+  <div class="card">
+    <div class="toolbar">
+      <input type="email" class="input" id="emailInput" placeholder="your@email.com">
+      <button class="btn btn-sm" onclick="checkInbox()">收取邮件</button>
+      <button class="btn btn-sm btn-outline" onclick="classifyEmails()">智能分类</button>
+      <button class="btn btn-sm btn-outline" onclick="summarizeAll()">全部摘要</button>
+    </div>
+    <div class="stats-row" id="statsRow">
+      <span class="stat-chip">待处理: -</span>
+      <span class="stat-chip">已分类: -</span>
+      <span class="stat-chip">重要: -</span>
+    </div>
+  </div>
+
+  <div class="card" id="emailListCard">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+      <h3 style="font-size:15px;color:var(--text)">邮件列表</h3>
+      <button class="btn btn-sm btn-outline" onclick="checkInbox()">刷新</button>
+    </div>
+    <ul class="email-list" id="emailItems">
+      <li class="empty-state">点击"收取邮件"获取最新邮件</li>
+    </ul>
+  </div>
+
+  <div id="emailDetail" class="card detail-panel">
+    <h3 id="detailSubject" style="font-size:15px;margin-bottom:12px">邮件详情</h3>
+    <div id="detailContent"></div>
+    <div class="detail-actions">
+      <button class="btn btn-sm" onclick="replyEmail()">回复</button>
+      <button class="btn btn-sm btn-outline" onclick="forwardEmail()">转发</button>
+      <button class="btn btn-sm btn-outline" onclick="archiveEmail()">归档</button>
+    </div>
+  </div>
+
+<script src="/js/sdk.js"></script>
+<script>
+DoveSDK.init('邮箱');
+
+let currentEmails = [];
+let selectedEmail = null;
+
+async function checkInbox() {
+  const email = document.getElementById('emailInput').value.trim() || 'inbox';
+  const list = document.getElementById('emailItems');
+  list.innerHTML = '<li class="empty-state">收取中...</li>';
+  try {
+    await DoveSDK.cmd('chat send', { message: `请帮我收取${email}的邮件，列出最近的5封` });
+    list.innerHTML = '<li class="empty-state">已发起收取请求，请查看对话面板的回复</li>';
+    updateStats(5, 0, 0);
+  } catch (e) {
+    list.innerHTML = `<li class="empty-state">收取失败: ${e.message}</li>`;
+  }
+}
+
+async function classifyEmails() {
+  try {
+    await DoveSDK.cmd('chat send', { message: '请帮我分类收件箱邮件' });
+    document.getElementById('statsRow').innerHTML = '<span class="stat-chip">已发起分类请求</span>';
+  } catch (e) {
+    document.getElementById('statsRow').innerHTML = `<span class="stat-chip">${e.message}</span>`;
+  }
+}
+
+async function summarizeAll() {
+  try {
+    await DoveSDK.cmd('chat send', { message: '请帮我总结收件箱邮件内容' });
+    document.getElementById('emailItems').innerHTML = '<li class="empty-state">已发起摘要请求</li>';
+  } catch (e) { /* ignore */ }
+}
+
+function updateStats(total, classified, important) {
+  document.getElementById('statsRow').innerHTML =
+    `<span class="stat-chip">待处理: ${total}</span><span class="stat-chip">已分类: ${classified}</span><span class="stat-chip">重要: ${important}</span>`;
+}
+
+async function replyEmail() {
+  if (selectedEmail) {
+    DoveSDK.navigateTo('compose');
+  }
+}
+
+async function forwardEmail() {
+  if (selectedEmail) {
+    DoveSDK.navigateTo('compose');
+  }
+}
+
+async function archiveEmail() {
+  if (selectedEmail) {
+    await DoveSDK.cmd('chat send', { message: '请帮我归档当前邮件' });
+    DoveSDK.notify('success', '已提交归档请求');
+  }
+}
+</script>
+</body>
+</html>

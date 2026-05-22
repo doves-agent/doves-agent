@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>manifest.js 规范 - 白鸽文档</title>
+  <link rel="stylesheet" href="../css/style.css">
+</head>
+<body>
+  <div id="app">
+    <header id="site-header"></header>
+    <div class="layout">
+      <aside id="sidebar"></aside>
+      <main class="content">
+        <article>
+          <h1>manifest.js 规范</h1>
+
+          <p class="synopsis">
+            <code>manifest.js</code> 是扩展的声明文件，定义了扩展的身份、能力、权限和资源引用。
+            系统通过解析 manifest 完成扩展的发现、验证和加载。
+          </p>
+
+          <h2>完整结构</h2>
+
+<pre><code>export default {
+  // ═══ 基本信息 ═══
+  name: '扩展名称',              // [必填] 唯一标识，中文或英文
+  version: '1.0.0',             // [必填] 语义化版本号 (semver)
+  description: '扩展功能描述',    // [必填] 一句话描述扩展用途
+  abilities: ['能力1', '能力2'], // [必填] 能力关键词，用于意图匹配
+
+  // ═══ 依赖 ═══
+  dependencies: ['其他扩展名'],   // 依赖的其他扩展
+
+  // ═══ LLM 层模块 ═══
+  intent: './intent.js',         // 意图识别模块
+  strategy: './strategy.js',     // 执行策略模块
+  roles: './roles.js',           // 角色/人设模块
+  review: './review.js',         // 审查标准模块
+  execution: './execution.js',   // 执行增强模块
+  workflow: './workflow.js',      // 工作流定义
+
+  // ═══ 工具层模块 ═══
+  skills: './skills',            // 技能目录路径
+  tools: './tools',              // 工具目录路径
+
+  // ═══ 开发者身份 ═══
+  developer: {
+    id: 'dev_xxx',               // 开发者 ID
+    signature: 'hmac-sha256:...' // 签名（发布时生成）
+  },
+
+  // ═══ 权限声明 ═══
+  permissions: {
+    databases: [...],            // 数据库访问
+    storage: [...],              // 存储访问
+    apis: [...],                 // 内部 API 访问
+    events: [...],               // 事件订阅/发布
+    extensions: [...],           // 扩展间通信
+    externalUrls: [...]          // 外部网络访问
+  },
+
+  // ═══ Web 资源 ═══
+  web: {
+    nav: { ... },                // 导航配置
+    pages: { ... }               // 页面路由
+  }
+};</code></pre>
+
+          <h2>字段详解</h2>
+
+          <h3>基本信息</h3>
+
+          <div class="table-wrapper">
+            <table>
+              <thead>
+                <tr>
+                  <th>字段</th>
+                  <th>类型</th>
+                  <th>必填</th>
+                  <th>说明</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><code>name</code></td>
+                  <td>string</td>
+                  <td>是</td>
+                  <td>扩展唯一名称。在系统内全局唯一，建议使用中文描述性名称</td>
+                </tr>
+                <tr>
+                  <td><code>version</code></td>
+                  <td>string</td>
+                  <td>是</td>
+                  <td>遵循 <a href="https://semver.org">semver</a> 规范：<code>主版本.次版本.修订号</code></td>
+                </tr>
+                <tr>
+                  <td><code>description</code></td>
+                  <td>string</td>
+                  <td>是</td>
+                  <td>简要描述扩展功能，会显示在扩展市场和安装确认中</td>
+                </tr>
+                <tr>
+                  <td><code>abilities</code></td>
+                  <td>string[]</td>
+                  <td>是</td>
+                  <td>能力关键词数组，用于意图匹配和搜索。例如 <code>['编码', '代码生成', 'Python']</code></td>
+                </tr>
+                <tr>
+                  <td><code>dependencies</code></td>
+                  <td>string[]</td>
+                  <td>否</td>
+                  <td>依赖的其他扩展名称。系统会确保依赖项先于本扩展加载</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <h3>LLM 层模块</h3>
+
+          <div class="table-wrapper">
+            <table>
+              <thead>
+                <tr>
+                  <th>字段</th>
+                  <th>说明</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><code>intent</code></td>
+                  <td>意图识别模块。定义什么样的用户输入应该激活此扩展。导出一个函数，接收用户消息，返回匹配分数</td>
+                </tr>
+                <tr>
+                  <td><code>strategy</code></td>
+                  <td>执行策略。定义扩展处理任务的编排逻辑：单步直接执行、多步骤流水线、或条件分支</td>
+                </tr>
+                <tr>
+                  <td><code>roles</code></td>
+                  <td>角色定义。为 LLM 提供人设和行为约束，影响输出风格和专业度</td>
+                </tr>
+                <tr>
+                  <td><code>review</code></td>
+                  <td>审查标准。定义输出质量检查规则，用于自动审查生成结果</td>
+                </tr>
+                <tr>
+                  <td><code>execution</code></td>
+                  <td>执行增强。在 LLM 调用前后注入处理逻辑（如上下文补充、结果后处理）</td>
+                </tr>
+                <tr>
+                  <td><code>workflow</code></td>
+                  <td>工作流定义。描述复杂任务的多阶段执行流程</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <h4>intent.js 示例</h4>
+
+<pre><code>export default {
+  keywords: ['天气', '气温', '下雨', '预报'],
+  examples: [
+    '今天北京天气怎么样',
+    '明天会下雨吗',
+    '查一下上海的温度'
+  ],
+  // 自定义匹配逻辑（可选）
+  match: (message) => {
+    if (message.includes('天气') || message.includes('气温')) {
+      return { score: 0.9 };
+    }
+    return { score: 0 };
+  }
+};</code></pre>
+
+          <h4>roles.js 示例</h4>
+
+<pre><code>export default {
+  default: {
+    name: '气象专家',
+    prompt: '你是一位专业的气象分析师，擅长解读天气数据并给出生活建议。回答简洁实用。'
+  }
+};</code></pre>
+
+          <h3>工具层模块</h3>
+
+          <div class="table-wrapper">
+            <table>
+              <thead>
+                <tr>
+                  <th>字段</th>
+                  <th>说明</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><code>skills</code></td>
+                  <td>技能目录路径（相对于扩展根目录）。目录下的每个 <code>.js</code> 文件会被自动注册为一个技能</td>
+                </tr>
+                <tr>
+                  <td><code>tools</code></td>
+                  <td>工具目录路径。目录下的每个 <code>.js</code> 文件会被自动注册为一个工具</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <h3>developer 开发者身份</h3>
+
+<pre><code>developer: {
+  id: 'dev_a1b2c3d4',           // 开发者注册后获得的唯一 ID
+  signature: 'hmac-sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855'
+}</code></pre>
+
+          <div class="warning">
+            <p>签名在 <code>dove app publish</code> 时自动生成。开发阶段可留空，但发布前必须填写。
+            签名基于 manifest 内容 + 开发者密钥生成，用于验证扩展完整性。</p>
+          </div>
+
+          <h3>permissions 权限声明</h3>
+
+          <p>权限声明是 manifest 中最关键的部分。详细说明请参见 <a href="permissions.html">权限体系</a>。</p>
+
+          <h4>快速示例</h4>
+
+<pre><code>permissions: {
+  databases: [
+    {
+      db: 'user_data',
+      collection: '笔记',
+      scope: 'user_scoped',
+      userField: '用户ID',
+      actions: ['find', 'insertOne', 'updateOne', 'deleteOne']
+    }
+  ],
+  storage: [
+    {
+      type: 'oss',
+      path: '天气缓存/*',
+      actions: ['read', 'write']
+    }
+  ],
+  apis: [
+    {
+      path: '/api/user/profile',
+      actions: ['read']
+    }
+  ],
+  events: [
+    {
+      name: '天气.更新',
+      actions: ['publish']
+    }
+  ],
+  extensions: [
+    {
+      name: '通知',
+      actions: ['call']
+    }
+  ],
+  externalUrls: [
+    {
+      url: 'https://api.weatherapi.com/*',
+      actions: ['fetch']
+    }
+  ]
+}</code></pre>
+
+          <h3>web 资源配置</h3>
+
+          <p>如果扩展提供 Web 前端界面：</p>
+
+<pre><code>web: {
+  nav: {
+    title: '天气查询',
+    icon: 'cloud-sun',
+    order: 50
+  },
+  pages: {
+    '/weather': './web/index.html',
+    '/weather/history': './web/history.html'
+  }
+}</code></pre>
+
+          <div class="info">
+            <p>Web 资源在扩展加载的第 11 步上传到系统，通过统一的 Web 网关提供服务。
+            页面可使用系统提供的 UI 组件库。</p>
+          </div>
+
+          <h2>最小化示例</h2>
+
+          <p>一个最简单的合法 manifest：</p>
+
+<pre><code>export default {
+  name: '问候',
+  version: '1.0.0',
+  description: '简单的问候扩展示例',
+  abilities: ['问候', '打招呼'],
+  tools: './tools',
+  permissions: {}
+};</code></pre>
+
+          <h2>验证规则</h2>
+
+          <p><code>dove app validate</code> 会检查以下规则：</p>
+
+          <ul>
+            <li><code>name</code>、<code>version</code>、<code>description</code>、<code>abilities</code> 必须存在且非空</li>
+            <li><code>version</code> 必须符合 semver 格式</li>
+            <li>所有路径引用的文件/目录必须实际存在</li>
+            <li>权限声明格式正确、scope 合法</li>
+            <li>工具定义符合 JSON Schema 规范</li>
+            <li>无循环依赖</li>
+          </ul>
+
+          <h2>相关页面</h2>
+
+          <ul>
+            <li><a href="permissions.html">权限体系</a> — 权限声明完整指南</li>
+            <li><a href="tools.html">工具开发</a> — tools 目录下的文件规范</li>
+            <li><a href="lifecycle.html">生命周期</a> — manifest 各字段在加载过程中的作用时机</li>
+          </ul>
+
+        </article>
+      </main>
+    </div>
+  </div>
+  <script src="../js/components.js"></script>
+  <script src="../js/nav.js"></script>
+  <script src="../js/search.js"></script>
+</body>
+</html>

@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>分支管理</title>
+<link rel="stylesheet" href="/css/style.css">
+<style>
+  .tip { background: rgba(255, 193, 7, 0.1); border: 1px solid var(--warning); border-radius: var(--radius); padding: 12px 16px; margin-bottom: 16px; font-size: 13px; color: var(--text); }
+  .action-bar { display: flex; gap: 8px; margin-bottom: 16px; flex-wrap: wrap; }
+  .branch-list { list-style: none; padding: 0; margin: 0; }
+  .branch-item { display: flex; justify-content: space-between; align-items: center; padding: 10px 12px; border-bottom: 1px solid var(--border); }
+  .branch-item:last-child { border-bottom: none; }
+  .branch-name { font-family: monospace; font-weight: 600; color: var(--text); }
+  .branch-current { background: var(--success); color: #fff; padding: 2px 8px; border-radius: var(--radius-sm); font-size: 11px; margin-left: 8px; }
+  .branch-actions { display: flex; gap: 4px; }
+  .create-form { display: flex; gap: 8px; margin-top: 12px; }
+  .create-form input { flex: 1; }
+</style>
+</head>
+<body>
+  <div class="page-header">
+    <h1 class="page-title">分支管理</h1>
+    <button class="btn btn-sm" onclick="loadBranches()">刷新</button>
+  </div>
+
+  <div class="tip">分支操作需通过对话进行，这里展示常用操作入口</div>
+
+  <div class="action-bar">
+    <button class="btn" onclick="sendCmd('帮我查看所有分支')">查看分支</button>
+    <button class="btn btn-outline" onclick="sendCmd('帮我切换分支')">切换分支</button>
+    <button class="btn btn-outline" onclick="sendCmd('帮我合并分支')">合并分支</button>
+  </div>
+
+  <div class="card">
+    <h3 style="margin-bottom: 12px;">创建新分支</h3>
+    <div class="create-form">
+      <input type="text" class="input" id="newBranchName" placeholder="新分支名称">
+      <button class="btn" onclick="createBranch()">创建</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3 style="margin-bottom: 12px;">分支列表</h3>
+    <ul class="branch-list" id="branchList">
+      <li class="empty-state">加载中...</li>
+    </ul>
+  </div>
+
+  <div class="card">
+    <h3 style="margin-bottom: 12px;">操作说明</h3>
+    <p style="font-size: 14px; line-height: 1.8; color: var(--text-secondary);">
+      通过对话窗口输入 Git 操作指令，白鸽将自动选择正确的工具执行。<br>
+      危险操作（push/merge/rebase/reset）需二次确认，操作前自动创建快照。<br>
+      冲突时自动调用 conflict_resolver 技能进行智能解决。
+    </p>
+  </div>
+
+<script src="/js/sdk.js"></script>
+<script>
+DoveSDK.init('Git版本控制');
+
+function sendCmd(text) {
+  DoveSDK.cmd(text);
+  DoveSDK.navigateTo('chat');
+}
+
+async function loadBranches() {
+  try {
+    const result = await DoveSDK.callTool('git_branches', {});
+    const list = document.getElementById('branchList');
+    if (result.success && result.data?.branches?.length) {
+      list.innerHTML = result.data.branches.map(b => `
+        <li class="branch-item">
+          <span>
+            <span class="branch-name">${escapeHtml(b.name)}</span>
+            ${b.current ? '<span class="branch-current">当前</span>' : ''}
+          </span>
+          <div class="branch-actions">
+            ${!b.current ? '<button class="btn btn-sm btn-outline" onclick="switchBranch(\'' + escapeAttr(b.name) + '\')">切换</button>' : ''}
+            ${!b.current ? '<button class="btn btn-sm btn-danger" onclick="deleteBranch(\'' + escapeAttr(b.name) + '\')">删除</button>' : ''}
+          </div>
+        </li>
+      `).join('');
+    } else {
+      list.innerHTML = '<li class="empty-state">暂无分支信息</li>';
+    }
+  } catch (e) {
+    document.getElementById('branchList').innerHTML = '<li class="empty-state">加载失败，请通过对话查看</li>';
+  }
+}
+
+async function createBranch() {
+  const name = document.getElementById('newBranchName').value.trim();
+  if (!name) { DoveSDK.notify('error', '请输入分支名称'); return; }
+  try {
+    const result = await DoveSDK.callTool('git_create_branch', { name });
+    if (result.success) {
+      DoveSDK.notify('success', '分支已创建: ' + name);
+      document.getElementById('newBranchName').value = '';
+      loadBranches();
+    } else {
+      DoveSDK.notify('error', result.error || '创建失败');
+    }
+  } catch (e) {
+    DoveSDK.notify('error', '创建失败: ' + e.message);
+  }
+}
+
+async function switchBranch(name) {
+  const confirmed = await DoveSDK.confirm('切换分支', '确定要切换到分支 "' + name + '" 吗？');
+  if (!confirmed) return;
+  try {
+    const result = await DoveSDK.callTool('git_switch_branch', { name });
+    if (result.success) {
+      DoveSDK.notify('success', '已切换到: ' + name);
+      loadBranches();
+    } else {
+      DoveSDK.notify('error', result.error || '切换失败');
+    }
+  } catch (e) {
+    DoveSDK.notify('error', '切换失败: ' + e.message);
+  }
+}
+
+async function deleteBranch(name) {
+  const confirmed = await DoveSDK.confirm('删除分支', '确定要删除分支 "' + name + '" 吗？此操作不可恢复。');
+  if (!confirmed) return;
+  try {
+    const result = await DoveSDK.callTool('git_delete_branch', { name });
+    if (result.success) {
+      DoveSDK.notify('success', '已删除分支: ' + name);
+      loadBranches();
+    } else {
+      DoveSDK.notify('error', result.error || '删除失败');
+    }
+  } catch (e) {
+    DoveSDK.notify('error', '删除失败: ' + e.message);
+  }
+}
+
+function escapeHtml(text) {
+  const div = document.createElement('div');
+  div.textContent = text || '';
+  return div.innerHTML;
+}
+
+function escapeAttr(text) {
+  return (text || '').replace(/'/g, "\\'").replace(/"/g, '&quot;');
+}
+
+loadBranches();
+</script>
+</body>
+</html>

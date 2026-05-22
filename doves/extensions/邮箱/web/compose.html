@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>写邮件</title>
+<link rel="stylesheet" href="/css/style.css">
+<style>
+  .form-group { margin-bottom: 14px; }
+  .form-group label { display: block; font-size: 13px; color: var(--text-secondary); margin-bottom: 4px; font-weight: 600; }
+  .form-group input, .form-group textarea { width: 100%; padding: 10px 12px; border: 1px solid var(--border); border-radius: var(--radius); font-size: 14px; font-family: inherit; background: var(--bg-input); color: var(--text); }
+  .form-group input:focus, .form-group textarea:focus { outline: none; border-color: var(--primary); }
+  .form-group textarea { resize: vertical; line-height: 1.6; }
+  .quick-templates { display: flex; gap: 8px; margin-bottom: 16px; flex-wrap: wrap; }
+  .template-chip { padding: 5px 14px; border: 1px solid var(--border); border-radius: 16px; font-size: 12px; cursor: pointer; background: var(--bg-card); color: var(--text-secondary); transition: all 0.15s; }
+  .template-chip:hover { border-color: var(--primary); color: var(--primary); }
+  .smart-actions { display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap; }
+  .smart-actions .action { padding: 6px 14px; border: 1px dashed var(--border); border-radius: var(--radius); font-size: 12px; cursor: pointer; color: var(--primary); background: var(--bg); transition: all 0.15s; }
+  .smart-actions .action:hover { border-color: var(--primary); background: color-mix(in srgb, var(--primary) 5%, var(--bg)); }
+  .status-bar { margin-top: 12px; padding: 10px 14px; border-radius: var(--radius); font-size: 13px; display: none; }
+  .status-bar.show { display: block; }
+  .status-success { background: color-mix(in srgb, var(--success) 10%, var(--bg)); color: var(--success); }
+  .status-error { background: color-mix(in srgb, var(--error) 10%, var(--bg)); color: var(--error); }
+  .form-actions { display: flex; gap: 8px; margin-top: 14px; }
+</style>
+</head>
+<body>
+  <div class="page-header">
+    <h1 class="page-title">写邮件</h1>
+  </div>
+
+  <div class="card">
+    <div class="quick-templates">
+      <span class="template-chip" onclick="fillTemplate('formal')">正式商务</span>
+      <span class="template-chip" onclick="fillTemplate('casual')">轻松友好</span>
+      <span class="template-chip" onclick="fillTemplate('meeting')">会议邀请</span>
+      <span class="template-chip" onclick="fillTemplate('followup')">跟进提醒</span>
+    </div>
+
+    <div class="form-group">
+      <label>收件人</label>
+      <input type="email" id="toInput" placeholder="recipient@example.com">
+    </div>
+    <div class="form-group">
+      <label>主题</label>
+      <input type="text" id="subjectInput" placeholder="邮件主题">
+    </div>
+    <div class="form-group">
+      <label>内容</label>
+      <textarea id="bodyInput" rows="10" placeholder="在此输入邮件内容..."></textarea>
+    </div>
+
+    <div class="smart-actions">
+      <span class="action" onclick="smartWrite('润色')">润色内容</span>
+      <span class="action" onclick="smartWrite('翻译成英文')">翻译英文</span>
+      <span class="action" onclick="smartWrite('精简')">精简内容</span>
+      <span class="action" onclick="smartWrite('正式化')">正式语气</span>
+    </div>
+
+    <div class="form-actions">
+      <button class="btn" onclick="composeAndSend()">发送</button>
+      <button class="btn btn-outline" onclick="clearForm()">清空</button>
+    </div>
+
+    <div id="composeStatus" class="status-bar"></div>
+  </div>
+
+<script src="/js/sdk.js"></script>
+<script>
+DoveSDK.init('邮箱');
+
+function fillTemplate(type) {
+  const templates = {
+    formal: { subject: '关于[事项]的沟通', body: '尊敬的[姓名]:\n\n您好！\n\n关于[事项]，我想与您进一步沟通。……\n\n期待您的回复。\n\n此致\n敬礼\n\n[你的姓名]' },
+    casual: { subject: 'Hi，[事项]', body: 'Hi [姓名]:\n\n想跟你聊一下[事项]的事情。\n\n你看什么时候方便？\n\nCheers!' },
+    meeting: { subject: '会议邀请：[主题]', body: '大家好，\n\n邀请大家参加[主题]会议：\n时间：[日期] [时间]\n地点：[地点/线上链接]\n议程：\n1. ...\n2. ...\n\n请确认是否参加。\n谢谢！' },
+    followup: { subject: '跟进：[事项]', body: 'Hi [姓名]:\n\n想跟进一下之前提到的[事项]。\n\n请问有最新进展吗？\n\n谢谢！' }
+  };
+  const t = templates[type] || templates.formal;
+  document.getElementById('subjectInput').value = t.subject;
+  document.getElementById('bodyInput').value = t.body;
+}
+
+async function smartWrite(action) {
+  const body = document.getElementById('bodyInput').value.trim();
+  if (!body) { showStatus('请先输入内容', 'error'); return; }
+  showStatus(`${action}中...`, 'success');
+  try {
+    await DoveSDK.cmd('chat send', { message: `请帮我${action}这段邮件内容:\n${body}` });
+    showStatus(`已提交${action}请求，请在对话面板查看结果`, 'success');
+  } catch (e) {
+    showStatus(e.message, 'error');
+  }
+}
+
+async function composeAndSend() {
+  const to = document.getElementById('toInput').value.trim();
+  const subject = document.getElementById('subjectInput').value.trim();
+  const body = document.getElementById('bodyInput').value.trim();
+  if (!to || !subject || !body) { showStatus('请填写完整信息（收件人、主题、内容）', 'error'); return; }
+  showStatus('发送中...', 'success');
+  try {
+    await DoveSDK.cmd('chat send', { message: `请帮我把这封邮件发送出去：收件人${to}，主题${subject}，内容：${body}` });
+    showStatus('已提交发送请求，请在对话面板确认发送', 'success');
+  } catch (e) {
+    showStatus(e.message, 'error');
+  }
+}
+
+function clearForm() {
+  document.getElementById('toInput').value = '';
+  document.getElementById('subjectInput').value = '';
+  document.getElementById('bodyInput').value = '';
+  document.getElementById('composeStatus').className = 'status-bar';
+}
+
+function showStatus(msg, type) {
+  const el = document.getElementById('composeStatus');
+  el.textContent = msg;
+  el.className = `status-bar show status-${type}`;
+}
+</script>
+</body>
+</html>

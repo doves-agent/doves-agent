@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>架构总览 - 白鸽文档</title>
+  <link rel="stylesheet" href="../css/style.css">
+</head>
+<body>
+  <div id="app">
+    <header id="site-header"></header>
+    <div class="layout">
+      <aside id="sidebar"></aside>
+      <main class="content">
+        <article>
+          <h1>架构总览</h1>
+          <p>白鸽系统由三个核心组件构成，通过 Noise NX 加密 TCP 协议实现全链路安全通信。</p>
+
+          <h2>系统组件</h2>
+          <div class="card-grid">
+            <div class="card">
+              <h3>CLI</h3>
+              <p>用户入口。提交任务、查询结果、管理鸽子。通过 DoveClient 与 Server 通信，同账号可直连 Doves。</p>
+            </div>
+            <div class="card">
+              <h3>Server</h3>
+              <p>纯数据网关。负责认证、数据代理、任务入队。唯一端口 3003，不调用 LLM，不推送任务。</p>
+            </div>
+            <div class="card">
+              <h3>Doves</h3>
+              <p>执行引擎。自主轮询拉取任务，调用 LLM 执行，运行扩展技能，回写结果。</p>
+            </div>
+          </div>
+
+          <h2>架构拓扑</h2>
+<pre><code>CLI ══加密TCP══▶ Server ◀══加密TCP══ Doves
+ │                 │                    ▲
+ │                 ▼                    │
+ │         MongoDB / OSS / 快照 / 向量  │
+ │         (仅 Server 有权直接访问)      │
+ │                                      │
+ └══════加密TCP（同账号直连）════════════─┘</code></pre>
+
+          <h2>三条通信线路</h2>
+          <div class="table-wrapper">
+            <table>
+              <thead>
+                <tr>
+                  <th>链路</th>
+                  <th>用途</th>
+                  <th>条件</th>
+                  <th>协议</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>CLI → Server</td>
+                  <td>提交任务、查询结果、用户管理</td>
+                  <td>始终可用</td>
+                  <td>Noise NX 加密 TCP</td>
+                </tr>
+                <tr>
+                  <td>Doves → Server</td>
+                  <td>轮询拉取任务、提交结果、心跳</td>
+                  <td>始终可用</td>
+                  <td>Noise NX 加密 TCP</td>
+                </tr>
+                <tr>
+                  <td>CLI → Doves</td>
+                  <td>管理鸽子、查看运行状态、扩展服务直调</td>
+                  <td>同账号/同机器</td>
+                  <td>Noise NX 加密 TCP</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div class="info">
+            <p><strong>协议统一：</strong>三条线全部是 Noise NX 加密 TCP，没有第二种协议。无明文 HTTP 端口、无降级、无例外。</p>
+          </div>
+
+          <h2>依赖与通信方向</h2>
+          <div class="table-wrapper">
+            <table>
+              <thead>
+                <tr>
+                  <th>允许</th>
+                  <th>禁止</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>[加密] CLI → Server</td>
+                  <td>[明文] 任何组件间 HTTP 通信</td>
+                </tr>
+                <tr>
+                  <td>[加密] Doves → Server</td>
+                  <td>[推送] Server → CLI</td>
+                </tr>
+                <tr>
+                  <td>[加密] CLI → Doves（同账号直连）</td>
+                  <td>[推送] Server → Doves</td>
+                </tr>
+                <tr>
+                  <td>[双向] IM ↔ Server</td>
+                  <td>[引用] Server → Doves 代码</td>
+                </tr>
+                <tr>
+                  <td></td>
+                  <td>[调用] Server → LLM</td>
+                </tr>
+                <tr>
+                  <td></td>
+                  <td>[调用] CLI → LLM</td>
+                </tr>
+                <tr>
+                  <td></td>
+                  <td>[暴露] 明文 HTTP 端口</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <h2>数据访问模式</h2>
+<pre><code>┌──────────────────────────────────────────────────────────┐
+│                     Server (:3003)                        │
+│              Noise NX 加密 TCP（唯一端口）                 │
+│                                                          │
+│  ┌──────────┐  ┌──────────┐  ┌────────┐  ┌──────────┐  │
+│  │ MongoDB  │  │   OSS    │  │ 快照   │  │ 向量记忆 │  │
+│  └──────────┘  └──────────┘  └────────┘  └──────────┘  │
+└──────────────────────┬───────────────────────────────────┘
+                       │
+          ┌────────────┼────────────┐
+          │ 代理 API   │            │ 代理 API
+          ▼            │            ▼
+   ┌────────────┐      │     ┌────────────┐
+   │    CLI     │      │     │   Doves    │
+   │ DoveClient │      │     │ DovesProxy │
+   └────────────┘      │     └────────────┘</code></pre>
+
+          <div class="warning">
+            <p><strong>硬约束：</strong>只有 Server 可直接访问数据库和 OSS。CLI 和 Doves 必须通过 Server 代理 API 进行数据操作。</p>
+          </div>
+
+          <h2>设计原则</h2>
+          <div class="card-grid">
+            <div class="card">
+              <h3>全链路加密</h3>
+              <p>所有组件间通信统一 Noise NX 加密 TCP，无明文、无降级、无例外。</p>
+            </div>
+            <div class="card">
+              <h3>Server 不感知 Doves 逻辑</h3>
+              <p>Server 不 import Doves 代码，不了解任务如何执行，只负责入队和存储结果。</p>
+            </div>
+            <div class="card">
+              <h3>拉取模式</h3>
+              <p>Server 永远不主动推送任务。Doves 自主轮询拉取，保证执行端完全自治。</p>
+            </div>
+            <div class="card">
+              <h3>极致 KISS</h3>
+              <p>总存在一个足够简单的实现恰好能满足所有场景。结构纯粹，场景自然对得上。</p>
+            </div>
+          </div>
+
+          <h2>任务生命周期概览</h2>
+<pre><code>┌───────┐          ┌───────────┐          ┌───────────┐
+│  CLI  │          │  Server   │          │   Doves   │
+└───┬───┘          └─────┬─────┘          └─────┬─────┘
+    │  1. 提交任务        │                      │
+    │════════════════════▶│                      │
+    │                     │  2. 写入任务队列      │
+    │                     │─────────┐            │
+    │                     │◀────────┘            │
+    │                     │                      │
+    │                     │  3. 轮询拉取任务      │
+    │                     │◀═════════════════════│
+    │                     │                      │
+    │                     │  4. 返回待执行任务    │
+    │                     │═════════════════════▶│
+    │                     │                      │
+    │                     │              5. 执行（调用 LLM）
+    │                     │                      │──┐
+    │                     │                      │◀─┘
+    │                     │                      │
+    │                     │  6. 提交执行结果      │
+    │                     │◀═════════════════════│
+    │                     │                      │
+    │  7. 查询结果        │                      │
+    │════════════════════▶│                      │
+    │                     │                      │
+    │  8. 返回结果        │                      │
+    │◀════════════════════│                      │</code></pre>
+
+          <div class="tip">
+            <p>IM（微信/钉钉/飞书）与 CLI 功能等价，共享同一套 Server API。区别仅为来源标记和通知方向。</p>
+          </div>
+
+          <h2>数据库结构</h2>
+          <div class="table-wrapper">
+            <table>
+              <thead>
+                <tr>
+                  <th>数据库</th>
+                  <th>职责</th>
+                  <th>核心集合</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>doves_admin</td>
+                  <td>系统管理数据</td>
+                  <td>用户、管理员、鸽子身份、API密钥、饲料交易、信誉日志、能力、系统配置、审计日志</td>
+                </tr>
+                <tr>
+                  <td>doves_user_data</td>
+                  <td>用户业务数据</td>
+                  <td>任务、对话、技能、执行配置、执行轨迹、事件、向量记忆、通知</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+        </article>
+      </main>
+    </div>
+  </div>
+  <script src="../js/components.js"></script>
+  <script src="../js/nav.js"></script>
+  <script src="../js/search.js"></script>
+</body>
+</html>

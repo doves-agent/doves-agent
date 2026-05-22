@@ -1,0 +1,117 @@
+name: Build Doves Release
+
+on:
+  push:
+    tags:
+      - 'doves-v*'
+  workflow_dispatch:
+
+jobs:
+  build:
+    strategy:
+      matrix:
+        include:
+          - os: windows-latest
+            target: win32
+            artifact: doves-win
+            ext: .exe
+          - os: macos-latest
+            target: darwin
+            artifact: doves-macos-x64
+            ext: ''
+          - os: macos-latest
+            target: darwin-arm64
+            artifact: doves-macos-arm64
+            ext: ''
+          - os: ubuntu-latest
+            target: linux
+            artifact: doves-linux-x64
+            ext: ''
+
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v1
+        with:
+          bun-version: latest
+
+      - name: Install dependencies
+        working-directory: 白鸽系统/doves
+        run: npm ci
+
+      - name: Build with esbuild
+        working-directory: 白鸽系统/doves
+        run: node scripts/build.mjs --platform ${{ matrix.target }}
+
+      - name: Build executable with Bun (Windows)
+        if: matrix.target == 'win32'
+        working-directory: 白鸽系统/doves/dist
+        run: |
+          bun build index.cjs --compile --target=bun-windows-x64 --outfile=../release/doves.exe
+        shell: bash
+
+      - name: Build executable with Bun (macOS x64)
+        if: matrix.target == 'darwin' && matrix.artifact == 'doves-macos-x64'
+        working-directory: 白鸽系统/doves/dist
+        run: |
+          bun build index.cjs --compile --target=bun-darwin-x64 --outfile=../release/doves-macos-x64
+          codesign --sign - ../release/doves-macos-x64 || true
+
+      - name: Build executable with Bun (macOS ARM)
+        if: matrix.target == 'darwin-arm64' || (matrix.target == 'darwin' && matrix.artifact == 'doves-macos-arm64')
+        working-directory: 白鸽系统/doves/dist
+        run: |
+          bun build index.cjs --compile --target=bun-darwin-arm64 --outfile=../release/doves-macos-arm64
+          codesign --sign - ../release/doves-macos-arm64 || true
+
+      - name: Build executable with Bun (Linux)
+        if: matrix.target == 'linux'
+        working-directory: 白鸽系统/doves/dist
+        run: |
+          bun build index.cjs --compile --target=bun-linux-x64 --outfile=../release/doves-linux-x64
+          chmod +x ../release/doves-linux-x64
+
+      - name: Package release (Windows)
+        if: matrix.target == 'win32'
+        working-directory: 白鸽系统/doves/release
+        run: 7z a -tzip ../../../${{ matrix.artifact }}.zip .
+        shell: bash
+
+      - name: Package release (Unix)
+        if: matrix.target != 'win32'
+        working-directory: 白鸽系统/doves/release
+        run: zip -r ../../../${{ matrix.artifact }}.zip .
+        shell: bash
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifact }}
+          path: ${{ matrix.artifact }}.zip
+
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/')
+
+    steps:
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: release
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: release/**/*.zip
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

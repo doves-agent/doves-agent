@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html><head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>代码编辑器</title>
+<link rel="stylesheet" href="/css/style.css">
+<style>
+  .tabs {
+    display: flex; gap: 0; margin-bottom: 16px;
+    border-bottom: 2px solid var(--border);
+  }
+  .tab {
+    padding: 8px 18px; cursor: pointer; font-size: 13px;
+    color: var(--text-secondary); border-bottom: 2px solid transparent;
+    margin-bottom: -2px; user-select: none;
+  }
+  .tab.active { color: var(--primary); border-bottom-color: var(--primary); font-weight: 600; }
+  .tab-cont { display: none; }
+  .tab-cont.active { display: block; }
+
+  .file-tree { list-style: none; padding: 0; margin: 0; }
+  .file-tree li {
+    padding: 8px 12px; border-bottom: 1px solid var(--border);
+    font-size: 13px; cursor: pointer; display: flex;
+    align-items: center; gap: 8px;
+  }
+  .file-tree li:hover { background: var(--bg-input); }
+  .file-tree li .name { flex: 1; color: var(--text); }
+  .file-tree li .lang {
+    font-size: 11px; color: var(--text-secondary);
+    background: var(--bg-input); padding: 1px 6px;
+    border-radius: var(--radius-sm);
+  }
+
+  .editor-toolbar {
+    display: flex; gap: 8px; align-items: center;
+    margin-bottom: 12px; flex-wrap: wrap;
+  }
+  .editor-toolbar .input { flex: 1; min-width: 200px; }
+  .editor-area {
+    height: 300px; background: #1e1e1e; color: #d4d4d4;
+    border-radius: var(--radius); padding: 16px;
+    font-family: 'Cascadia Code', 'Fira Code', 'Consolas', monospace;
+    font-size: 14px; line-height: 1.6; overflow: auto; white-space: pre-wrap;
+  }
+
+  .quick-actions {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+    gap: 8px;
+  }
+  .action-btn {
+    padding: 12px; border: 1px solid var(--border);
+    border-radius: var(--radius); background: var(--bg-card);
+    cursor: pointer; text-align: center; transition: all 0.2s;
+  }
+  .action-btn:hover { border-color: var(--primary); background: var(--bg-input); }
+  .action-btn .action-icon { font-size: 24px; display: block; margin-bottom: 4px; }
+  .action-btn .action-label { font-size: 12px; color: var(--text-secondary); }
+
+  .section-title {
+    font-size: 14px; font-weight: 600; color: var(--text-secondary);
+    margin-bottom: 12px;
+  }
+  .section-card { padding: 16px; margin-bottom: 12px; }
+</style>
+</head><body>
+<div class="page-header">
+  <h1 class="page-title">代码编辑器</h1>
+</div>
+
+<div class="tabs">
+  <div class="tab active" data-tab="files">📂 文件</div>
+  <div class="tab" data-tab="editor">📝 编辑器</div>
+  <div class="tab" data-tab="quick">⚡ 快捷操作</div>
+</div>
+
+<!-- 文件浏览 -->
+<div id="tab-files" class="tab-cont active">
+  <div class="card section-card">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+      <span class="section-title" style="margin-bottom:0">工作目录</span>
+      <button class="btn btn-sm btn-outline" id="refreshBtn">刷新</button>
+    </div>
+    <ul class="file-tree" id="fileTree">
+      <li class="empty-state">加载中...</li>
+    </ul>
+  </div>
+</div>
+
+<!-- 编辑器 -->
+<div id="tab-editor" class="tab-cont">
+  <div class="card section-card">
+    <div class="editor-toolbar">
+      <input type="text" class="input" id="filePath" placeholder="输入文件路径 (如 src/index.js)">
+      <button class="btn btn-sm" id="loadFileBtn">加载</button>
+    </div>
+    <div class="editor-area" id="editorContent">在文件列表中选择一个文件，或输入路径后点击加载</div>
+  </div>
+</div>
+
+<!-- 快捷操作 -->
+<div id="tab-quick" class="tab-cont">
+  <div class="card section-card">
+    <div class="section-title">快捷操作</div>
+    <div class="quick-actions">
+      <div class="action-btn" data-action="format">
+        <span class="action-icon">🎨</span>
+        <span class="action-label">格式化代码</span>
+      </div>
+      <div class="action-btn" data-action="lint">
+        <span class="action-icon">🔍</span>
+        <span class="action-label">代码检查</span>
+      </div>
+      <div class="action-btn" data-action="refactor">
+        <span class="action-icon">🔧</span>
+        <span class="action-label">重构</span>
+      </div>
+      <div class="action-btn" data-action="test">
+        <span class="action-icon">🧪</span>
+        <span class="action-label">运行测试</span>
+      </div>
+      <div class="action-btn" data-action="debug">
+        <span class="action-icon">🐛</span>
+        <span class="action-label">调试</span>
+      </div>
+      <div class="action-btn" data-action="search">
+        <span class="action-icon">🔎</span>
+        <span class="action-label">语义搜索</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="card section-card">
+    <div class="section-title">最近操作</div>
+    <div id="recentActions" class="empty-state">暂无最近操作</div>
+  </div>
+</div>
+
+<script src="/js/sdk.js"></script>
+<script>
+DoveSDK.init('编码');
+
+// Tab switching
+document.querySelectorAll('.tab').forEach(tab => {
+  tab.addEventListener('click', () => {
+    const name = tab.dataset.tab;
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.tab-cont').forEach(t => t.classList.remove('active'));
+    tab.classList.add('active');
+    document.getElementById(`tab-${name}`).classList.add('active');
+  });
+});
+
+// File loading
+async function loadFiles() {
+  const list = document.getElementById('fileTree');
+  list.innerHTML = '<li class="empty-state">加载中...</li>';
+  try {
+    const data = await DoveSDK.cmd('data ls');
+    if (data.success && data.data) {
+      const files = Array.isArray(data.data) ? data.data : [];
+      if (files.length === 0) {
+        list.innerHTML = '<li class="empty-state">空目录</li>';
+        return;
+      }
+      list.innerHTML = files.map(f => `
+        <li data-file="${f}">
+          <span class="name">${f}</span>
+          <span class="lang">${(f.split('.').pop() || '?').toUpperCase()}</span>
+        </li>
+      `).join('');
+      list.querySelectorAll('li[data-file]').forEach(li => {
+        li.addEventListener('click', () => {
+          document.getElementById('filePath').value = li.dataset.file;
+          loadFile();
+          // Switch to editor tab
+          document.querySelector('.tab[data-tab="editor"]').click();
+        });
+      });
+    } else {
+      list.innerHTML = '<li class="empty-state">请通过对话使用文件浏览</li>';
+    }
+  } catch (e) {
+    list.innerHTML = `<li class="empty-state">加载失败: ${e.message}</li>`;
+  }
+}
+
+async function loadFile() {
+  const path = document.getElementById('filePath').value.trim();
+  if (!path) return;
+  const editor = document.getElementById('editorContent');
+  editor.textContent = '加载中...';
+  try {
+    const data = await DoveSDK.cmd(`data read ${path}`);
+    if (data.success && data.data) {
+      editor.textContent = typeof data.data === 'string' ? data.data : JSON.stringify(data.data, null, 2);
+    } else {
+      editor.textContent = `加载失败: ${data.message || '文件不存在'}`;
+    }
+  } catch (e) {
+    editor.textContent = `加载失败: ${e.message}`;
+  }
+}
+
+// Quick actions
+async function execAction(action) {
+  const msg = document.getElementById('recentActions');
+  msg.textContent = `执行中: ${action}...`;
+  try {
+    const data = await DoveSDK.cmd('chat send', { message: `请${action}当前项目的代码` });
+    const taskId = data.data?.taskId ? ` (任务ID: ${data.data.taskId})` : '';
+    msg.textContent = `已提交 ${action} 任务${taskId}`;
+  } catch (e) {
+    msg.textContent = `${action} 执行失败: ${e.message}`;
+  }
+}
+
+document.getElementById('refreshBtn').addEventListener('click', loadFiles);
+document.getElementById('loadFileBtn').addEventListener('click', loadFile);
+
+document.querySelectorAll('.action-btn[data-action]').forEach(btn => {
+  btn.addEventListener('click', () => {
+    execAction(btn.dataset.action);
+  });
+});
+
+loadFiles();
+</script>
+</body></html>

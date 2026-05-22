@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>文档搜索</title>
+<link rel="stylesheet" href="/css/style.css">
+<style>
+  .search-box { display: flex; gap: 8px; margin-bottom: 16px; }
+  .search-box input { flex: 1; }
+  .result-list { list-style: none; padding: 0; margin: 0; }
+  .result-item { background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius); padding: 14px; margin-bottom: 8px; }
+  .result-item .title { font-weight: 600; color: var(--text); margin-bottom: 4px; }
+  .result-item .path { font-size: 12px; color: var(--text-secondary); font-family: monospace; }
+  .result-item .preview { font-size: 13px; color: var(--text-secondary); margin-top: 6px; line-height: 1.5; }
+</style>
+</head>
+<body>
+  <div class="page-header">
+    <h1 class="page-title">文档搜索</h1>
+  </div>
+  <div class="search-box">
+    <input type="text" class="input" id="searchInput" placeholder="搜索文档关键词..." onkeydown="if(event.key==='Enter')doSearch()">
+    <button class="btn" onclick="doSearch()">搜索</button>
+  </div>
+  <div id="results">
+    <div class="empty-state">输入关键词搜索项目文档</div>
+  </div>
+<script src="/js/sdk.js"></script>
+<script>
+DoveSDK.init('文档');
+
+function sendCmd(text) {
+  DoveSDK.cmd(text);
+  DoveSDK.navigateTo('chat');
+}
+
+function doSearch() {
+  const q = document.getElementById('searchInput').value.trim();
+  if (q) sendCmd('搜索文档: ' + q);
+}
+</script>
+</body>
+</html>

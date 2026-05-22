@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>视频处理面板</title>
+<link rel="stylesheet" href="/css/style.css">
+<style>
+  .section { margin-bottom: 20px; }
+  .section h3 { font-size: 14px; margin-bottom: 12px; color: var(--text-secondary); font-weight: 600; letter-spacing: 0.5px; }
+  .file-row { display: flex; gap: 8px; align-items: center; margin-bottom: 12px; }
+  .file-row input { flex: 1; }
+  .action-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 10px; }
+  .action-card { border: 1px solid var(--border); border-radius: var(--radius); padding: 12px 10px; cursor: pointer; text-align: center; transition: all 0.2s; }
+  .action-card:hover { border-color: var(--primary); background: var(--bg-input); transform: translateY(-1px); }
+  .action-card .a-icon { font-size: 24px; margin-bottom: 4px; }
+  .action-card .a-title { font-size: 12px; font-weight: 600; color: var(--text); }
+  .action-card .a-desc { font-size: 11px; color: var(--text-secondary); margin-top: 2px; }
+  .action-card.ai { border-color: #c9b1ff; background: linear-gradient(135deg, #f8f5ff 0%, #fff 100%); }
+  .action-card.ai:hover { border-color: #8b5cf6; }
+  .action-card.ai .a-icon { filter: hue-rotate(260deg); }
+  .divider { border: none; border-top: 1px dashed var(--border); margin: 16px 0; }
+  .chat-input { display: flex; gap: 8px; margin-top: 12px; }
+  .chat-input input { flex: 1; }
+  .task-list { list-style: none; padding: 0; margin: 0; max-height: 200px; overflow-y: auto; }
+  .task-list li { padding: 8px 12px; border-bottom: 1px solid var(--border); font-size: 12px; display: flex; gap: 8px; align-items: center; color: var(--text); }
+  .task-list li:last-child { border-bottom: none; }
+  .t-status { padding: 2px 8px; border-radius: var(--radius-sm); font-size: 11px; white-space: nowrap; }
+  .t-done { background: #dafbe1; color: var(--success); }
+  .t-progress { background: #ddf4ff; color: var(--primary); }
+  .t-fail { background: #ffebe9; color: var(--error); }
+  .badge-ai { display: inline-block; font-size: 10px; padding: 1px 5px; border-radius: 3px; background: #ede9fe; color: #7c3aed; margin-left: 4px; }
+</style>
+</head>
+<body>
+  <div class="page-header">
+    <h1 class="page-title">视频处理面板</h1>
+  </div>
+
+  <div class="card">
+    <div class="section">
+      <h3>视频文件</h3>
+      <div class="file-row">
+        <input type="text" class="input" id="videoPath" placeholder="视频路径或URL，如 C:/videos/demo.mp4">
+        <button class="btn btn-sm btn-outline" onclick="doAction('查看信息')">探测</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="section">
+      <h3>AI 理解 <span class="badge-ai">百炼</span></h3>
+      <div class="action-grid">
+        <div class="action-card ai" onclick="doAction('分析视频内容')"><div class="a-icon">&#x1F9E0;</div><div class="a-title">内容分析</div><div class="a-desc">AI理解视频内容</div></div>
+        <div class="action-card ai" onclick="askQuestion()"><div class="a-icon">&#x2753;</div><div class="a-title">视频问答</div><div class="a-desc">向AI提问视频内容</div></div>
+        <div class="action-card ai" onclick="doAction('转录视频语音生成SRT字幕')"><div class="a-icon">&#x1F4DD;</div><div class="a-title">语音转录</div><div class="a-desc">提取语音→字幕</div></div>
+        <div class="action-card ai" onclick="doAction('自动识别语音并烧入字幕到视频')"><div class="a-icon">&#x1F3AC;</div><div class="a-title">自动字幕</div><div class="a-desc">转录+烧入一键完成</div></div>
+      </div>
+    </div>
+
+    <hr class="divider">
+
+    <div class="section">
+      <h3>视频处理</h3>
+      <div class="action-grid">
+        <div class="action-card" onclick="doAction('转码为H.264 MP4')"><div class="a-icon">&#x1F504;</div><div class="a-title">转码 MP4</div><div class="a-desc">H.264 通用格式</div></div>
+        <div class="action-card" onclick="doAction('智能压缩视频')"><div class="a-icon">&#x1F4E6;</div><div class="a-title">压缩</div><div class="a-desc">保质量减体积</div></div>
+        <div class="action-card" onclick="doAction('剪辑视频片段')"><div class="a-icon">&#x2702;&#xFE0F;</div><div class="a-title">剪辑</div><div class="a-desc">截取指定片段</div></div>
+        <div class="action-card" onclick="doAction('截取一段做GIF')"><div class="a-icon">&#x1F39E;&#xFE0F;</div><div class="a-title">转 GIF</div><div class="a-desc">视频片段→动图</div></div>
+        <div class="action-card" onclick="doAction('添加字幕文件')"><div class="a-icon">&#x1F4AC;</div><div class="a-title">添加字幕</div><div class="a-desc">烧入SRT/ASS</div></div>
+        <div class="action-card" onclick="doAction('添加水印')"><div class="a-icon">&#x1F4A7;</div><div class="a-title">水印</div><div class="a-desc">图片/文字水印</div></div>
+        <div class="action-card" onclick="doAction('视频截图')"><div class="a-icon">&#x1F4F8;</div><div class="a-title">截图</div><div class="a-desc">指定时间截帧</div></div>
+        <div class="action-card" onclick="doAction('合并多个视频')"><div class="a-icon">&#x1F517;</div><div class="a-title">合并</div><div class="a-desc">多文件拼接</div></div>
+        <div class="action-card" onclick="doAction('提取视频音频')"><div class="a-icon">&#x1F3B5;</div><div class="a-title">提取音频</div><div class="a-desc">视频→音频</div></div>
+        <div class="action-card" onclick="doAction('视频2倍速')"><div class="a-icon">&#x23E9;</div><div class="a-title">变速</div><div class="a-desc">加速/减速</div></div>
+        <div class="action-card" onclick="doAction('添加滤镜效果')"><div class="a-icon">&#x2728;</div><div class="a-title">滤镜</div><div class="a-desc">亮度/对比/色彩</div></div>
+        <div class="action-card" onclick="doAction('分割视频为多段')"><div class="a-icon">&#x1F52A;</div><div class="a-title">分割</div><div class="a-desc">按时长/段数拆</div></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="section">
+      <h3>自然语言指令</h3>
+      <div class="chat-input">
+        <input type="text" class="input" id="chatInput" placeholder="用自然语言描述你想做的事，如：把视频里讲产品的部分截出来加上字幕" onkeydown="if(event.key==='Enter')sendChat()">
+        <button class="btn btn-primary" onclick="sendChat()">发送</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="section">
+      <h3>处理记录</h3>
+      <ul class="task-list" id="taskLog">
+        <li class="empty-state">暂无处理记录</li>
+      </ul>
+    </div>
+  </div>
+
+<script src="/js/sdk.js"></script>
+<script>
+DoveSDK.init('视频处理');
+
+function getPath() {
+  return document.getElementById('videoPath').value.trim();
+}
+
+function addLog(status, text) {
+  const log = document.getElementById('taskLog');
+  const cls = status === 'done' ? 't-done' : status === 'fail' ? 't-fail' : 't-progress';
+  const label = status === 'done' ? '已提交' : status === 'fail' ? '失败' : '处理中';
+  const li = `<li><span class="t-status ${cls}">${label}</span><span>${text}</span></li>`;
+  log.innerHTML = log.innerHTML.replace('<li class="empty-state">暂无处理记录</li>', '');
+  log.innerHTML = li + log.innerHTML;
+}
+
+async function doAction(action) {
+  const p = getPath();
+  if (!p) { alert('请先输入视频文件路径'); return; }
+  addLog('progress', `${action}: ${p}`);
+  try {
+    await DoveSDK.cmd('chat send', { message: `请对视频文件 ${p} 执行：${action}` });
+    addLog('done', action);
+  } catch (e) {
+    addLog('fail', `${action}: ${e.message}`);
+  }
+}
+
+async function askQuestion() {
+  const p = getPath();
+  if (!p) { alert('请先输入视频文件路径'); return; }
+  const q = prompt('输入你想问的问题（关于视频内容）：');
+  if (!q) return;
+  addLog('progress', `问答: ${q}`);
+  try {
+    await DoveSDK.cmd('chat send', { message: `关于视频 ${p}，请回答：${q}` });
+    addLog('done', `问答: ${q}`);
+  } catch (e) {
+    addLog('fail', `问答失败: ${e.message}`);
+  }
+}
+
+async function sendChat() {
+  const input = document.getElementById('chatInput');
+  const msg = input.value.trim();
+  if (!msg) return;
+  const p = getPath();
+  const fullMsg = p ? `视频文件: ${p}\n${msg}` : msg;
+  input.value = '';
+  addLog('progress', msg);
+  try {
+    await DoveSDK.cmd('chat send', { message: fullMsg });
+    addLog('done', msg);
+  } catch (e) {
+    addLog('fail', `${msg}: ${e.message}`);
+  }
+}
+</script>
+</body>
+</html>

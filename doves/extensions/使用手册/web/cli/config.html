@@ -1,0 +1,391 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>配置命令 - 白鸽文档</title>
+  <link rel="stylesheet" href="../css/style.css">
+</head>
+<body>
+  <div id="app">
+    <header id="site-header"></header>
+    <div class="layout">
+      <aside id="sidebar"></aside>
+      <main class="content">
+        <article>
+          <h1>配置命令</h1>
+          <p>配置命令管理白鸽系统的网关、密钥、模型和人设等核心设置。</p>
+
+          <!-- dove config -->
+          <h2 id="dove-config">dove config</h2>
+          <p>通用配置管理命令，涵盖网关设置、API 密钥管理、模型配置等。</p>
+
+          <div class="synopsis">
+            <span class="cmd">dove</span> <span class="arg">config</span> <span class="opt">[action]</span> <span class="opt">[key]</span> <span class="opt">[value]</span> <span class="opt">[options]</span>
+          </div>
+
+          <h3>Actions</h3>
+          <div class="table-wrapper">
+            <table>
+              <thead>
+                <tr>
+                  <th>Action</th>
+                  <th>Description</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><code>list</code></td>
+                  <td>列出所有配置项</td>
+                </tr>
+                <tr>
+                  <td><code>get &lt;key&gt;</code></td>
+                  <td>获取配置值</td>
+                </tr>
+                <tr>
+                  <td><code>set &lt;key&gt; &lt;value&gt;</code></td>
+                  <td>设置配置值</td>
+                </tr>
+                <tr>
+                  <td><code>gateway</code></td>
+                  <td>管理当前网关</td>
+                </tr>
+                <tr>
+                  <td><code>gateways</code></td>
+                  <td>列出所有网关</td>
+                </tr>
+                <tr>
+                  <td><code>reset</code></td>
+                  <td>重置配置为默认值</td>
+                </tr>
+                <tr>
+                  <td><code>set-key &lt;provider&gt; &lt;key&gt;</code></td>
+                  <td>设置 API 密钥</td>
+                </tr>
+                <tr>
+                  <td><code>get-key &lt;provider&gt;</code></td>
+                  <td>查看 API 密钥（脱敏）</td>
+                </tr>
+                <tr>
+                  <td><code>list-keys</code></td>
+                  <td>列出所有已配置密钥</td>
+                </tr>
+                <tr>
+                  <td><code>test-key &lt;provider&gt;</code></td>
+                  <td>测试密钥有效性</td>
+                </tr>
+                <tr>
+                  <td><code>del-key &lt;provider&gt;</code></td>
+                  <td>删除 API 密钥</td>
+                </tr>
+                <tr>
+                  <td><code>intent-model</code></td>
+                  <td>设置意图识别模型</td>
+                </tr>
+                <tr>
+                  <td><code>reasoning-model</code></td>
+                  <td>设置推理模型</td>
+                </tr>
+                <tr>
+                  <td><code>planning-model</code></td>
+                  <td>设置规划模型</td>
+                </tr>
+                <tr>
+                  <td><code>vision-model</code></td>
+                  <td>设置视觉模型</td>
+                </tr>
+                <tr>
+                  <td><code>flash-model</code></td>
+                  <td>设置快速模型</td>
+                </tr>
+                <tr>
+                  <td><code>model-settings</code></td>
+                  <td>查看模型设置</td>
+                </tr>
+                <tr>
+                  <td><code>model-defaults</code></td>
+                  <td>重置模型为默认配置</td>
+                </tr>
+                <tr>
+                  <td><code>chat-log</code></td>
+                  <td>查看对话日志配置</td>
+                </tr>
+                <tr>
+                  <td><code>chat</code></td>
+                  <td>对话相关配置</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <h3>选项</h3>
+          <div class="table-wrapper">
+            <table>
+              <thead>
+                <tr>
+                  <th>Flag</th>
+                  <th>Description</th>
+                  <th>Default</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><code>-p, --provider &lt;name&gt;</code></td>
+                  <td>指定提供商（openai, anthropic, deepseek 等）</td>
+                  <td>-</td>
+                </tr>
+                <tr>
+                  <td><code>-m, --model &lt;name&gt;</code></td>
+                  <td>指定模型名称</td>
+                  <td>-</td>
+                </tr>
+                <tr>
+                  <td><code>-i, --index &lt;n&gt;</code></td>
+                  <td>网关索引</td>
+                  <td>0</td>
+                </tr>
+                <tr>
+                  <td><code>-r, --role &lt;role&gt;</code></td>
+                  <td>模型角色</td>
+                  <td>-</td>
+                </tr>
+                <tr>
+                  <td><code>-k, --key &lt;key&gt;</code></td>
+                  <td>API 密钥值</td>
+                  <td>-</td>
+                </tr>
+                <tr>
+                  <td><code>-t, --test</code></td>
+                  <td>设置后自动测试</td>
+                  <td>false</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <h3>示例</h3>
+          <pre><code># 列出所有配置
+dove config list
+
+# 设置配置项
+dove config set server.url "tcp://192.168.1.100:3003"
+
+# 获取配置
+dove config get server.url
+
+# 管理 API 密钥
+dove config set-key anthropic sk-ant-xxx
+dove config set-key openai sk-xxx
+dove config list-keys
+dove config test-key anthropic
+
+# 设置推理模型
+dove config reasoning-model -p anthropic -m claude-opus-4-20250514
+
+# 设置快速模型
+dove config flash-model -p anthropic -m claude-sonnet-4-20250514
+
+# 查看模型设置
+dove config model-settings
+
+# 网关管理
+dove config gateway
+dove config gateways
+
+# 重置为默认
+dove config reset</code></pre>
+
+          <!-- dove model -->
+          <h2 id="dove-model">dove model</h2>
+          <p>模型管理命令，刷新可用模型列表和组织模型配置。</p>
+
+          <div class="synopsis">
+            <span class="cmd">dove</span> <span class="arg">model</span> <span class="opt">[action]</span> <span class="opt">[options]</span>
+          </div>
+
+          <h3>Actions</h3>
+          <div class="table-wrapper">
+            <table>
+              <thead>
+                <tr>
+                  <th>Action</th>
+                  <th>Description</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><code>refresh</code></td>
+                  <td>从提供商刷新可用模型列表</td>
+                </tr>
+                <tr>
+                  <td><code>organize</code></td>
+                  <td>整理模型配置（去重、排序）</td>
+                </tr>
+                <tr>
+                  <td><code>list</code></td>
+                  <td>列出已配置模型</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <h3>选项</h3>
+          <div class="table-wrapper">
+            <table>
+              <thead>
+                <tr>
+                  <th>Flag</th>
+                  <th>Description</th>
+                  <th>Default</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><code>-p, --provider &lt;name&gt;</code></td>
+                  <td>按提供商过滤</td>
+                  <td>全部</td>
+                </tr>
+                <tr>
+                  <td><code>-m, --model &lt;name&gt;</code></td>
+                  <td>指定模型</td>
+                  <td>-</td>
+                </tr>
+                <tr>
+                  <td><code>-o, --output &lt;format&gt;</code></td>
+                  <td>输出格式（table/json）</td>
+                  <td>table</td>
+                </tr>
+                <tr>
+                  <td><code>--dry-run</code></td>
+                  <td>预览变更，不实际执行</td>
+                  <td>false</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <h3>示例</h3>
+          <pre><code># 刷新所有提供商的模型
+dove model refresh
+
+# 仅刷新 Anthropic 的模型
+dove model refresh -p anthropic
+
+# 列出所有模型
+dove model list
+
+# JSON 格式列出
+dove model list -o json
+
+# 整理模型配置
+dove model organize
+
+# 预览整理结果
+dove model organize --dry-run</code></pre>
+
+          <!-- dove profile -->
+          <h2 id="dove-profile">dove profile</h2>
+          <p>人设配置管理，定义鸽子在对话中的角色、性格和行为模式。</p>
+
+          <div class="synopsis">
+            <span class="cmd">dove</span> <span class="arg">profile</span> <span class="opt">[action]</span> <span class="opt">[name]</span> <span class="opt">[options]</span>
+          </div>
+
+          <h3>Actions</h3>
+          <div class="table-wrapper">
+            <table>
+              <thead>
+                <tr>
+                  <th>Action</th>
+                  <th>Description</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><code>list</code></td>
+                  <td>列出所有人设</td>
+                </tr>
+                <tr>
+                  <td><code>show &lt;name&gt;</code></td>
+                  <td>显示人设详情</td>
+                </tr>
+                <tr>
+                  <td><code>create &lt;name&gt;</code></td>
+                  <td>创建新人设</td>
+                </tr>
+                <tr>
+                  <td><code>delete &lt;name&gt;</code></td>
+                  <td>删除人设</td>
+                </tr>
+                <tr>
+                  <td><code>tags</code></td>
+                  <td>列出所有标签</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <h3>选项</h3>
+          <div class="table-wrapper">
+            <table>
+              <thead>
+                <tr>
+                  <th>Flag</th>
+                  <th>Description</th>
+                  <th>Default</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><code>-t, --tag &lt;tag&gt;</code></td>
+                  <td>按标签过滤</td>
+                  <td>-</td>
+                </tr>
+                <tr>
+                  <td><code>-k, --keyword &lt;kw&gt;</code></td>
+                  <td>按关键词搜索</td>
+                  <td>-</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <h3>示例</h3>
+          <pre><code># 列出所有人设
+dove profile list
+
+# 按标签过滤
+dove profile list -t "专业"
+
+# 显示人设详情
+dove profile show "技术助手"
+
+# 创建新人设
+dove profile create "翻译官"
+
+# 删除人设
+dove profile delete "旧人设"
+
+# 列出所有标签
+dove profile tags</code></pre>
+
+          <div class="info">
+            <p><strong>人设与对话</strong>：在 <code>dove chat</code> 中通过 <code>-p</code> 选项指定人设，鸽子会按照人设定义的性格和规则进行对话。</p>
+          </div>
+
+          <h2>相关命令</h2>
+          <ul>
+            <li><a href="chat.html#dove-chat">dove chat -p</a> - 使用指定人设对话</li>
+            <li><a href="dove.html#dove-dove">dove dove config</a> - 鸽子级别配置</li>
+            <li><a href="auth.html#dove-status">dove status</a> - 查看当前配置状态</li>
+          </ul>
+
+        </article>
+      </main>
+    </div>
+  </div>
+  <script src="../js/components.js"></script>
+  <script src="../js/nav.js"></script>
+  <script src="../js/search.js"></script>
+</body>
+</html>

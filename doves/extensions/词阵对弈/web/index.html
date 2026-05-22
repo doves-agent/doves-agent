@@ -1,0 +1,831 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>词阵对弈</title>
+<link rel="stylesheet" href="/css/style.css">
+<link rel="stylesheet" href="css/game.css">
+</head>
+<body>
+<div id="app">
+  <!-- ====== 加载动画 ====== -->
+  <div id="loadingScreen" class="screen active">
+    <div class="loading-content">
+      <div class="loading-icon">&#9876;&#65039;</div>
+      <h1>词阵对弈</h1>
+      <p class="loading-subtitle">词阵对弈游戏</p>
+      <div class="loader-bar"><div class="loader-fill"></div></div>
+      <p class="loading-text">正在连接服务器...</p>
+    </div>
+  </div>
+
+  <!-- ====== 登录/昵称 ====== -->
+  <div id="loginScreen" class="screen">
+    <div class="login-card">
+      <div class="login-icon">&#9876;&#65039;</div>
+      <h2>词阵对弈</h2>
+      <p class="login-desc">实时多人词阵对弈</p>
+      <div class="form-group">
+        <label>输入昵称</label>
+        <input type="text" id="nicknameInput" placeholder="你的昵称" maxlength="12" autocomplete="off">
+      </div>
+      <div class="form-group">
+        <label>服务器地址</label>
+        <input type="text" id="serverUrlInput" placeholder="ws://localhost:3100" value="ws://localhost:3100">
+      </div>
+      <button id="btnConnect" class="btn-primary btn-large" onclick="connect()">进入游戏</button>
+      <p class="login-hint">提示：游戏服务器默认端口 3100，启动白鸽后自动开启</p>
+    </div>
+  </div>
+
+  <!-- ====== 游戏大厅 ====== -->
+  <div id="lobbyScreen" class="screen">
+    <div class="lobby-header">
+      <h1>&#9876;&#65039; 词阵对弈</h1>
+      <div class="user-info">
+        <span id="displayNickname"></span>
+        <button class="btn-small" onclick="disconnect()">断开</button>
+      </div>
+    </div>
+
+    <!-- 人机对战快捷入口 -->
+    <div class="ai-quick-start">
+      <div class="ai-quick-card">
+        <div class="ai-quick-header">
+          <span class="ai-quick-icon">&#129302;</span>
+          <h3>人机对战</h3>
+          <p class="ai-quick-desc">一键挑战AI对手，支持难度选择</p>
+        </div>
+        <div class="ai-quick-options" id="aiQuickOptions" style="display:none;">
+          <div class="form-group">
+            <label>模式</label>
+            <select id="aiMode">
+              <option value="1v1">1v1 (2人)</option>
+              <option value="2v2">2v2 (4人)</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>类型</label>
+            <select id="aiType">
+              <option value="idiom">成语模式</option>
+              <option value="word">词语模式</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>AI难度</label>
+            <select id="aiDifficulty">
+              <option value="easy">简单 - 新手友好</option>
+              <option value="medium" selected>中等 - 均衡对手</option>
+              <option value="hard">困难 - 高手挑战</option>
+            </select>
+          </div>
+        </div>
+        <div class="ai-quick-actions">
+          <button class="btn-primary btn-large" onclick="quickStartAI()">立即开始</button>
+          <button class="btn-secondary btn-small" onclick="toggleAIOptions()">更多选项</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="lobby-tabs">
+      <button class="tab-btn active" onclick="switchLobbyTab('rooms')">房间列表</button>
+      <button class="tab-btn" onclick="switchLobbyTab('match')">快速匹配</button>
+      <button class="tab-btn" onclick="switchLobbyTab('create')">创建房间</button>
+    </div>
+
+    <!-- 房间列表 -->
+    <div id="roomsTab" class="tab-content active">
+      <div class="room-list-header">
+        <button class="btn-secondary btn-small" onclick="refreshRooms()">刷新</button>
+      </div>
+      <div id="roomList" class="room-list">
+        <p class="empty-hint">加载中...</p>
+      </div>
+    </div>
+
+    <!-- 匹配 -->
+    <div id="matchTab" class="tab-content">
+      <div class="match-card">
+        <h3>快速匹配</h3>
+        <div class="form-group">
+          <label>模式</label>
+          <select id="matchMode">
+            <option value="1v1">1v1</option>
+            <option value="2v2">2v2</option>
+            <option value="4v4">4v4</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>类型</label>
+          <select id="matchType">
+            <option value="idiom">成语模式</option>
+            <option value="word">词语模式</option>
+          </select>
+        </div>
+        <button id="btnMatch" class="btn-primary btn-large" onclick="toggleMatch()">开始匹配</button>
+        <div id="matchStatus" class="match-status"></div>
+      </div>
+    </div>
+
+    <!-- 创建房间 -->
+    <div id="createTab" class="tab-content">
+      <div class="create-card">
+        <h3>创建房间</h3>
+        <div class="form-group">
+          <label>模式</label>
+          <select id="createMode">
+            <option value="1v1">1v1 (2人)</option>
+            <option value="2v2">2v2 (4人)</option>
+            <option value="4v4">4v4 (8人)</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>类型</label>
+          <select id="createType">
+            <option value="idiom">成语模式</option>
+            <option value="word">词语模式</option>
+          </select>
+        </div>
+        <button class="btn-primary btn-large" onclick="createRoom()">创建房间</button>
+      </div>
+    </div>
+
+    <!-- 房间内 -->
+    <div id="roomPanel" class="room-panel" style="display:none;">
+      <div class="room-panel-header">
+        <h3>房间: <span id="roomIdDisplay"></span></h3>
+        <span class="room-badge" id="roomBadge"></span>
+      </div>
+      <div class="room-info">
+        <span>模式: <span id="roomModeDisplay"></span></span>
+        <span>类型: <span id="roomTypeDisplay"></span></span>
+      </div>
+      <div class="teams-container">
+        <div class="team-card left-team">
+          <h4>&#128737;&#65039; 左队</h4>
+          <div id="leftTeamList" class="team-list"></div>
+        </div>
+        <div class="vs-divider">VS</div>
+        <div class="team-card right-team">
+          <h4>&#9876;&#65039; 右队</h4>
+          <div id="rightTeamList" class="team-list"></div>
+        </div>
+      </div>
+      <div class="room-actions">
+        <button id="btnReady" class="btn-primary" onclick="toggleReady()">准备</button>
+        <button id="btnStartGame" class="btn-danger" onclick="startGame()" style="display:none;">开始游戏</button>
+        <button class="btn-secondary" onclick="leaveRoom()">离开房间</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ====== 游戏战场 ====== -->
+  <div id="gameScreen" class="screen">
+    <div class="battle-header">
+      <div class="battle-info">
+        <span id="battleRound">第 1 回合</span>
+        <span id="battleTimer"></span>
+      </div>
+      <button class="btn-small" onclick="leaveGame()" style="display:none;" id="btnLeaveGame">退出</button>
+    </div>
+
+    <!-- 选词阶段 -->
+    <div id="pickPhase" class="battle-phase">
+      <div class="pick-header">
+        <h2>选择你的成语/词语</h2>
+        <p id="pickStatus">请在30秒内输入</p>
+      </div>
+      <div class="pick-input-area">
+        <input type="text" id="idiomInput" placeholder="输入成语或词语..." maxlength="20" autocomplete="off">
+        <button id="btnConfirmIdiom" class="btn-primary" onclick="confirmIdiom()">确认</button>
+      </div>
+      <div id="idiomValidation" class="validation-result"></div>
+      <div class="pick-progress">
+        <span>选词进度: </span>
+        <div class="progress-bar"><div class="progress-fill" id="pickProgressFill"></div></div>
+        <span id="pickProgressText">0/0</span>
+      </div>
+      <div id="teammatePicks" class="teammate-picks"></div>
+    </div>
+
+    <!-- 战斗准备 -->
+    <div id="prepPhase" class="battle-phase" style="display:none;">
+      <h2>效果揭晓</h2>
+      <div id="effectReveal" class="effect-reveal"></div>
+      <div id="battleScene" class="battle-scene-desc"></div>
+      <button id="btnStartBattle" class="btn-primary btn-large" onclick="startBattlePhase()">进入战斗！</button>
+    </div>
+
+    <!-- 战斗阶段 -->
+    <div id="battlePhase" class="battle-phase" style="display:none;">
+      <!-- 战场 -->
+      <div id="battlefield" class="battlefield">
+        <div class="team-side left-side" id="leftSide">
+          <div class="team-label">&#128737;&#65039; 左队</div>
+          <div id="leftBattlePlayers" class="battle-players"></div>
+        </div>
+        <div class="battle-center" id="battleCenter">
+          <div class="battle-effects" id="battleEffects"></div>
+        </div>
+        <div class="team-side right-side" id="rightSide">
+          <div class="team-label">&#9876;&#65039; 右队</div>
+          <div id="rightBattlePlayers" class="battle-players"></div>
+        </div>
+      </div>
+
+      <!-- 行动区 -->
+      <div id="actionArea" class="action-area">
+        <div class="vocab-bar">
+          <span>词汇量: </span>
+          <div class="vocab-fill-bar"><div class="vocab-fill" id="vocabFill"></div></div>
+          <span id="vocabText">0</span>
+        </div>
+        <div class="action-input">
+          <input type="text" id="attackWordInput" placeholder="输入词语攻击..." maxlength="20" autocomplete="off">
+          <select id="targetSelect"><option value="">选择目标</option></select>
+          <button id="btnAttack" class="btn-primary" onclick="attackWithWord()">攻击</button>
+        </div>
+        <div class="action-buttons">
+          <button class="btn-effect" onclick="useEffect('freeze')">&#10052;&#65039; 冰冻</button>
+          <button class="btn-effect" onclick="useEffect('speed')">&#9889; 加速</button>
+          <button class="btn-effect" onclick="useEffect('heal')">&#128154; 治疗</button>
+          <button class="btn-effect" onclick="useEffect('defense')">&#128737;&#65039; 防御</button>
+          <button class="btn-effect" onclick="useEffect('clear')">&#10024; 净化</button>
+        </div>
+      </div>
+
+      <!-- 战斗日志 -->
+      <div id="battleLog" class="battle-log">
+        <div class="log-header">战报</div>
+        <div id="logEntries" class="log-entries"></div>
+      </div>
+    </div>
+
+    <!-- 胜利/失败 -->
+    <div id="victoryPhase" class="battle-phase" style="display:none;">
+      <div id="victoryContent" class="victory-content">
+        <div class="victory-icon">&#127942;</div>
+        <h2 id="victoryTitle">胜利！</h2>
+        <div id="victoryLog" class="victory-log"></div>
+        <button class="btn-primary btn-large" onclick="backToLobby()">返回大厅</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ====== JS ====== -->
+<script src="/js/sdk.js"></script>
+<script src="js/game-state.js"></script>
+<script src="js/game-renderer.js"></script>
+<script src="js/game-client.js"></script>
+<script>
+DoveSDK.init('词阵对弈');
+
+// ==================== 应用入口 ====================
+let ws = null;
+let nickname = '';
+let serverUrl = '';
+let currentRoomId = null;
+let myPlayerId = null;
+let isHost = false;
+let isReady = false;
+let inMatchQueue = false;
+const gameState = new GameState();
+const renderer = new GameRenderer();
+
+// ===== 连接 =====
+function connect() {
+  nickname = document.getElementById('nicknameInput').value.trim() || ('玩家' + Math.random().toString(36).substr(2, 4));
+  serverUrl = document.getElementById('serverUrlInput').value.trim() || 'ws://localhost:3100';
+  document.getElementById('displayNickname').textContent = nickname;
+
+  showScreen('loadingScreen');
+  document.querySelector('.loading-text').textContent = '正在连接服务器...';
+
+  ws = new GameClient(serverUrl, nickname);
+  ws.onOpen = () => {
+    document.querySelector('.loading-text').textContent = '连接成功！';
+    setTimeout(() => showScreen('lobbyScreen'), 500);
+    refreshRooms();
+  };
+  ws.onClose = () => {
+    showToast('连接已断开');
+    showScreen('loginScreen');
+  };
+  ws.onError = (err) => {
+    showToast('连接失败: ' + err);
+    showScreen('loginScreen');
+  };
+  ws.onRoomUpdate = (data) => updateRoomUI(data);
+  ws.onGameStart = (data) => startGameUI(data);
+  ws.onIdiomPicked = (data) => updatePickProgress(data);
+  ws.onBattlePreparing = () => showPrepPhase();
+  ws.onBattleStart = (data) => enterBattle(data);
+  ws.onBattleAction = (data) => handleBattleAction(data);
+  ws.onGameOver = (data) => showVictory(data);
+  ws.onMatchFound = (data) => {
+    showToast('匹配成功！进入房间');
+    showScreen('lobbyScreen');
+    document.getElementById('matchTab').classList.remove('active');
+    document.getElementById('roomsTab').classList.add('active');
+    updateRoomUI(data.room);
+  };
+  ws.onRoundUpdate = (data) => handleRoundUpdate(data);
+  ws.onReconnected = (attempt) => showToast('重连中(第' + attempt + '次)...');
+  ws.connect();
+}
+
+function disconnect() {
+  if (ws) { ws.close(); ws = null; }
+  showScreen('loginScreen');
+}
+
+// ===== 大厅 =====
+function switchLobbyTab(tab) {
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+
+  if (tab === 'rooms') {
+    document.querySelectorAll('.tab-btn')[0].classList.add('active');
+    document.getElementById('roomsTab').classList.add('active');
+    refreshRooms();
+  } else if (tab === 'match') {
+    document.querySelectorAll('.tab-btn')[1].classList.add('active');
+    document.getElementById('matchTab').classList.add('active');
+  } else if (tab === 'create') {
+    document.querySelectorAll('.tab-btn')[2].classList.add('active');
+    document.getElementById('createTab').classList.add('active');
+  }
+}
+
+function refreshRooms() {
+  if (!ws) return;
+  ws.sendGameAction('list_rooms', {}, (resp) => {
+    if (resp.success) {
+      const list = document.getElementById('roomList');
+      if (resp.rooms.length === 0) {
+        list.innerHTML = '<p class="empty-hint">暂无房间，创建一个吧！</p>';
+        return;
+      }
+      list.innerHTML = resp.rooms.map(r => `
+        <div class="room-item">
+          <div class="room-item-info">
+            <strong>${r.roomId}</strong>
+            <span>${r.mode} / ${r.gameType === 'idiom' ? '成语' : '词语'}</span>
+            <span>${r.players.length}/${r.maxPlayers}人</span>
+            <span class="room-status-${r.status === '等待中' ? 'waiting' : r.status === '对弈中' ? 'playing' : 'ended'}">${r.status}</span>
+          </div>
+          <button class="btn-small btn-primary" onclick="joinRoom('${r.roomId}')" ${r.status !== '等待中' || r.players.length >= r.maxPlayers ? 'disabled' : ''}>加入</button>
+        </div>
+      `).join('');
+    }
+  });
+}
+
+function createRoom() {
+  if (!ws) return;
+  const mode = document.getElementById('createMode').value;
+  const gameType = document.getElementById('createType').value;
+
+  ws.sendGameAction('create_room', { mode, gameType }, (resp) => {
+    if (resp.success) {
+      currentRoomId = resp.room.roomId;
+      isHost = true;
+      showRoomPanel(resp.room);
+    } else {
+      showToast('创建失败: ' + resp.error);
+    }
+  });
+}
+
+function joinRoom(roomId) {
+  if (!ws) return;
+  ws.sendGameAction('join_room', { roomId }, (resp) => {
+    if (resp.success) {
+      currentRoomId = roomId;
+      isHost = false;
+      showRoomPanel(resp.room);
+    } else {
+      showToast('加入失败: ' + resp.error);
+    }
+  });
+}
+
+function leaveRoom() {
+  if (!ws || !currentRoomId) return;
+  ws.sendGameAction('leave_room', { roomId: currentRoomId }, () => {});
+  currentRoomId = null;
+  isHost = false;
+  isReady = false;
+  document.getElementById('roomPanel').style.display = 'none';
+}
+
+function toggleReady() {
+  if (!ws || !currentRoomId) return;
+  isReady = !isReady;
+  ws.sendGameAction('set_ready', { roomId: currentRoomId, ready: isReady }, () => {});
+}
+
+function startGame() {
+  if (!ws || !currentRoomId) return;
+  ws.sendGameAction('start_game', { roomId: currentRoomId }, (resp) => {
+    if (!resp.success) showToast('开始失败: ' + resp.error);
+  });
+}
+
+function showRoomPanel(room) {
+  document.getElementById('roomPanel').style.display = 'block';
+  document.getElementById('roomIdDisplay').textContent = room.roomId;
+  document.getElementById('roomBadge').textContent = room.mode + ' ' + (room.gameType === 'idiom' ? '成语' : '词语');
+  document.getElementById('roomModeDisplay').textContent = room.mode;
+  document.getElementById('roomTypeDisplay').textContent = room.gameType === 'idiom' ? '成语模式' : '词语模式';
+
+  const me = room.players.find(p => p.username === nickname);
+  if (me) myPlayerId = me.playerId;
+
+  updateRoomUI(room);
+}
+
+function updateRoomUI(room) {
+  if (!room) return;
+  const leftPlayers = room.players.filter(p => p.team === 'left');
+  const rightPlayers = room.players.filter(p => p.team === 'right');
+
+  document.getElementById('leftTeamList').innerHTML = leftPlayers.map(p =>
+    `<div class="player-card ${p.isAI ? 'ai-player' : ''} ${p.connected ? '' : 'disconnected'} ${p.playerId === myPlayerId ? 'me' : ''}">
+      <span class="player-name">${p.isAI ? '&#129302; ' : '&#128100; '}${p.username}</span>
+      <span class="player-status">${p.ready ? '&#9989; 就绪' : p.isAI ? '&#129302; AI' : '&#9203; 等待'}</span>
+    </div>`
+  ).join('');
+  document.getElementById('rightTeamList').innerHTML = rightPlayers.map(p =>
+    `<div class="player-card ${p.isAI ? 'ai-player' : ''} ${p.connected ? '' : 'disconnected'} ${p.playerId === myPlayerId ? 'me' : ''}">
+      <span class="player-name">${p.isAI ? '&#129302; ' : '&#128100; '}${p.username}</span>
+      <span class="player-status">${p.ready ? '&#9989; 就绪' : p.isAI ? '&#129302; AI' : '&#9203; 等待'}</span>
+    </div>`
+  ).join('');
+
+  const isMyRoom = room.players.some(p => p.playerId === myPlayerId);
+  if (!isMyRoom) {
+    document.getElementById('roomPanel').style.display = 'none';
+    return;
+  }
+
+  const isRoomHost = room.hostPlayerId === myPlayerId;
+  document.getElementById('btnStartGame').style.display = isRoomHost ? 'inline-block' : 'none';
+  document.getElementById('btnReady').textContent = isReady ? '取消准备' : '准备';
+  document.getElementById('btnReady').style.display = isRoomHost ? 'none' : 'inline-block';
+}
+
+// ===== 匹配 =====
+function toggleMatch() {
+  if (!ws) return;
+  if (inMatchQueue) {
+    ws.sendGameAction('dequeue_match', {}, () => {});
+    inMatchQueue = false;
+    document.getElementById('btnMatch').textContent = '开始匹配';
+    document.getElementById('matchStatus').textContent = '';
+    return;
+  }
+
+  const mode = document.getElementById('matchMode').value;
+  const gameType = document.getElementById('matchType').value;
+
+  ws.sendGameAction('enqueue_match', { mode, gameType }, (resp) => {
+    if (resp.matched && resp.room) {
+      inMatchQueue = false;
+      document.getElementById('btnMatch').textContent = '开始匹配';
+      document.getElementById('matchStatus').textContent = '';
+      currentRoomId = resp.room.roomId;
+      showRoomPanel(resp.room);
+    } else {
+      inMatchQueue = true;
+      document.getElementById('btnMatch').textContent = '取消匹配';
+      document.getElementById('matchStatus').textContent = '正在匹配...';
+    }
+  });
+}
+
+// ===== 人机对战 =====
+function toggleAIOptions() {
+  const el = document.getElementById('aiQuickOptions');
+  el.style.display = el.style.display === 'none' ? 'block' : 'none';
+}
+
+function quickStartAI() {
+  if (!ws) return showToast('请先连接服务器');
+  const mode = document.getElementById('aiMode')?.value || '1v1';
+  const gameType = document.getElementById('aiType')?.value || 'idiom';
+  const difficulty = document.getElementById('aiDifficulty')?.value || 'medium';
+
+  ws.sendGameAction('create_room', { mode, gameType, aiFill: true, aiDifficulty: difficulty }, (resp) => {
+    if (!resp.success) return showToast('创建失败: ' + resp.error);
+    currentRoomId = resp.room.roomId;
+    isHost = true;
+    const me = resp.room.players.find(p => p.username === nickname);
+    if (me) myPlayerId = me.playerId;
+    ws.sendGameAction('start_game', { roomId: currentRoomId }, (startResp) => {
+      if (!startResp.success) {
+        showToast('开始失败: ' + startResp.error);
+        showRoomPanel(resp.room);
+      }
+    });
+  });
+}
+
+// ===== 游戏UI =====
+function startGameUI(data) {
+  showScreen('gameScreen');
+  gameState.init(data);
+  document.getElementById('pickPhase').style.display = 'block';
+  document.getElementById('prepPhase').style.display = 'none';
+  document.getElementById('battlePhase').style.display = 'none';
+  document.getElementById('victoryPhase').style.display = 'none';
+  document.getElementById('pickProgressFill').style.width = '0%';
+  document.getElementById('pickProgressText').textContent = '0/' + data.players.length;
+  document.getElementById('idiomInput').value = '';
+  document.getElementById('idiomValidation').innerHTML = '';
+  document.getElementById('teammatePicks').innerHTML = '';
+  document.getElementById('btnConfirmIdiom').disabled = false;
+  document.getElementById('idiomInput').disabled = false;
+
+  updateTeammatePicks(data);
+}
+
+function updateTeammatePicks(data) {
+  const teammates = data.players.filter(p => p.team === gameState.myTeam && p.playerId !== myPlayerId);
+  const container = document.getElementById('teammatePicks');
+  if (teammates.length === 0) {
+    container.innerHTML = '';
+    return;
+  }
+  container.innerHTML = '<h4>队友状态:</h4>' + teammates.map(p =>
+    `<span class="teammate-status ${p.idiomPicked ? 'picked' : ''}">${p.username}: ${p.idiomPicked ? '&#9989; 已选' : '&#9203; 选择中'}</span>`
+  ).join('');
+}
+
+function confirmIdiom() {
+  const idiom = document.getElementById('idiomInput').value.trim();
+  if (!idiom) return showToast('请输入成语或词语');
+
+  document.getElementById('btnConfirmIdiom').disabled = true;
+  document.getElementById('idiomInput').disabled = true;
+  document.getElementById('idiomValidation').innerHTML = '<p>校验中...</p>';
+
+  DoveSDK.callTool('idiom_validate', { text: idiom }, { extension: '词阵对弈' })
+  .then(result => {
+    if (result.success && result.data?.valid) {
+      document.getElementById('idiomValidation').innerHTML = '<p class="valid-text">"' + idiom + '" 有效！' + (result.data.meaning ? '(' + result.data.meaning + ')' : '') + '</p>';
+      ws.sendGameAction('pick_idiom', {
+        roomId: currentRoomId,
+        idiom: idiom,
+        meaning: result.data.meaning || '',
+      }, (resp) => {
+        if (!resp.success) {
+          showToast(resp.error);
+          document.getElementById('btnConfirmIdiom').disabled = false;
+          document.getElementById('idiomInput').disabled = false;
+        }
+      });
+    } else {
+      const suggestion = result.data?.suggestion || '请重新输入';
+      document.getElementById('idiomValidation').innerHTML = '<p class="invalid-text">"' + idiom + '" 不是一个有效的' + (document.getElementById('createType')?.value === 'word' ? '词语' : '成语') + '。' + (suggestion ? '建议: ' + suggestion : '') + '</p>';
+      document.getElementById('btnConfirmIdiom').disabled = false;
+      document.getElementById('idiomInput').disabled = false;
+    }
+  })
+  .catch(() => {
+    ws.sendGameAction('pick_idiom', {
+      roomId: currentRoomId,
+      idiom: idiom,
+      meaning: '',
+    }, (resp) => {
+      if (resp.success) {
+        document.getElementById('idiomValidation').innerHTML = '<p class="valid-text">"' + idiom + '" 已提交</p>';
+      } else {
+        showToast(resp.error);
+        document.getElementById('btnConfirmIdiom').disabled = false;
+        document.getElementById('idiomInput').disabled = false;
+      }
+    });
+  });
+}
+
+function updatePickProgress(data) {
+  const total = data.totalCount || 1;
+  const picked = data.pickedCount || 0;
+  const pct = (picked / total) * 100;
+  document.getElementById('pickProgressFill').style.width = pct + '%';
+  document.getElementById('pickProgressText').textContent = picked + '/' + total;
+}
+
+function showPrepPhase() {
+  document.getElementById('pickPhase').style.display = 'none';
+  document.getElementById('prepPhase').style.display = 'block';
+  document.getElementById('effectReveal').innerHTML = '<p>正在生成战斗效果...</p>';
+}
+
+function enterBattle(data) {
+  document.getElementById('pickPhase').style.display = 'none';
+  document.getElementById('prepPhase').style.display = 'none';
+  document.getElementById('battlePhase').style.display = 'none';
+
+  gameState.setBattleData(data);
+  renderer.renderBattlefield(data, gameState);
+
+  document.getElementById('effectReveal').innerHTML =
+    '<h3>战斗效果</h3>' +
+    (data.effects || []).map(e =>
+      `<div class="effect-card effect-${e.effect.type}">
+        <strong>${e.idiom}</strong> &rarr; ${e.effect.description}
+      </div>`
+    ).join('') +
+    (data.narrative ? '<p class="narrative">' + data.narrative + '</p>' : '');
+
+  const sceneEl = document.getElementById('battleScene');
+  sceneEl.textContent = '';
+  if (data.battleScene) sceneEl.textContent += data.battleScene;
+  if (data.narrative) sceneEl.textContent += ' — ' + data.narrative;
+
+  document.getElementById('prepPhase').style.display = 'block';
+  document.getElementById('btnStartBattle').style.display = 'block';
+}
+
+function startBattlePhase() {
+  document.getElementById('prepPhase').style.display = 'none';
+  document.getElementById('battlePhase').style.display = 'block';
+
+  const gs = gameState;
+  renderer.renderBattlefield({ effects: gs.battleEffects, players: gs.players }, gs);
+  renderer.startBattleAnimation();
+
+  updateVocabBar();
+
+  const log = document.getElementById('logEntries');
+  log.innerHTML = '<div class="log-entry">战斗开始！</div>';
+}
+
+function handleBattleAction(data) {
+  renderer.handleAction(data);
+  updateVocabBar();
+
+  const log = document.getElementById('logEntries');
+  const entry = document.createElement('div');
+  entry.className = 'log-entry';
+
+  if (data.effectApplied) {
+    const effectNames = { freeze: '冰冻', silence: '禁手', poison: '中毒', heal: '治疗', defense: '防御提升', speed: '加速', clear: '清除负面', attack: '攻击' };
+    entry.textContent = (data.playerId.slice(-4)) + ' 施放 "' + data.word + '" → ' + (effectNames[data.effectApplied.type] || data.effectApplied.type) + '！';
+  } else {
+    entry.textContent = (data.playerId.slice(-4)) + ' 使用 "' + data.word + '" 造成 ' + data.damage + ' 伤害';
+  }
+  log.appendChild(entry);
+  log.scrollTop = log.scrollHeight;
+
+  // 更新被攻击目标的 HP
+  if (data.targetId && data.targetHp !== undefined) {
+    gameState.updatePlayer(data.targetId, { hp: data.targetHp });
+  }
+  if (data.playerVocab !== undefined) {
+    const me = gameState.getMyPlayer();
+    if (me && data.playerId === me.playerId) {
+      me.vocab = data.playerVocab;
+    }
+  }
+  updatePlayerHP();
+}
+
+function updatePlayerHP() {
+  renderer.updatePlayers(gameState);
+}
+
+function updateVocabBar() {
+  const me = gameState.getMyPlayer();
+  if (!me) return;
+  const maxVocab = 80;
+  const pct = Math.min(100, (me.vocab / maxVocab) * 100);
+  document.getElementById('vocabFill').style.width = pct + '%';
+  document.getElementById('vocabText').textContent = me.vocab;
+}
+
+function attackWithWord() {
+  const word = document.getElementById('attackWordInput').value.trim();
+  const targetId = document.getElementById('targetSelect').value;
+  if (!word) return showToast('请输入词语');
+  if (!targetId) return showToast('请选择目标');
+
+  ws.sendGameAction('use_word', {
+    roomId: currentRoomId,
+    word: word,
+    meaning: '',
+    targetId: targetId,
+  }, (resp) => {
+    if (!resp.success) showToast(resp.error);
+    else document.getElementById('attackWordInput').value = '';
+  });
+}
+
+function useEffect(type) {
+  const wordMap = { freeze: '冰天雪地', speed: '风驰电掣', heal: '枯木逢春', defense: '固若金汤', clear: '拨云见日' };
+  const word = wordMap[type] || type;
+
+  // 自增益效果（heal/speed/defense/clear）目标为自己，但服务端会自动处理
+  // 负面效果目标为选中的敌人
+  const selfBuffs = ['heal', 'speed', 'defense', 'clear'];
+  let targetId;
+  if (selfBuffs.includes(type)) {
+    targetId = myPlayerId;
+  } else {
+    targetId = document.getElementById('targetSelect').value;
+    if (!targetId) return showToast('请选择目标');
+  }
+
+  ws.sendGameAction('use_word', {
+    roomId: currentRoomId,
+    word: word,
+    meaning: '',
+    targetId: targetId,
+  }, (resp) => {
+    if (!resp.success) showToast(resp.error);
+  });
+}
+
+function showVictory(data) {
+  document.getElementById('battlePhase').style.display = 'none';
+  document.getElementById('victoryPhase').style.display = 'block';
+
+  const isWinner = data.winner === gameState.myTeam;
+  document.getElementById('victoryTitle').textContent = isWinner ? '&#127942; 胜利！' : '&#128128; 战败';
+  document.getElementById('victoryContent').className = 'victory-content ' + (isWinner ? 'victory-win' : 'victory-lose');
+
+  const log = document.getElementById('victoryLog');
+  log.innerHTML = '<h4>战斗回顾</h4>';
+  if (data.battleLog) {
+    log.innerHTML += data.battleLog.map(l => '<div class="log-entry">' + l + '</div>').join('');
+  }
+  if (data.players) {
+    log.innerHTML += '<h4>最终状态</h4>';
+    log.innerHTML += data.players.map(p =>
+      '<div>' + p.username + ': HP ' + p.hp + '/' + p.maxHp + '</div>'
+    ).join('');
+  }
+
+  document.getElementById('btnLeaveGame').style.display = 'block';
+}
+
+function backToLobby() {
+  currentRoomId = null;
+  isHost = false;
+  isReady = false;
+  showScreen('lobbyScreen');
+  refreshRooms();
+}
+
+function leaveGame() {
+  backToLobby();
+}
+
+// ===== 回合更新 =====
+function handleRoundUpdate(data) {
+  document.getElementById('battleRound').textContent = '第 ' + data.round + ' 回合';
+  if (data.players) {
+    gameState.updateFromSnapshot(data.players);
+    updatePlayerHP();
+    updateVocabBar();
+  }
+  if (data.roundLog) {
+    const log = document.getElementById('logEntries');
+    for (const entry of data.roundLog) {
+      const el = document.createElement('div');
+      el.className = 'log-entry round-log';
+      el.textContent = '【回合结算】' + entry;
+      log.appendChild(el);
+    }
+    log.scrollTop = log.scrollHeight;
+  }
+}
+
+// ===== 工具函数 =====
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+
+function showToast(msg) {
+  let toast = document.getElementById('toast');
+  if (!toast) {
+    toast = document.createElement('div');
+    toast.id = 'toast';
+    toast.className = 'toast';
+    document.body.appendChild(toast);
+  }
+  toast.textContent = msg;
+  toast.style.display = 'block';
+  setTimeout(() => { toast.style.display = 'none'; }, 3000);
+}
+
+// 初始显示登录
+showScreen('loginScreen');
+</script>
+</body>
+</html>

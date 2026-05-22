@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html><head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>数据查询</title>
+<link rel="stylesheet" href="/css/style.css">
+<style>
+  .query-box { display: flex; gap: 8px; margin-bottom: 20px; }
+  .query-box textarea {
+    flex: 1; min-height: 80px; resize: vertical;
+    font-family: monospace;
+  }
+  .query-box .btn { align-self: flex-end; }
+  .tip-box {
+    background: var(--bg-card); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 12px 16px;
+    margin-bottom: 20px; font-size: 13px; color: var(--text-secondary);
+  }
+  .card-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 12px; margin-top: 20px;
+  }
+  .action-card {
+    cursor: pointer; transition: transform 0.2s;
+    padding: 16px;
+  }
+  .action-card:hover { transform: translateY(-2px); }
+  .action-card .icon { font-size: 24px; margin-bottom: 8px; }
+  .action-card .title { font-weight: 600; color: var(--text); margin-bottom: 4px; }
+  .action-card .desc { font-size: 12px; color: var(--text-secondary); }
+  #resultArea { margin-top: 20px; }
+  #resultArea table {
+    width: 100%; border-collapse: collapse;
+    font-size: 13px;
+  }
+  #resultArea th, #resultArea td {
+    padding: 8px 12px; text-align: left;
+    border-bottom: 1px solid var(--border);
+  }
+  #resultArea th {
+    background: var(--bg-input); font-weight: 600;
+    color: var(--text-secondary);
+  }
+</style>
+</head><body>
+<div class="page-header">
+  <h1 class="page-title">数据查询</h1>
+</div>
+
+<div class="tip-box">用自然语言描述查询需求，白鸽自动转换为 SQL/MongoDB 查询并返回结果</div>
+
+<div class="query-box">
+  <textarea class="input" id="queryInput" placeholder="输入查询描述，如：&#10;查询最近7天的用户活跃数据&#10;统计各模块的代码提交量&#10;对比本月与上月的收入"></textarea>
+  <button class="btn" id="queryBtn">查询</button>
+</div>
+
+<div id="resultArea"></div>
+
+<div class="card-grid">
+  <div class="card action-card" data-cmd="查询最近7天的活跃用户数">
+    <div class="icon">👥</div>
+    <div class="title">用户活跃</div>
+    <div class="desc">最近7天活跃统计</div>
+  </div>
+  <div class="card action-card" data-cmd="统计代码提交趋势">
+    <div class="icon">📈</div>
+    <div class="title">提交趋势</div>
+    <div class="desc">代码提交量变化</div>
+  </div>
+  <div class="card action-card" data-cmd="查询系统运行状态">
+    <div class="icon">🖥️</div>
+    <div class="title">系统状态</div>
+    <div class="desc">服务/数据库/缓存状态</div>
+  </div>
+</div>
+
+<script src="/js/sdk.js"></script>
+<script>
+DoveSDK.init('数据分析');
+
+function sendCmd(text) {
+  DoveSDK.cmd(text);
+  DoveSDK.navigateTo('chat');
+}
+
+async function doQuery() {
+  const q = document.getElementById('queryInput').value.trim();
+  if (!q) return;
+
+  const resultArea = document.getElementById('resultArea');
+  resultArea.innerHTML = '<div class="loading">查询中...</div>';
+
+  try {
+    const result = await DoveSDK.callTool('数据查询', { query: q });
+    if (result && result.data) {
+      renderTable(result.data);
+    } else {
+      sendCmd(q);
+    }
+  } catch (e) {
+    sendCmd(q);
+  }
+}
+
+function renderTable(data) {
+  const resultArea = document.getElementById('resultArea');
+  if (!Array.isArray(data) || data.length === 0) {
+    resultArea.innerHTML = '<div class="empty-state">无结果</div>';
+    return;
+  }
+  const keys = Object.keys(data[0]);
+  let html = '<table><thead><tr>';
+  keys.forEach(k => { html += `<th>${k}</th>`; });
+  html += '</tr></thead><tbody>';
+  data.forEach(row => {
+    html += '<tr>';
+    keys.forEach(k => { html += `<td>${row[k] ?? ''}</td>`; });
+    html += '</tr>';
+  });
+  html += '</tbody></table>';
+  resultArea.innerHTML = html;
+}
+
+document.getElementById('queryBtn').addEventListener('click', doQuery);
+
+document.querySelectorAll('.action-card[data-cmd]').forEach(card => {
+  card.addEventListener('click', () => {
+    sendCmd(card.dataset.cmd);
+  });
+});
+</script>
+</body></html>

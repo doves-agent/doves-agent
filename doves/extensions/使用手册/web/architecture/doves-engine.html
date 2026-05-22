@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Doves 执行引擎 - 白鸽文档</title>
+  <link rel="stylesheet" href="../css/style.css">
+</head>
+<body>
+  <div id="app">
+    <header id="site-header"></header>
+    <div class="layout">
+      <aside id="sidebar"></aside>
+      <main class="content">
+        <article>
+          <h1>Doves 执行引擎</h1>
+          <p>Doves 是白鸽系统的执行核心。它采用 Flock（鸽群）架构，单进程管理多个鸽子实例，自主轮询任务并调用 LLM 完成执行。</p>
+
+          <h2>Flock 架构</h2>
+<pre><code>┌─────────────────────────────────────────────────────────┐
+│                    Doves 进程                             │
+│                                                          │
+│  ┌────────────────── 共享资源 ──────────────────────┐    │
+│  │  DovesProxy │ KeyManager │ LLMCaller │ ToolRegistry │ │
+│  └─────────────────────────────────────────────────────┘ │
+│                                                          │
+│  ┌─────────┐  ┌─────────┐  ┌─────────┐  ┌─────────┐   │
+│  │ Dove #1 │  │ Dove #2 │  │ Dove #3 │  │ Dove #N │   │
+│  │ ─────── │  │ ─────── │  │ ─────── │  │ ─────── │   │
+│  │ 任务队列 │  │ 任务队列 │  │ 任务队列 │  │ 任务队列 │   │
+│  │ Token统计│  │ Token统计│  │ Token统计│  │ Token统计│   │
+│  │ 执行器   │  │ 执行器   │  │ 执行器   │  │ 执行器   │   │
+│  └─────────┘  └─────────┘  └─────────┘  └─────────┘   │
+└─────────────────────────────────────────────────────────┘</code></pre>
+
+          <h2>共享 vs 独占资源</h2>
+          <div class="table-wrapper">
+            <table>
+              <thead>
+                <tr>
+                  <th>类型</th>
+                  <th>资源</th>
+                  <th>说明</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>共享</td>
+                  <td>DovesProxy</td>
+                  <td>与 Server 的加密 TCP 通信通道，所有鸽子复用</td>
+                </tr>
+                <tr>
+                  <td>共享</td>
+                  <td>KeyManager</td>
+                  <td>API Key 管理、轮换、配额追踪</td>
+                </tr>
+                <tr>
+                  <td>共享</td>
+                  <td>LLMCaller</td>
+                  <td>LLM 调用客户端，含熔断和重试逻辑</td>
+                </tr>
+                <tr>
+                  <td>共享</td>
+                  <td>ToolRegistry</td>
+                  <td>工具注册表，工具定义全局共享</td>
+                </tr>
+                <tr>
+                  <td>独占</td>
+                  <td>任务队列</td>
+                  <td>每只鸽子独立的任务处理队列</td>
+                </tr>
+                <tr>
+                  <td>独占</td>
+                  <td>Token 统计</td>
+                  <td>每只鸽子独立追踪 token 消耗</td>
+                </tr>
+                <tr>
+                  <td>独占</td>
+                  <td>执行器</td>
+                  <td>KISS 执行循环，互不干扰</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <h2>KISS 执行器</h2>
+          <p>执行器是 Doves 的核心循环，极致简洁：</p>
+<pre><code>KISS 执行循环：
+
+┌─────────────────────────────────────────────────┐
+│                                                  │
+│  1. 构建消息（系统提示 + 历史 + 用户输入）       │
+│     │                                            │
+│     ▼                                            │
+│  2. callLLM(messages, tools)                     │
+│     │                                            │
+│     ▼                                            │
+│  3. 响应是否包含 tool_calls?                     │
+│     │                                            │
+│     ├─ 否 → 返回最终回复，任务完成               │
+│     │                                            │
+│     └─ 是 → 执行工具调用                         │
+│            │                                     │
+│            ▼                                     │
+│         将工具结果追加到消息                      │
+│            │                                     │
+│            ▼                                     │
+│         回到步骤 2（下一轮）                      │
+│                                                  │
+│  最大轮数：20（DOVE_MAX_TOOL_ROUNDS 可配置）     │
+└─────────────────────────────────────────────────┘</code></pre>
+
+          <div class="tip">
+            <p><strong>极致 KISS：</strong>执行器不维护复杂状态机，就是 build → call → execute → repeat 的简单循环。20 轮足以完成绝大多数任务。</p>
+          </div>
+
+          <h2>工具系统</h2>
+
+          <h3>基础工具集（Fallback）</h3>
+          <p>每次执行始终可用的基础工具：</p>
+          <div class="table-wrapper">
+            <table>
+              <thead>
+                <tr>
+                  <th>工具</th>
+                  <th>说明</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><code>read_file</code></td>
+                  <td>读取文件内容</td>
+                </tr>
+                <tr>
+                  <td><code>shell_exec</code></td>
+                  <td>执行 Shell 命令</td>
+                </tr>
+                <tr>
+                  <td><code>notify_user</code></td>
+                  <td>向用户发送通知</td>
+                </tr>
+                <tr>
+                  <td><code>request_upload</code></td>
+                  <td>请求用户上传文件</td>
+                </tr>
+                <tr>
+                  <td><code>load_tool_group</code></td>
+                  <td>动态加载工具组</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <h3>动态工具加载</h3>
+          <p>通过 <code>load_tool_group</code> 按需加载工具组，避免初始 prompt 过大：</p>
+          <div class="table-wrapper">
+            <table>
+              <thead>
+                <tr>
+                  <th>工具组</th>
+                  <th>包含工具数</th>
+                  <th>用途</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>文件操作</td>
+                  <td>~3</td>
+                  <td>写入、移动、删除文件</td>
+                </tr>
+                <tr>
+                  <td>网络请求</td>
+                  <td>~2</td>
+                  <td>HTTP 请求、下载</td>
+                </tr>
+                <tr>
+                  <td>数据处理</td>
+                  <td>~3</td>
+                  <td>JSON/CSV 解析、数据转换</td>
+                </tr>
+                <tr>
+                  <td>知识管理</td>
+                  <td>~2</td>
+                  <td>向量记忆读写</td>
+                </tr>
+                <tr>
+                  <td>代码执行</td>
+                  <td>~2</td>
+                  <td>沙箱代码运行</td>
+                </tr>
+                <tr>
+                  <td colspan="3">...共 13 个工具组，约 29 个工具</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div class="info">
+            <p>LLM 在执行过程中根据需要自主调用 <code>load_tool_group</code> 加载额外工具。一次加载后当次任务内持续可用。</p>
+          </div>
+
+          <h2>监工（Supervisor）</h2>
+          <p>基于执行轨迹的异常检测系统，防止鸽子陷入死循环或卡死：</p>
+
+          <div class="card-grid">
+            <div class="card">
+              <h3>卡死检测</h3>
+              <p>30 分钟无实质性进展（无新工具调用、无输出变化）→ 触发干预。</p>
+            </div>
+            <div class="card">
+              <h3>工具循环检测</h3>
+              <p>连续 8 次以上调用同一工具 → 判定为循环，强制中断或切换策略。</p>
+            </div>
+            <div class="card">
+              <h3>时长限制</h3>
+              <p>子任务最长 60 分钟，分支最长 90 分钟。超时自动终止。</p>
+            </div>
+          </div>
+
+          <h2>优雅关闭</h2>
+<pre><code>收到 SIGTERM / SIGINT:
+  1. 停止接受新任务
+  2. 等待当前执行中的任务完成（或达到超时）
+  3. 保存检查点（checkpoint）
+  4. 释放未完成任务回队列
+  5. 断开与 Server 的连接
+  6. 进程退出</code></pre>
+
+          <h2>DovesProxy</h2>
+          <p>DovesProxy 是 Doves 与 Server 通信的唯一通道，封装了所有网络细节：</p>
+          <div class="table-wrapper">
+            <table>
+              <thead>
+                <tr>
+                  <th>功能</th>
+                  <th>说明</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>加密传输</td>
+                  <td>Noise NX 协议，自动握手和密钥协商</td>
+                </tr>
+                <tr>
+                  <td>自动重连</td>
+                  <td>连接断开后指数退避重连</td>
+                </tr>
+                <tr>
+                  <td>请求复用</td>
+                  <td>多个鸽子实例共享同一连接池</td>
+                </tr>
+                <tr>
+                  <td>心跳维护</td>
+                  <td>定期发送心跳保持连接活性</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <h2>执行限制配置</h2>
+          <div class="table-wrapper">
+            <table>
+              <thead>
+                <tr>
+                  <th>参数</th>
+                  <th>默认值</th>
+                  <th>环境变量</th>
+                  <th>说明</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>最大工具轮数</td>
+                  <td>20</td>
+                  <td>DOVE_MAX_TOOL_ROUNDS</td>
+                  <td>单次任务最大 LLM 调用轮数</td>
+                </tr>
+                <tr>
+                  <td>子任务超时</td>
+                  <td>60 分钟</td>
+                  <td>-</td>
+                  <td>单个子任务的最长执行时间</td>
+                </tr>
+                <tr>
+                  <td>分支超时</td>
+                  <td>90 分钟</td>
+                  <td>-</td>
+                  <td>任务分支的最长执行时间</td>
+                </tr>
+                <tr>
+                  <td>卡死阈值</td>
+                  <td>30 分钟</td>
+                  <td>-</td>
+                  <td>无进展持续时长触发干预</td>
+                </tr>
+                <tr>
+                  <td>循环检测阈值</td>
+                  <td>8 次</td>
+                  <td>-</td>
+                  <td>连续调用同一工具的次数上限</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+        </article>
+      </main>
+    </div>
+  </div>
+  <script src="../js/components.js"></script>
+  <script src="../js/nav.js"></script>
+  <script src="../js/search.js"></script>
+</body>
+</html>

@@ -1,0 +1,361 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>生命周期 - 白鸽文档</title>
+  <link rel="stylesheet" href="../css/style.css">
+</head>
+<body>
+  <div id="app">
+    <header id="site-header"></header>
+    <div class="layout">
+      <aside id="sidebar"></aside>
+      <main class="content">
+        <article>
+          <h1>生命周期</h1>
+
+          <p class="synopsis">
+            扩展从加载到运行再到卸载，经历一个完整的生命周期。
+            理解生命周期有助于在正确的阶段执行初始化逻辑，以及处理异常情况。
+          </p>
+
+          <h2>加载流程总览</h2>
+
+          <p>扩展在鸽子启动时由 <code>_loader.js</code> 加载。完整的加载流程包含 14 个步骤：</p>
+
+<pre><code>┌─────────────────────────────────────────────────────┐
+│              扩展加载 14 步流水线                      │
+├─────────────────────────────────────────────────────┤
+│                                                     │
+│  ① 权限声明验证 + DoveAppContext 创建               │
+│  ② 开发者身份验证 + 授权检查                         │
+│  ③ LLM 层：意图注册                                 │
+│  ④ LLM 层：角色注册                                 │
+│  ⑤ LLM 层：执行增强                                 │
+│  ⑥ 工具层：技能注册                                 │
+│  ⑦ 工具层：工具注册                                 │
+│  ⑧ 工具层：MCP 配置                                 │
+│  ⑨ 能力注册                                        │
+│  ⑩ 策略意图注册                                     │
+│  ⑪ Web 资源上传          ──┐                        │
+│  ⑫ DB 权限注册            ──┤ 并行执行              │
+│  ⑬ onInit 钩子执行        ──┘                       │
+│  ⑭ 服务启动（如有声明）                              │
+│                                                     │
+└─────────────────────────────────────────────────────┘</code></pre>
+
+          <h2>详细步骤说明</h2>
+
+          <h3>步骤 1：权限声明验证 + DoveAppContext 创建</h3>
+
+          <p>系统解析 manifest.js 中的 <code>permissions</code> 字段，验证格式合法性，
+          然后基于声明的权限创建该扩展专属的 <code>DoveAppContext</code> 实例。</p>
+
+<pre><code>// 系统内部逻辑（开发者不需要关心实现）
+const ctx = new DoveAppContext({
+  extensionName: manifest.name,
+  permissions: manifest.permissions,
+  scope: determineScope(manifest)
+});</code></pre>
+
+          <div class="info">
+            <p>ctx 是扩展与系统交互的唯一通道。权限验证失败（如格式错误、非法 scope）会在此步骤中止加载。</p>
+          </div>
+
+          <h3>步骤 2：开发者身份验证 + 授权检查</h3>
+
+          <p>验证 <code>manifest.developer</code> 中的签名是否有效：</p>
+          <ul>
+            <li>检查开发者 ID 是否已注册</li>
+            <li>用 hmac-sha256 验证 manifest 内容完整性</li>
+            <li>确定授权模式：official / production / dev</li>
+          </ul>
+
+          <div class="warning">
+            <p>开发模式（<code>dove app dev</code>）下跳过签名验证，但权限自动降级为 user_scoped。</p>
+          </div>
+
+          <h3>步骤 3：LLM 层 — 意图注册</h3>
+
+          <p>加载 <code>intent.js</code>，将扩展的意图关键词和匹配逻辑注册到全局意图路由中。
+          之后当用户输入消息时，系统通过意图匹配决定激活哪个扩展。</p>
+
+<pre><code>// intent.js 在此步骤被加载并注册
+// 注册后，"查天气" 这类输入会被路由到天气查询扩展</code></pre>
+
+          <h3>步骤 4：LLM 层 — 角色注册</h3>
+
+          <p>加载 <code>roles.js</code>，注册 LLM 角色定义。鸽子在执行该扩展的任务时会使用对应的角色 prompt。</p>
+
+          <h3>步骤 5：LLM 层 — 执行增强</h3>
+
+          <p>加载 <code>execution.js</code>（如有），注册前置/后置处理钩子。
+          这些钩子在 LLM 调用前后执行，可用于上下文注入、结果后处理等。</p>
+
+          <h3>步骤 6：工具层 — 技能注册</h3>
+
+          <p>扫描 <code>skills/</code> 目录，加载并注册所有技能模块。每个 .js 文件被注册为一个技能。</p>
+
+          <h3>步骤 7：工具层 — 工具注册</h3>
+
+          <p>扫描 <code>tools/</code> 目录，加载并注册所有工具。验证每个工具的定义格式（name、description、safetyLevel、parameters、execute）。</p>
+
+          <h3>步骤 8：工具层 — MCP 配置</h3>
+
+          <p>如果扩展声明了 MCP（Model Context Protocol）配置，在此步骤完成 MCP 连接初始化。</p>
+
+          <h3>步骤 9：能力注册</h3>
+
+          <p>将扩展的 <code>abilities</code> 关键词注册到全局能力注册表中。
+          能力管理器通过这些关键词进行能力发现和路由。</p>
+
+          <h3>步骤 10：策略意图注册</h3>
+
+          <p>加载 <code>strategy.js</code>，注册执行策略。策略定义了如何编排技能和工具来完成复杂任务。</p>
+
+          <h3>步骤 11-13：并行执行</h3>
+
+          <p>以下三个步骤可以并行执行，提高加载速度：</p>
+
+          <div class="table-wrapper">
+            <table>
+              <thead>
+                <tr>
+                  <th>步骤</th>
+                  <th>内容</th>
+                  <th>说明</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>11</td>
+                  <td>Web 资源上传</td>
+                  <td>将 <code>web/</code> 目录下的前端资源上传到系统 Web 网关</td>
+                </tr>
+                <tr>
+                  <td>12</td>
+                  <td>DB 权限注册</td>
+                  <td>在数据库层面注册权限规则，确保运行时查询过滤正确生效</td>
+                </tr>
+                <tr>
+                  <td>13</td>
+                  <td>onInit 钩子执行</td>
+                  <td>执行扩展的初始化逻辑（如建立连接、预热缓存、事件订阅）</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <h4>onInit 钩子示例</h4>
+
+<pre><code>// 在 manifest.js 中声明
+export default {
+  // ...
+  onInit: async (ctx) => {
+    // 订阅需要监听的事件
+    ctx.events.subscribe('用户.登录', async (event) => {
+      ctx.log.info('用户登录', { userId: event.userId });
+    });
+
+    // 预热缓存
+    const config = await ctx.db.findOne('extensions', '配置', { name: '天气查询' });
+    ctx.cache.set('config', config);
+
+    ctx.log.info('天气查询扩展初始化完成');
+  }
+};</code></pre>
+
+          <h3>步骤 14：服务启动</h3>
+
+          <p>如果扩展声明了长期运行的服务（如定时任务、后台处理器），在此步骤启动。</p>
+
+<pre><code>// manifest.js 中声明服务
+export default {
+  // ...
+  service: {
+    type: 'interval',
+    interval: 60000,  // 每分钟执行
+    handler: async (ctx) => {
+      // 定时清理过期缓存
+      await ctx.db.deleteMany('extensions', '天气缓存', {
+        过期时间: { $lt: new Date() }
+      });
+    }
+  }
+};</code></pre>
+
+          <h2>卸载流程</h2>
+
+          <p>扩展卸载时执行逆向清理：</p>
+
+<pre><code>┌──────────────────────────────────┐
+│          扩展卸载流程             │
+├──────────────────────────────────┤
+│ 1. 停止服务（如有）              │
+│ 2. 执行 onDestroy 钩子          │
+│ 3. 取消事件订阅                  │
+│ 4. 注销工具和技能                │
+│ 5. 注销意图和策略                │
+│ 6. 撤销 DB 权限注册             │
+│ 7. 清理 Web 资源                │
+│ 8. 销毁 DoveAppContext          │
+└──────────────────────────────────┘</code></pre>
+
+          <h4>onDestroy 钩子</h4>
+
+<pre><code>export default {
+  // ...
+  onDestroy: async (ctx) => {
+    // 释放外部连接
+    // 保存必要状态
+    ctx.log.info('扩展正在卸载，执行清理...');
+  }
+};</code></pre>
+
+          <h2>错误处理</h2>
+
+          <div class="tip">
+            <p>核心原则：单个扩展加载失败不会阻塞其他扩展和系统启动。</p>
+          </div>
+
+          <h3>加载失败处理</h3>
+
+<pre><code>// _loader.js 内部逻辑
+for (const ext of extensions) {
+  try {
+    await loadExtension(ext);
+    log.info(`扩展 [${ext.name}] 加载成功`);
+  } catch (error) {
+    log.error(`扩展 [${ext.name}] 加载失败`, { error: error.message });
+    // 记录失败，继续加载下一个扩展
+    failedExtensions.push({ name: ext.name, error: error.message });
+  }
+}</code></pre>
+
+          <h3>常见加载失败原因</h3>
+
+          <div class="table-wrapper">
+            <table>
+              <thead>
+                <tr>
+                  <th>错误</th>
+                  <th>阶段</th>
+                  <th>处理</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>权限格式非法</td>
+                  <td>步骤 1</td>
+                  <td>加载中止，输出格式错误详情</td>
+                </tr>
+                <tr>
+                  <td>签名验证失败</td>
+                  <td>步骤 2</td>
+                  <td>加载中止，可能是 manifest 被篡改</td>
+                </tr>
+                <tr>
+                  <td>工具定义不合法</td>
+                  <td>步骤 7</td>
+                  <td>跳过该工具，其余工具正常注册</td>
+                </tr>
+                <tr>
+                  <td>onInit 抛出异常</td>
+                  <td>步骤 13</td>
+                  <td>记录错误，扩展仍标记为已加载（可用但可能功能不完整）</td>
+                </tr>
+                <tr>
+                  <td>依赖扩展未加载</td>
+                  <td>预处理</td>
+                  <td>延迟加载，所有依赖就绪后重试</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <h2>热重载</h2>
+
+          <p>开发模式下支持热重载，修改扩展文件后自动重新加载：</p>
+
+<pre><code># 启动开发模式（自动监听文件变化）
+dove app dev 天气查询 --watch</code></pre>
+
+          <p>热重载流程：</p>
+          <ol>
+            <li>检测到文件变化</li>
+            <li>执行卸载流程（上述 8 步）</li>
+            <li>重新执行加载流程（14 步）</li>
+            <li>输出重载结果</li>
+          </ol>
+
+          <div class="warning">
+            <p>热重载会清除扩展的运行时状态（内存缓存、事件订阅等）。
+            如果扩展依赖持久状态，应将状态存储在数据库中而非内存。</p>
+          </div>
+
+          <h2>生命周期钩子总结</h2>
+
+          <div class="table-wrapper">
+            <table>
+              <thead>
+                <tr>
+                  <th>钩子</th>
+                  <th>时机</th>
+                  <th>用途</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><code>onInit</code></td>
+                  <td>加载完成后（步骤 13）</td>
+                  <td>初始化连接、订阅事件、预热缓存</td>
+                </tr>
+                <tr>
+                  <td><code>onDestroy</code></td>
+                  <td>卸载时</td>
+                  <td>释放资源、保存状态、清理连接</td>
+                </tr>
+                <tr>
+                  <td><code>service.handler</code></td>
+                  <td>周期性执行（步骤 14 启动）</td>
+                  <td>定时任务、后台处理</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <h2>调试技巧</h2>
+
+<pre><code># 查看扩展加载状态
+dove app status
+
+# 查看特定扩展的加载详情
+dove app status 天气查询 --verbose
+
+# 输出示例：
+# 扩展：天气查询 v1.0.0
+# 状态：已加载 ✓
+# 加载耗时：127ms
+# 注册工具：3 个
+# 注册技能：2 个
+# 权限：databases(1), externalUrls(1)
+# 最后加载：2026-05-21 10:30:15</code></pre>
+
+          <h2>相关页面</h2>
+
+          <ul>
+            <li><a href="manifest.html">manifest.js 规范</a> — 各字段在生命周期中的作用</li>
+            <li><a href="tools.html">工具开发</a> — 步骤 7 工具注册的详细要求</li>
+            <li><a href="skills.html">技能开发</a> — 步骤 6 技能注册的详细要求</li>
+          </ul>
+
+        </article>
+      </main>
+    </div>
+  </div>
+  <script src="../js/components.js"></script>
+  <script src="../js/nav.js"></script>
+  <script src="../js/search.js"></script>
+</body>
+</html>

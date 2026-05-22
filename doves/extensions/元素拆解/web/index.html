@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html><head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>元素拆解</title>
+<link rel="stylesheet" href="/css/style.css">
+<style>
+  .tip-box {
+    background: var(--bg-card); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 12px 16px;
+    margin-bottom: 20px; font-size: 13px; color: var(--text-secondary);
+    line-height: 1.6;
+  }
+  .card-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 12px;
+  }
+  .action-card {
+    cursor: pointer; transition: transform 0.2s, box-shadow 0.2s;
+    padding: 16px;
+  }
+  .action-card:hover { transform: translateY(-2px); }
+  .action-card .icon { font-size: 28px; margin-bottom: 8px; }
+  .action-card .title { font-weight: 600; color: var(--text); margin-bottom: 4px; }
+  .action-card .desc { font-size: 12px; color: var(--text-secondary); }
+  .steps-card { margin-top: 20px; padding: 16px; }
+  .steps-card h3 { margin-bottom: 12px; font-size: 14px; color: var(--text-secondary); }
+  .step {
+    display: flex; align-items: flex-start;
+    margin-bottom: 10px; font-size: 13px; color: var(--text);
+  }
+  .step-num {
+    width: 22px; height: 22px; border-radius: 50%;
+    background: var(--primary); color: #fff; font-size: 11px;
+    display: flex; align-items: center; justify-content: center;
+    margin-right: 10px; flex-shrink: 0; margin-top: 1px;
+  }
+</style>
+</head><body>
+<div class="page-header">
+  <h1 class="page-title">元素拆解</h1>
+</div>
+
+<div class="tip-box">
+  上传一张包含多个元素的图片，AI 会自动识别并拆解出每个独立元素，白底填充后打包 ZIP 下载
+</div>
+
+<div class="card-grid">
+  <div class="card action-card" data-msg="帮我把这张图片的所有元素拆出来，白底填充，打包zip">
+    <div class="icon">🖼️</div>
+    <div class="title">上传图片拆元素</div>
+    <div class="desc">选择一张图片，自动拆出所有元素</div>
+  </div>
+  <div class="card action-card" data-msg="帮我识别这张图里有哪些独立元素，逐个提取出来">
+    <div class="icon">🔍</div>
+    <div class="title">识别并提取</div>
+    <div class="desc">先分析图片中有哪些可拆元素</div>
+  </div>
+  <div class="card action-card" data-msg="帮我把图片里的每个元素单独抠出来，导出透明背景">
+    <div class="icon">✂️</div>
+    <div class="title">抠图导出</div>
+    <div class="desc">逐个元素抠图，单独导出</div>
+  </div>
+</div>
+
+<div class="card steps-card">
+  <h3>使用步骤</h3>
+  <div class="step"><span class="step-num">1</span>点击上方按钮，进入对话模式</div>
+  <div class="step"><span class="step-num">2</span>上传或拖入你要拆解的图片</div>
+  <div class="step"><span class="step-num">3</span>AI 自动识别元素 → 规划拆解方案</div>
+  <div class="step"><span class="step-num">4</span>验证完成后打包 ZIP，提供下载链接</div>
+</div>
+
+<script src="/js/sdk.js"></script>
+<script>
+DoveSDK.init('元素拆解');
+
+document.querySelectorAll('.action-card[data-msg]').forEach(card => {
+  card.addEventListener('click', () => {
+    DoveSDK.cmd('chat send', { message: card.dataset.msg });
+    DoveSDK.navigateTo('chat');
+  });
+});
+</script>
+</body></html>

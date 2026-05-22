@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html><head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>报表中心</title>
+<link rel="stylesheet" href="/css/style.css">
+<style>
+  .tip-box {
+    background: var(--bg-card); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 12px 16px;
+    margin-bottom: 20px; font-size: 13px; color: var(--text-secondary);
+  }
+  .card-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 12px;
+  }
+  .action-card {
+    cursor: pointer; transition: transform 0.2s;
+    padding: 16px;
+  }
+  .action-card:hover { transform: translateY(-2px); }
+  .action-card .icon { font-size: 24px; margin-bottom: 8px; }
+  .action-card .title { font-weight: 600; color: var(--text); margin-bottom: 4px; }
+  .action-card .desc { font-size: 12px; color: var(--text-secondary); }
+</style>
+</head><body>
+<div class="page-header">
+  <h1 class="page-title">报表中心</h1>
+</div>
+
+<div class="tip-box">自动化报表生成，支持 Excel/HTML/PDF 格式输出</div>
+
+<div class="card-grid">
+  <div class="card action-card" data-cmd="生成周报">
+    <div class="icon">📅</div>
+    <div class="title">周报</div>
+    <div class="desc">自动汇总本周工作数据</div>
+  </div>
+  <div class="card action-card" data-cmd="生成月报">
+    <div class="icon">📆</div>
+    <div class="title">月报</div>
+    <div class="desc">月度趋势与关键指标</div>
+  </div>
+  <div class="card action-card" data-cmd="生成质量报告">
+    <div class="icon">🏆</div>
+    <div class="title">质量报告</div>
+    <div class="desc">代码质量/测试覆盖率/缺陷分析</div>
+  </div>
+  <div class="card action-card" data-cmd="生成性能报告">
+    <div class="icon">⚡</div>
+    <div class="title">性能报告</div>
+    <div class="desc">响应时间/吞吐量/资源利用率</div>
+  </div>
+</div>
+
+<script src="/js/sdk.js"></script>
+<script>
+DoveSDK.init('数据分析');
+
+function sendCmd(text) {
+  DoveSDK.cmd(text);
+  DoveSDK.navigateTo('chat');
+}
+
+document.querySelectorAll('.action-card[data-cmd]').forEach(card => {
+  card.addEventListener('click', () => {
+    sendCmd(card.dataset.cmd);
+  });
+});
+</script>
+</body></html>

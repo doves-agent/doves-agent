@@ -1,0 +1,518 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>存储命令 - 白鸽文档</title>
+  <link rel="stylesheet" href="../css/style.css">
+</head>
+<body>
+  <div id="app">
+    <header id="site-header"></header>
+    <div class="layout">
+      <aside id="sidebar"></aside>
+      <main class="content">
+        <article>
+          <h1>存储命令</h1>
+          <p>存储命令管理白鸽系统的文件、Git 仓储、OSS 临时空间和向量记忆。</p>
+
+          <!-- dove file -->
+          <h2 id="dove-file">dove file</h2>
+          <p>文件操作命令，支持读写、上传下载等基本文件操作。</p>
+
+          <div class="synopsis">
+            <span class="cmd">dove</span> <span class="arg">file</span> <span class="opt">[action]</span> <span class="opt">[path]</span> <span class="opt">[options]</span>
+          </div>
+
+          <h3>Actions</h3>
+          <div class="table-wrapper">
+            <table>
+              <thead>
+                <tr>
+                  <th>Action</th>
+                  <th>Description</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><code>read &lt;path&gt;</code></td>
+                  <td>读取文件内容</td>
+                </tr>
+                <tr>
+                  <td><code>write &lt;path&gt;</code></td>
+                  <td>写入文件</td>
+                </tr>
+                <tr>
+                  <td><code>list [dir]</code></td>
+                  <td>列出目录文件</td>
+                </tr>
+                <tr>
+                  <td><code>delete &lt;path&gt;</code></td>
+                  <td>删除文件</td>
+                </tr>
+                <tr>
+                  <td><code>upload &lt;path&gt;</code></td>
+                  <td>上传本地文件到 OSS</td>
+                </tr>
+                <tr>
+                  <td><code>download &lt;path&gt;</code></td>
+                  <td>从 OSS 下载文件</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <h3>选项</h3>
+          <div class="table-wrapper">
+            <table>
+              <thead>
+                <tr>
+                  <th>Flag</th>
+                  <th>Description</th>
+                  <th>Default</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><code>-o, --output &lt;path&gt;</code></td>
+                  <td>输出路径（下载时使用）</td>
+                  <td>当前目录</td>
+                </tr>
+                <tr>
+                  <td><code>-c, --content &lt;text&gt;</code></td>
+                  <td>写入内容（write 时使用）</td>
+                  <td>stdin</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <h3>示例</h3>
+          <pre><code># 读取文件
+dove file read /data/report.md
+
+# 写入文件
+dove file write /data/note.txt -c "这是一段备注"
+
+# 列出目录
+dove file list /data/
+
+# 上传文件到 OSS
+dove file upload ./local-file.pdf
+
+# 下载文件
+dove file download oss://reports/2024-q1.pdf -o ./downloads/
+
+# 删除文件
+dove file delete /data/temp.txt</code></pre>
+
+          <!-- dove storage -->
+          <h2 id="dove-storage">dove storage</h2>
+          <p>高级存储管理命令，涵盖 Git 仓储、OSS 临时空间和目录权限管理。</p>
+
+          <div class="synopsis">
+            <span class="cmd">dove</span> <span class="arg">storage</span> <span class="opt">[action]</span> <span class="opt">[args...]</span> <span class="opt">[options]</span>
+          </div>
+
+          <h3>Git 仓储 Actions</h3>
+          <div class="table-wrapper">
+            <table>
+              <thead>
+                <tr>
+                  <th>Action</th>
+                  <th>Description</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><code>status</code></td>
+                  <td>查看 Git 存储状态</td>
+                </tr>
+                <tr>
+                  <td><code>mount &lt;repo&gt;</code></td>
+                  <td>挂载 Git 仓库</td>
+                </tr>
+                <tr>
+                  <td><code>clone &lt;url&gt;</code></td>
+                  <td>克隆远程仓库</td>
+                </tr>
+                <tr>
+                  <td><code>quota</code></td>
+                  <td>查看存储配额</td>
+                </tr>
+                <tr>
+                  <td><code>quota-set &lt;size&gt;</code></td>
+                  <td>设置存储配额</td>
+                </tr>
+                <tr>
+                  <td><code>quota-delete</code></td>
+                  <td>删除配额限制</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <h3>OSS 临时空间 Actions</h3>
+          <div class="table-wrapper">
+            <table>
+              <thead>
+                <tr>
+                  <th>Action</th>
+                  <th>Description</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><code>temp-create</code></td>
+                  <td>创建临时空间</td>
+                </tr>
+                <tr>
+                  <td><code>temp-urls</code></td>
+                  <td>获取临时空间访问 URL</td>
+                </tr>
+                <tr>
+                  <td><code>temp-list</code></td>
+                  <td>列出临时空间</td>
+                </tr>
+                <tr>
+                  <td><code>temp-upload &lt;file&gt;</code></td>
+                  <td>上传到临时空间</td>
+                </tr>
+                <tr>
+                  <td><code>temp-copy &lt;src&gt; &lt;dst&gt;</code></td>
+                  <td>临时空间内复制</td>
+                </tr>
+                <tr>
+                  <td><code>temp-finalize &lt;id&gt;</code></td>
+                  <td>归档临时空间为永久存储</td>
+                </tr>
+                <tr>
+                  <td><code>temp-delete &lt;id&gt;</code></td>
+                  <td>删除临时空间</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <h3>目录管理 Actions</h3>
+          <div class="table-wrapper">
+            <table>
+              <thead>
+                <tr>
+                  <th>Action</th>
+                  <th>Description</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><code>dir-list</code></td>
+                  <td>列出托管目录</td>
+                </tr>
+                <tr>
+                  <td><code>dir-create &lt;name&gt;</code></td>
+                  <td>创建托管目录</td>
+                </tr>
+                <tr>
+                  <td><code>dir-info &lt;name&gt;</code></td>
+                  <td>查看目录信息</td>
+                </tr>
+                <tr>
+                  <td><code>perm-grant</code></td>
+                  <td>授予目录访问权限</td>
+                </tr>
+                <tr>
+                  <td><code>perm-revoke</code></td>
+                  <td>撤销目录访问权限</td>
+                </tr>
+                <tr>
+                  <td><code>perm-list</code></td>
+                  <td>列出目录权限</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <h3>文件操作 Actions</h3>
+          <div class="table-wrapper">
+            <table>
+              <thead>
+                <tr>
+                  <th>Action</th>
+                  <th>Description</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><code>file-read &lt;path&gt;</code></td>
+                  <td>读取存储中的文件</td>
+                </tr>
+                <tr>
+                  <td><code>file-write &lt;path&gt;</code></td>
+                  <td>写入文件到存储</td>
+                </tr>
+                <tr>
+                  <td><code>file-delete &lt;path&gt;</code></td>
+                  <td>删除存储中的文件</td>
+                </tr>
+                <tr>
+                  <td><code>file-list [dir]</code></td>
+                  <td>列出存储目录内容</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <h3>选项</h3>
+          <div class="table-wrapper">
+            <table>
+              <thead>
+                <tr>
+                  <th>Flag</th>
+                  <th>Description</th>
+                  <th>Default</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><code>-p, --path &lt;path&gt;</code></td>
+                  <td>目标路径</td>
+                  <td>-</td>
+                </tr>
+                <tr>
+                  <td><code>-t, --target &lt;target&gt;</code></td>
+                  <td>目标位置</td>
+                  <td>-</td>
+                </tr>
+                <tr>
+                  <td><code>-s, --source &lt;source&gt;</code></td>
+                  <td>源位置</td>
+                  <td>-</td>
+                </tr>
+                <tr>
+                  <td><code>--owner &lt;uid&gt;</code></td>
+                  <td>所有者 UID</td>
+                  <td>当前用户</td>
+                </tr>
+                <tr>
+                  <td><code>--task &lt;id&gt;</code></td>
+                  <td>关联任务 ID</td>
+                  <td>-</td>
+                </tr>
+                <tr>
+                  <td><code>--hash</code></td>
+                  <td>计算文件哈希</td>
+                  <td>false</td>
+                </tr>
+                <tr>
+                  <td><code>--capacity &lt;size&gt;</code></td>
+                  <td>容量限制（如 1GB）</td>
+                  <td>-</td>
+                </tr>
+                <tr>
+                  <td><code>--inodes &lt;n&gt;</code></td>
+                  <td>最大文件数</td>
+                  <td>-</td>
+                </tr>
+                <tr>
+                  <td><code>--preserve</code></td>
+                  <td>保留原始属性</td>
+                  <td>false</td>
+                </tr>
+                <tr>
+                  <td><code>--sync-to &lt;path&gt;</code></td>
+                  <td>同步到本地路径</td>
+                  <td>-</td>
+                </tr>
+                <tr>
+                  <td><code>-f, --file &lt;file&gt;</code></td>
+                  <td>指定文件</td>
+                  <td>-</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <h3>示例</h3>
+          <pre><code># 查看存储状态
+dove storage status
+
+# 挂载仓库
+dove storage mount my-project
+
+# 克隆远程仓库
+dove storage clone https://github.com/user/repo.git
+
+# 查看配额
+dove storage quota
+
+# 创建临时空间
+dove storage temp-create
+
+# 上传到临时空间
+dove storage temp-upload ./output.zip
+
+# 归档为永久存储
+dove storage temp-finalize tmp_abc123
+
+# 创建托管目录
+dove storage dir-create "项目文件" --capacity 5GB --inodes 1000
+
+# 授予目录权限
+dove storage perm-grant -p "/项目文件" --owner user_456
+
+# 读取存储文件
+dove storage file-read /projects/readme.md
+
+# 列出存储目录
+dove storage file-list /projects/</code></pre>
+
+          <!-- dove memory -->
+          <h2 id="dove-memory">dove memory</h2>
+          <p>向量记忆管理命令（别名：<code>mem</code>）。管理鸽子的长期记忆，支持语义搜索。</p>
+
+          <div class="synopsis">
+            <span class="cmd">dove</span> <span class="arg">memory</span> <span class="opt">[action]</span> <span class="opt">[query]</span> <span class="opt">[options]</span>
+          </div>
+
+          <h3>Actions</h3>
+          <div class="table-wrapper">
+            <table>
+              <thead>
+                <tr>
+                  <th>Action</th>
+                  <th>Description</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><code>search</code> / <code>s</code></td>
+                  <td>语义搜索记忆</td>
+                </tr>
+                <tr>
+                  <td><code>list</code> / <code>ls</code></td>
+                  <td>列出记忆条目</td>
+                </tr>
+                <tr>
+                  <td><code>stats</code></td>
+                  <td>记忆统计信息</td>
+                </tr>
+                <tr>
+                  <td><code>add</code> / <code>a</code></td>
+                  <td>手动添加记忆</td>
+                </tr>
+                <tr>
+                  <td><code>delete</code> / <code>del</code> / <code>d</code></td>
+                  <td>删除记忆条目</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <h3>选项</h3>
+          <div class="table-wrapper">
+            <table>
+              <thead>
+                <tr>
+                  <th>Flag</th>
+                  <th>Description</th>
+                  <th>Default</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><code>-u, --user &lt;uid&gt;</code></td>
+                  <td>指定用户</td>
+                  <td>当前用户</td>
+                </tr>
+                <tr>
+                  <td><code>-t, --type &lt;type&gt;</code></td>
+                  <td>记忆类型：event_trigger, conversation, knowledge, instruction</td>
+                  <td>全部</td>
+                </tr>
+                <tr>
+                  <td><code>-p, --page &lt;n&gt;</code></td>
+                  <td>页码</td>
+                  <td>1</td>
+                </tr>
+                <tr>
+                  <td><code>-l, --limit &lt;n&gt;</code></td>
+                  <td>每页条数</td>
+                  <td>20</td>
+                </tr>
+                <tr>
+                  <td><code>--threshold &lt;n&gt;</code></td>
+                  <td>相似度阈值（0-1）</td>
+                  <td>0.7</td>
+                </tr>
+                <tr>
+                  <td><code>--top-k &lt;n&gt;</code></td>
+                  <td>返回最相关的 K 条</td>
+                  <td>5</td>
+                </tr>
+                <tr>
+                  <td><code>--json</code></td>
+                  <td>JSON 格式输出</td>
+                  <td>false</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <h3>记忆类型说明</h3>
+          <div class="info">
+            <ul>
+              <li><strong>event_trigger</strong> - 事件触发器（当某事发生时自动响应）</li>
+              <li><strong>conversation</strong> - 对话记忆（重要对话片段）</li>
+              <li><strong>knowledge</strong> - 知识（用户教授的事实信息）</li>
+              <li><strong>instruction</strong> - 指令（用户的偏好和要求）</li>
+            </ul>
+          </div>
+
+          <h3>示例</h3>
+          <pre><code># 语义搜索
+dove memory search "上次讨论的项目方案"
+
+# 按类型搜索
+dove mem s "每周报告" -t instruction
+
+# 调整相似度和数量
+dove mem s "服务器部署" --threshold 0.8 --top-k 10
+
+# 列出所有记忆
+dove mem ls
+
+# 按类型列出
+dove mem ls -t knowledge
+
+# 查看统计
+dove mem stats
+
+# 手动添加知识记忆
+dove mem add "用户偏好使用 Claude 模型处理复杂任务" -t instruction
+
+# 删除记忆
+dove mem del mem_abc123
+
+# JSON 输出（便于脚本处理）
+dove mem ls --json | jq '.[] | select(.type == "knowledge")'</code></pre>
+
+          <div class="warning">
+            <p><strong>注意</strong>：记忆一旦删除无法恢复。建议删除前先用 <code>dove mem ls</code> 确认记忆内容。</p>
+          </div>
+
+          <h2>相关命令</h2>
+          <ul>
+            <li><a href="chat.html#dove-chat">dove chat</a> - 对话过程中自动生成记忆</li>
+            <li><a href="config.html#dove-config">dove config</a> - 存储相关配置</li>
+            <li><a href="service.html#dove-service">dove service</a> - 存储服务状态</li>
+          </ul>
+
+        </article>
+      </main>
+    </div>
+  </div>
+  <script src="../js/components.js"></script>
+  <script src="../js/nav.js"></script>
+  <script src="../js/search.js"></script>
+</body>
+</html>
